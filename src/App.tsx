@@ -2,6 +2,8 @@
 // MODULE: App.jsx  (root component)
 // En React: src/App.tsx
 // ═══════════════════════════════════════════════════════════════════════════
+
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { useProjects } from './hooks/useProjects';
