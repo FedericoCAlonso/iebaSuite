@@ -28,6 +28,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
+          path: ./dist
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
           path: ./dist # Usa 'build' si usaste create-react-app o 'dist' si usaste Vite
 
   deploy:
