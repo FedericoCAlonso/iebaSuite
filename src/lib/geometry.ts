@@ -104,6 +104,7 @@ export const GEO = (() => {
     return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
   }
 
+  
   // Dado un click en (cx,cy), encuentra la pared más cercana y la posición sobre ella
   function snapAPared(cx, cy, segs) {
     let best=null, bestDist=Infinity, bestPos=0, bestSeg=null, bestIdx=-1;
