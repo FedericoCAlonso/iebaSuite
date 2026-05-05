@@ -7,9 +7,16 @@ import React from 'react';
 import { useZoomPan } from '../hooks/useZoomPan';
 import { RENDERER } from '../lib/renderer';
 import { GEO } from '../lib/geometry';
+import type{ Ambiente, ElementoElectrico } from '../types';
 
-export function Preview({ ambiente, meta, onInsertElemento }) {
-  const containerRef = React.useRef( null);
+interface PreviewProps {
+  ambiente: Ambiente;
+  meta: { nombre: string; escala: number; grosor_pared_default: number };
+  onInsertElemento: (clickData: any) => void;
+}
+
+export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
   const svgContent = React.useMemo(() => {
@@ -17,7 +24,7 @@ export function Preview({ ambiente, meta, onInsertElemento }) {
     return RENDERER.render(ambiente, meta, false);
   }, [ambiente, meta]);
 
-  const handleClick = React.useCallback((e) => {
+  const handleClick = React.useCallback((e: React.MouseEvent) => {
     if (!ambiente || !meta) return;
     const container=containerRef.current;
     if (!container) return;
@@ -31,10 +38,10 @@ export function Preview({ ambiente, meta, onInsertElemento }) {
     const px=rawX-dx, py=rawY-dy;
 
     // click en elemento existente?
-    const elecEl=e.target.closest('[data-elec-id]');
+    const elecEl=(e.target as Element).closest('[data-elec-id]');
     if (elecEl) {
       const id=elecEl.getAttribute('data-elec-id');
-      const el=ambiente.elementos?.find(x=>x.id===id);
+      const el=ambiente.elementos?.find((x: ElementoElectrico)=>x.id===id);
       if (el) { onInsertElemento({existing:el}); return; }
     }
 

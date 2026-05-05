@@ -5,13 +5,19 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import React from 'react';
 
-//export function NumInput({ value, onChange, step=1, placeholder='', style={} }) {
-export function NumInput({ value, onChange,step=1, placeholder='', style={} }) {
+interface NumInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
+}
+
+export function NumInput({ value, onChange, placeholder='', style={} }: NumInputProps) {
   // Mantener string interno para evitar conflictos con signo negativo
   const [str, setStr] = React.useState(String(value??''));
   React.useEffect(() => { setStr(String(value??'')); }, [value]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     setStr(raw);
     // solo disparar onChange si es número válido

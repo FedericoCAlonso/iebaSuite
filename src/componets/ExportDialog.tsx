@@ -3,13 +3,19 @@
 // En React: src/components/ExportDialog.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 import React from "react";
-import { SIMBOLOS_INFO } from "../types";
+import { SIMBOLOS_INFO, Project } from "../types";
 import { RENDERER } from "../lib/renderer";
 
-export function ExportDialog({ project, onClose, onToast }) {
+interface ExportDialogProps {
+  project: Project;
+  onClose: () => void;
+  onToast: (msg: string) => void;
+}
+
+export function ExportDialog({ project, onClose, onToast }: ExportDialogProps) {
   const [inclRefs, setInclRefs] = React.useState(true);
 
-  const downloadBlob = (content, name, type) => {
+  const downloadBlob = (content: string, name: string, type: string) => {
     const url=URL.createObjectURL(new Blob([content],{type}));
     Object.assign(document.createElement('a'),{href:url,download:name}).click();
     URL.revokeObjectURL(url);
