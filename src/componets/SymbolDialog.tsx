@@ -5,13 +5,20 @@
 // En React: src/components/SymbolDialog.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 import React from 'react';
-import { SIMBOLOS_LIBRES, SIMBOLOS_PARED, SIMBOLOS_INFO } from '../types';
+import { SIMBOLOS_LIBRES, SIMBOLOS_PARED, SIMBOLOS_INFO, type ElementoElectrico } from '../types';
 import { F } from './Field';   
 import { STORAGE } from '../lib/storage';
 
-export function SymbolDialog({ clickData, onConfirm, onCancel }) {
+interface SymbolDialogProps {
+  clickData: { x: number; y: number; snapSeg?: any; snapPos?: number; snapSegIdx?: number } | { existing: ElementoElectrico };
+  onConfirm: (data: ElementoElectrico | null) => void;
+  onCancel: () => void;
+}
+
+export function SymbolDialog({ clickData, onConfirm, onCancel }: SymbolDialogProps) {
   // clickData: { x, y, snapSeg, snapPos, snapSegIdx } | { existing }
-  const existing = clickData?.existing;
+  const existing = 'existing' in clickData ? clickData.existing : null;
+
   const [tipo, setTipo] = React.useState(existing?.tipo||'sym-boca-techo');
   const [ref,  setRef]  = React.useState(existing?.referencia||'');
   const [datos,setDatos]= React.useState(existing?.datos||[]);
@@ -19,7 +26,7 @@ export function SymbolDialog({ clickData, onConfirm, onCancel }) {
   const esPared = SIMBOLOS_PARED.includes(tipo);
 
   const handleConfirm = () => {
-    if (existing) {
+    if ('existing' in clickData) {
       onConfirm({ ...existing, tipo, referencia:ref, datos, mostrarDato:mostrar });
     } else {
       const el = STORAGE.newElemento(tipo, clickData.x||100, clickData.y||100);
@@ -47,24 +54,24 @@ export function SymbolDialog({ clickData, onConfirm, onCancel }) {
             </optgroup>
           </select>
         </F>
-        {esPared && clickData?.snapSegIdx!=null && !existing && (
+        {esPared && !existing && 'snapSegIdx' in clickData && clickData.snapSegIdx != null && (
           <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--green)'}}>
             ✓ Snap a pared #{clickData.snapSegIdx} · pos {((clickData.snapPos||0)*50/1000).toFixed(2)}m
           </div>
         )}
         <F label="Referencia">
-          <input value={ref} onChange={e=>setRef(e.target.value)} placeholder="L1, T1, TC2…"/>
+          <input value={ref} onChange={(e: React.ChangeEvent<HTMLInputElement>)=>setRef(e.target.value)} placeholder="L1, T1, TC2…"/>
         </F>
         <F label="Mostrar dato en SVG exportado">
-          <select value={mostrar?'si':'no'} onChange={e=>setMostrar(e.target.value==='si')}>
+          <select value={mostrar?'si':'no'} onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>setMostrar(e.target.value==='si')}>
             <option value="no">No</option><option value="si">Sí (1er dato)</option>
           </select>
         </F>
         <div className="sec-hdr">Datos técnicos</div>
-        {datos.map((d,j)=>(
+        {datos.map((d: {clave: string; valor: string}, j: number)=>(
           <div key={j} className="field-row" style={{alignItems:'flex-end'}}>
-            <input value={d.clave} placeholder="clave" onChange={e=>{const a=[...datos];a[j]={...d,clave:e.target.value};setDatos(a);}}/>
-            <input value={d.valor} placeholder="valor" onChange={e=>{const a=[...datos];a[j]={...d,valor:e.target.value};setDatos(a);}}/>
+            <input value={d.clave} placeholder="clave" onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{const a=[...datos];a[j]={...d,clave:e.target.value};setDatos(a);}}/>
+            <input value={d.valor} placeholder="valor" onChange={(e: React.ChangeEvent<HTMLInputElement>)=>{const a=[...datos];a[j]={...d,valor:e.target.value};setDatos(a);}}/>
             <button className="btn btn-danger btn-xs" onClick={()=>{const a=[...datos];a.splice(j,1);setDatos(a);}}>✕</button>
           </div>
         ))}

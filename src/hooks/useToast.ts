@@ -7,7 +7,7 @@
 import React from 'react';  
 
 export function useToast() {
-  const [toast, setToast] = React.useState(null);
-  const show = (msg) => { setToast(msg); setTimeout(()=>setToast(null),2500); };
+  const [toast, setToast] = React.useState<string | null>(null);
+  const show = (msg: string) => { setToast(msg); setTimeout(()=>setToast(null),2500); };
   return { toast, show };
 }

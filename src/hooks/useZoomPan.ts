@@ -2,27 +2,27 @@
 import React from 'react';
 
 
-export function useZoomPan(containerRef) {
+export function useZoomPan(containerRef: React.RefObject<HTMLElement>) {
   const [zoom, setZoom] = React.useState(1);
   const [pan, setPan]   = React.useState({x:0,y:0});
   const dragging = React.useRef(false);
   const lastPos  = React.useRef({x:0,y:0});
-  const lastDist = React.useRef(null);
+  const lastDist = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    const onWheel = (e) => {
+    const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.12 : 0.89;
       setZoom(z => Math.max(0.1, Math.min(10, z*factor)));
     };
 
-    const onMouseDown = (e) => {
+    const onMouseDown = (e: MouseEvent) => {
       if (e.button===1 || e.altKey) { dragging.current=true; lastPos.current={x:e.clientX,y:e.clientY}; e.preventDefault(); }
     };
-    const onMouseMove = (e) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (!dragging.current) return;
       setPan(p=>({x:p.x+(e.clientX-lastPos.current.x), y:p.y+(e.clientY-lastPos.current.y)}));
       lastPos.current={x:e.clientX,y:e.clientY};
@@ -30,15 +30,15 @@ export function useZoomPan(containerRef) {
     const onMouseUp = () => { dragging.current=false; };
 
     // touch pinch
-    const onTouchStart = (e) => {
+    const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length===2) {
         lastDist.current = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
       } else if (e.touches.length===1) {
         dragging.current=true; lastPos.current={x:e.touches[0].clientX,y:e.touches[0].clientY};
       }
     };
-    const onTouchMove = (e) => {
-      if (e.touches.length===2 && lastDist.current) {
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length===2 && lastDist.current !== null) {
         const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
         setZoom(z=>Math.max(0.1,Math.min(10,z*(d/lastDist.current))));
         lastDist.current=d;

@@ -7,25 +7,26 @@
 // useProjects — gestión completa del estado de proyectos
 import React from 'react';  
 import {STORAGE} from '../lib/storage';
+import type{ Project, Ambiente } from '../types';
 
 
 
 
 export function useProjects() {
-  const [projects, setProjects] = React.useState(() => STORAGE.load());
-  const [activeProjectId, setActiveProjectId] = React.useState(null);
-  const [activeAmbienteId, setActiveAmbienteId] = React.useState(null);
+  const [projects, setProjects] = React.useState<Project[]>(() => STORAGE.load());
+  const [activeProjectId, setActiveProjectId] = React.useState<string | null>(null);
+  const [activeAmbienteId, setActiveAmbienteId] = React.useState<string | null>(null);
 
   React.useEffect(() => { STORAGE.save(projects); }, [projects]);
 
-  const activeProject  = projects.find(p=>p.id===activeProjectId) || null;
-  const activeAmbiente = activeProject?.ambientes?.find(a=>a.id===activeAmbienteId) || activeProject?.ambientes?.[0] || null;
+  const activeProject  = projects.find((p: Project)=>p.id===activeProjectId) || null;
+  const activeAmbiente = activeProject?.ambientes?.find((a: Ambiente)=>a.id===activeAmbienteId) || activeProject?.ambientes?.[0] || null;
 
-  const updateProject = React.useCallback((id, fn) => {
+  const updateProject = React.useCallback((id: string | null, fn: (p: Project) => Project) => {
     setProjects(ps => ps.map(p => p.id===id ? { ...fn(p), updatedAt:Date.now() } : p));
   }, []);
 
-  const updateAmbiente = React.useCallback((fn) => {
+  const updateAmbiente = React.useCallback((fn: (a: Ambiente) => Ambiente) => {
     if (!activeProjectId || !activeAmbienteId) return;
     updateProject(activeProjectId, p => ({
       ...p,
@@ -33,9 +34,9 @@ export function useProjects() {
     }));
   }, [activeProjectId, activeAmbienteId, updateProject]);
 
-  const selectProject = (id) => {
+  const selectProject = (id: string) => {
     setActiveProjectId(id);
-    const p = projects.find(x=>x.id===id);
+    const p = projects.find((x: Project)=>x.id===id);
     setActiveAmbienteId(p?.ambientes?.[0]?.id || null);
   };
 
@@ -47,27 +48,37 @@ export function useProjects() {
     return p;
   };
 
-  const deleteProject = (id) => {
-    setProjects(ps => ps.filter(p => p.id!==id));
+  const deleteProject = (id: string) => {
+    setProjects(ps => ps.filter((p: Project) => p.id!==id));
     if (activeProjectId===id) { setActiveProjectId(null); setActiveAmbienteId(null); }
   };
+  const addProject = (project: Project) => {
+    setProjects(prev => [...prev, project]);
+  };
+
 
   const addAmbiente = () => {
     if (!activeProjectId) return;
     const a = STORAGE.newAmbiente(`Ambiente ${(activeProject?.ambientes?.length||0)+1}`);
-    updateProject(activeProjectId, p => ({ ...p, ambientes: [...p.ambientes, a] }));
+    updateProject(activeProjectId, (p: Project) => ({ 
+      ...p, 
+      ambientes: [...p.ambientes, a],
+     }));
     setActiveAmbienteId(a.id);
   };
 
-  const deleteAmbiente = (ambId) => {
+  const deleteAmbiente = (ambId: string) => {
     if (!activeProjectId) return;
     updateProject(activeProjectId, p => {
       const ambs = p.ambientes.filter(a=>a.id!==ambId);
       return { ...p, ambientes: ambs.length ? ambs : [STORAGE.newAmbiente()] };
     });
     if (activeAmbienteId===ambId) {
-      const remaining = activeProject?.ambientes?.filter(a=>a.id!==ambId);
-      setActiveAmbienteId(remaining?.[0]?.id || null);
+      const remainingAmbientes = activeProject?.ambientes?.filter(a => a.id !== ambId) ?? [];
+      const newActiveId = remainingAmbientes[0]?.id ?? null;
+      setActiveAmbienteId(newActiveId);
+      //const remaining = activeProject?.ambientes?.filter(a=>a.id!==ambId);
+      //setActiveAmbienteId(remaining?.[0]?.id ?? null);
     }
   };
 
@@ -76,6 +87,7 @@ export function useProjects() {
     activeProjectId, activeAmbienteId,
     setActiveAmbienteId, selectProject,
     createProject, deleteProject,
+    addProject,
     addAmbiente, deleteAmbiente,
     updateProject, updateAmbiente,
   };

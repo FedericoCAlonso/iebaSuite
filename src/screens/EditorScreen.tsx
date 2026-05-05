@@ -19,15 +19,15 @@ export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpda
 
   if (!project || !amb) return <div className="empty">Sin proyecto seleccionado</div>;
 
-  const pw = (fn) => onUpdateAmbiente(a=>({...a,paredes:fn(a.paredes||[])}));
-  const ua = (fn) => onUpdateAmbiente(a=>({...a,aberturas:fn(a.aberturas||[])}));
-  const ue = (fn) => onUpdateAmbiente(a=>({...a,elementos:fn(a.elementos||[])}));
+  const pw = (fn: (paredes: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, paredes: fn(a.paredes || []) }));
+  const ua = (fn: (aberturas: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, aberturas: fn(a.aberturas || []) }));
+  const ue = (fn: (elementos: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, elementos: fn(a.elementos || []) }));
 
   return (
     <div className="panel-left">
       {/* Selector de ambientes */}
       <div className="amb-bar">
-        {(project.ambientes||[]).map(a=>(
+        {(project.ambientes||[]).map((a: any)=>(
           <button key={a.id} className={`amb-tab ${a.id===activeAmbienteId?'active':''}`} onClick={()=>onSelectAmbiente(a.id)}>
             {a.nombre}
           </button>
@@ -57,23 +57,23 @@ export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpda
                     <NumInput value={project.meta.escala||50} onChange={v=>onUpdateMeta({...project.meta,escala:Math.round(v)||50})}/>
                   </F>
                   <F label="Grosor pared (m)">
-                    <NumInput value={project.meta.grosor_pared_default||0.15} onChange={v=>onUpdateMeta({...project.meta,grosor_pared_default:v})} step={0.01}/>
+                    <NumInput value={project.meta.grosor_pared_default||0.15} onChange={(v: number )=>onUpdateMeta({...project.meta,grosor_pared_default:v})} />
                   </F>
                 </div>
               </Card>
               <Card idx="🏠" title={`Ambiente: ${amb.nombre}`} badge="" onRemove={()=>{}} defaultOpen={true}>
                 <F label="Nombre del ambiente">
-                  <input value={amb.nombre||''} onChange={e=>onUpdateAmbiente(a=>({...a,nombre:e.target.value}))}/>
+                  <input value={amb.nombre||''} onChange={e=>onUpdateAmbiente((a: any)=>({...a,nombre:e.target.value}))}/>
                 </F>
                 <div className="field-row">
                   <F label="Sentido de recorrido">
-                    <select value={amb.sentido||'horario'} onChange={e=>onUpdateAmbiente(a=>({...a,sentido:e.target.value}))}>
+                    <select value={amb.sentido||'horario'} onChange={e=>onUpdateAmbiente((a: any)=>({...a,sentido:e.target.value}))}>
                       <option value="horario">Horario</option>
                       <option value="antihorario">Antihorario</option>
                     </select>
                   </F>
                   <F label="Mostrar cotas">
-                    <select value={amb.mostrar_cotas!==false?'si':'no'} onChange={e=>onUpdateAmbiente(a=>({...a,mostrar_cotas:e.target.value==='si'}))}>
+                    <select value={amb.mostrar_cotas!==false?'si':'no'} onChange={e=>onUpdateAmbiente((a: any) =>({...a,mostrar_cotas:e.target.value==='si'}))}>
                       <option value="si">Sí</option>
                       <option value="no">No</option>
                     </select>
@@ -88,10 +88,10 @@ export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpda
 
           {tab==='paredes' && (
             <>
-              {(amb.paredes||[]).map((w,i)=>(
+              {(amb.paredes||[]).map((w: any,i: number)=>(
                 <WallCard key={w.id||i} pared={w} index={i}
-                  onChange={nw=>pw(ps=>ps.map((x,j)=>j===i?nw:x))}
-                  onRemove={()=>pw(ps=>ps.filter((_,j)=>j!==i))}
+                  onChange={(nw: any) => pw(ps => ps.map((x: any, j: number) => j === i ? nw : x))}
+                  onRemove={() => pw(ps => ps.filter((_: any, j: number) => j !== i))}
                 />
               ))}
             </>
@@ -99,10 +99,10 @@ export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpda
 
           {tab==='aberturas' && (
             <>
-              {(amb.aberturas||[]).map((ab,i)=>(
+              {(amb.aberturas||[]).map((ab: any,i: number)=>(
                 <OpeningCard key={ab.id||i} ab={ab} index={i} wallCount={amb.paredes?.length||0}
-                  onChange={nab=>ua(ps=>ps.map((x,j)=>j===i?nab:x))}
-                  onRemove={()=>ua(ps=>ps.filter((_,j)=>j!==i))}
+                  onChange={(nab: any) => ua(ps => ps.map((x: any, j: number) => j === i ? nab : x))}
+                  onRemove={() => ua(ps => ps.filter((_: any, j: number) => j !== i))}
                 />
               ))}
             </>
@@ -114,11 +114,11 @@ export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpda
                 Click en el plano para insertar.<br/>
                 Símbolos de pared hacen snap a la pared más cercana.
               </div>
-              {(amb.elementos||[]).map((el,i)=>(
+              {(amb.elementos||[]).map((el: any,i: number)=>(
                 <ElectricalCard key={el.id||i} el={{...el,_escala:project.meta?.escala||50}} index={i}
                   wallCount={amb.paredes?.length||0}
-                  onChange={nel=>ue(ps=>ps.map((x,j)=>j===i?nel:x))}
-                  onRemove={()=>ue(ps=>ps.filter((_,j)=>j!==i))}
+                  onChange={(nel: any) => ue(ps => ps.map((x: any, j: number) => j === i ? nel : x))}
+                  onRemove={() => ue(ps => ps.filter((_: any, j: number) => j !== i))}
                 />
               ))}
             </>

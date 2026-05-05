@@ -5,7 +5,17 @@
 // ═══════════════════════════════════════════════════════════════════════════
 import React from 'react';
 
-export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, children, defaultOpen=true }) {
+interface CardProps {
+  idx: string;
+  idxColor?: string;
+  title: string;
+  badge?: string;
+  onRemove?: () => void;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}
+
+export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, children, defaultOpen=true }: CardProps) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
     <div className="card">

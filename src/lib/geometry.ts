@@ -3,6 +3,7 @@
 // Motor geométrico. Port 1:1 del Python.
 // En React: src/lib/geometry.ts
 // ═══════════════════════════════════════════════════════════════════════════
+import { Pared } from '../types';
 
 export const GEO = (() => {
   const mToPx    = (m: number, esc: number) => m * 1000.0 / esc;
@@ -15,20 +16,20 @@ export const GEO = (() => {
   const dot      = ([ax,ay]: [number,number], [bx,by]: [number,number]): number => ax*bx+ay*by;
   const len      = ([x,y]: [number,number]): number => Math.hypot(x,y);
 
-  const lineIntersect = ([p1x,p1y],[d1x,d1y],[p2x,p2y],[d2x,d2y]) => {
+  const lineIntersect = ([p1x, p1y]: [number, number], [d1x, d1y]: [number, number], [p2x, p2y]: [number, number], [d2x, d2y]: [number, number]): [number, number] | null => {
     const cross = d1x*d2y - d1y*d2x;
     if (Math.abs(cross)<1e-10) return null;
     const t = ((p2x-p1x)*d2y-(p2y-p1y)*d2x)/cross;
     return [p1x+d1x*t, p1y+d1y*t];
   };
 
-  const ingleteLimitado = (pBase, pCand, g, limit=4.0) => {
+  const ingleteLimitado = (pBase: [number, number], pCand: [number, number] | null, g: number, limit: number = 4.0): [number, number] => {
     if (!pCand) return pBase;
     return Math.hypot(pCand[0]-pBase[0],pCand[1]-pBase[1]) > limit*g ? pBase : pCand;
   };
 
   // Construye segmentos desde array de paredes
-  function construirEjes(paredes, escala, sentido) {
+  function construirEjes(paredes: Pared[], escala: number, sentido: 'horario' | 'antihorario') {
     const segs = [];
     let pos: [number, number] = [0,0], dir: [number, number] = [1,0];
     const n = paredes.length;
