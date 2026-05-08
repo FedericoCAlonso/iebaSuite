@@ -193,10 +193,26 @@ export function App() {
           <span className="topbar-crumb">▸ <span>{activeProject.meta.nombre}</span></span>
         )}
         <span className="topbar-sep"/>
+        
         {screen === 'editor' && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setScreen('projects')}>Proyectos</button>
+          <div className="topbar-actions">
+            <button 
+              className="btn-topbar" 
+              onClick={undoAmbiente} 
+              disabled={!canUndo} 
+              title="Deshacer"
+              style={{ opacity: canUndo ? 1 : 0.3 }}
+            >
+              ↶
+            </button>
+            <button className="btn btn-acc btn-sm" onClick={() => setShowExport(true)}>
+              📥 Exportar
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setScreen('projects')}>Cerrar</button>
+          </div>
         )}
       </header>
+
 
       {/* ── Contenido Principal ── */}
       <main className="main-content">

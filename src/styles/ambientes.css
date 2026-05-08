@@ -12,29 +12,43 @@
   overflow-x: auto;
   flex-shrink: 0;
 }
+
 .amb-tab {
-  padding: 7px 14px;
+  padding: 10px 18px;
   font-family: var(--sans);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
   border: none;
   background: none;
   color: var(--text3);
-  border-bottom: 2px solid transparent;
-  transition: all .15s;
+  border-bottom: 3px solid transparent;
+  transition: all .2s;
 }
-.amb-tab:hover  { color: var(--text); background: var(--bg2); }
-.amb-tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+
+.amb-tab:hover {
+  color: var(--text);
+  background: var(--bg2);
+}
+
+.amb-tab.active {
+  color: var(--acc);
+  border-bottom-color: var(--acc);
+  font-weight: 600;
+}
 
 .amb-tab-add {
-  padding: 7px 10px;
-  font-size: 16px;
+  padding: 8px 12px;
+  font-size: 18px;
   color: var(--text3);
   border: none;
   background: none;
   cursor: pointer;
-  transition: color .15s;
+  transition: all .2s;
 }
-.amb-tab-add:hover { color: var(--acc); }
+
+.amb-tab-add:hover {
+  color: var(--acc);
+  background: var(--acc-bg);
+}

@@ -3,41 +3,44 @@
 ───────────────────────────────────────────── */
 
 .card {
-  background: var(--bg3);
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r);
   overflow: visible;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 
 .card-hdr {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 12px 14px;
   background: var(--bg2);
   cursor: pointer;
   user-select: none;
   border-bottom: 1px solid transparent;
-  transition: background .12s;
+  transition: background .15s;
 }
 .card-hdr:hover         { background: var(--bg3); }
 .card-hdr.open          { border-bottom-color: var(--border); }
 
 .card-idx {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--acc);
-  background: var(--bg);
-  border: 1px solid var(--border2);
-  padding: 1px 5px;
-  border-radius: 2px;
+  background: var(--acc-bg);
+  border: 1px solid var(--acc-border);
+  padding: 2px 6px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 
 .card-title-main {
   font-family: var(--sans);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -46,12 +49,12 @@
 
 .card-badge {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 11px;
   color: var(--text3);
-  background: var(--bg);
+  background: var(--bg2);
   border: 1px solid var(--border);
-  padding: 1px 5px;
-  border-radius: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
   flex-shrink: 0;
 }
 
@@ -64,9 +67,9 @@
 
 .card-chevron {
   color: var(--text3);
-  font-size: 9px;
+  font-size: 11px;
   flex-shrink: 0;
-  transition: transform .15s;
+  transition: transform .2s;
 }
 .card-chevron.open { transform: rotate(90deg); }
 
@@ -80,12 +83,12 @@
 /* Encabezado de sección dentro de card */
 .sec-hdr {
   font-family: var(--sans);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--text3);
-  padding: 4px 0 3px;
+  letter-spacing: 1px;
+  color: var(--text2);
+  padding: 8px 0 4px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 2px;
+  margin-bottom: 8px;
 }

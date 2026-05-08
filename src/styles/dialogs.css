@@ -6,7 +6,8 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, .75);
+  background: rgba(0, 0, 0, .4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,26 +17,25 @@
 
 /* Cuerpo del diálogo */
 .dialog {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-top: 2px solid var(--acc);
-  border-radius: var(--r);
-  padding: 20px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--acc);
+  border-radius: calc(var(--r) * 2);
+  padding: 24px;
   width: 100%;
-  max-width: 440px;
+  max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  box-shadow: var(--shadow);
 }
 .dialog-title {
   font-family: var(--sans);
-  font-size: 16px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--acc);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-h);
 }
 .dialog-actions {
   display: flex;
@@ -47,17 +47,18 @@
 /* Toast de notificación */
 .toast {
   position: fixed;
-  bottom: 20px;
-  right: 16px;
-  background: var(--bg2);
-  border: 1px solid var(--acc);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 9px 16px;
+  bottom: 24px;
+  right: 24px;
+  background: var(--text-h);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 20px;
   border-radius: var(--r);
   z-index: 1000;
-  animation: fadeUp .2s ease;
+  box-shadow: var(--shadow);
+  animation: fadeUp .3s cubic-bezier(0.1, 0.9, 0.2, 1);
   pointer-events: none;
 }
 @keyframes fadeUp {

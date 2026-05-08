@@ -1,40 +1,85 @@
 /* ─────────────────────────────────────────────
    variables.css — Tokens de diseño globales
-   Paleta industrial/técnica: oscuro, amarillo técnico
+   Paleta refinada: tonos púrpura, gris cálido y blanco
 ───────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700&display=swap');
-
 :root {
-  /* Fondos */
-  --bg:      #0f1117;
-  --bg2:     #171b24;
-  --bg3:     #1e2330;
+  /* Colores base de la paleta */
+  --text:       #6b6375;
+  --text-h:     #08060d;
+  --bg:         #fff;
+  --bg2:        #f9f9f9; /* Variación para áreas secundarias */
+  --bg3:        #f4f3ec; /* code-bg */
+  
+  --border:     #e5e4e7;
+  --border2:    #d1cfd3; /* Variación para bordes más marcados */
+  
+  --acc:        #aa3bff;
+  --acc2:       #8e26e0;
+  --acc-bg:     rgba(170, 59, 255, 0.1);
+  --acc-border: rgba(170, 59, 255, 0.5);
 
-  /* Bordes */
-  --border:  #252b3b;
-  --border2: #333d55;
+  /* Aliases para compatibilidad con la paleta proporcionada */
+  --accent:        var(--acc);
+  --accent-bg:     var(--acc-bg);
+  --accent-border: var(--acc-border);
+  --code-bg:       var(--bg3);
 
-  /* Acentos */
-  --acc:     #f5c400;
-  --acc2:    #c89d00;
+  
+  /* Otros de la paleta original */
+  --social-bg:  rgba(244, 243, 236, 0.5);
+  --shadow:     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  /* Estado */
-  --red:     #cc2200;
-  --blue:    #3a7fd4;
-  --green:   #2e8b57;
+  /* Estado (mantenemos pero ajustamos para fondo claro) */
+  --red:     #d32f2f;
+  --blue:    #1976d2;
+  --green:   #388e3c;
 
-  /* Texto */
-  --text:    #d8dce8;
-  --text2:   #7a8099;
-  --text3:   #444d66;
+  /* Mapeo de texto adicional para compatibilidad */
+  --text2:   #4a4451;
+  --text3:   #9b94a5;
 
   /* Tipografía */
-  --mono:    'Space Mono', monospace;
-  --sans:    'Barlow Condensed', sans-serif;
+  --sans:    system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono:    ui-monospace, Consolas, monospace;
 
   /* Utilidades */
-  --r:        3px;
-  --topbar-h: 48px;
-  --panel-w:  320px;
+  --r:        6px; /* Bordes un poco más redondeados para el nuevo estilo */
+  --topbar-h: 56px; /* Un poco más alta para airear */
+  --panel-w:  340px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --bg2: #1c1e26;
+    --bg3: #1f2028; /* code-bg */
+    
+    --border: #2e303a;
+    --border2: #3f414e;
+
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    
+    --acc: var(--accent);
+    --acc2: #a855f7;
+    --acc-bg: var(--accent-bg);
+    --acc-border: var(--accent-border);
+
+    --code-bg: var(--bg3);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+    /* Estado para modo oscuro */
+    --red:   #ef4444;
+    --blue:  #3b82f6;
+    --green: #22c55e;
+
+    --text2: #cbd5e1;
+    --text3: #6b7280;
+  }
 }

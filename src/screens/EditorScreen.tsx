@@ -96,42 +96,8 @@ export function EditorScreen({
             {tabLabels[k]}
           </button>
         ))}
-        
-        {/* Botón de Deshacer */}
-        <button 
-          className="panel-tab" 
-          onClick={(e) => { e.stopPropagation(); e.preventDefault(); undoAmbiente(); }} 
-          disabled={!canUndo}
-          style={{ 
-            marginLeft: 'auto', 
-            flex: 'none', 
-            padding: '0 15px', 
-            fontSize: '14px',
-            opacity: canUndo ? 1 : 0.4,
-            cursor: canUndo ? 'pointer' : 'default',
-            color: 'var(--acc)'
-          }}
-          title="Deshacer último cambio"
-        >
-          ↶
-        </button>
-
-        {/* Botón de Exportar */}
-        <button 
-          className="panel-tab export-tab" 
-          onClick={onExport}
-          title="Exportar plano profesional"
-          style={{ 
-            background: 'var(--acc)', 
-            color: 'white', 
-            fontWeight: 'bold',
-            padding: '0 20px',
-            flex: 'none'
-          }}
-        >
-          📥 Exportar
-        </button>
       </div>
+
 
       {/* Feed de tarjetas */}
       <div className="panel-feed">

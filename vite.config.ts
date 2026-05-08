@@ -18,8 +18,8 @@ export default defineConfig({
         scope: '/pwaCroquizador/',
         display: 'standalone',
         orientation: 'any',
-        background_color: '#0f1117',
-        theme_color: '#f5c400',
+        background_color: '#ffffff',
+        theme_color: '#aa3bff',
         lang: 'es',
         icons: [
           {
