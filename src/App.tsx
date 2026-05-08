@@ -237,8 +237,6 @@ export function App() {
                   activeAmbienteId={activeAmbienteId}
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
-                  undoAmbiente={undoAmbiente}
-                  canUndo={canUndo}
                   symbolsLib={symbolsLib}
                   onUpdateMeta={(meta: any) => {
                     if (activeProjectId) updateProject(activeProjectId, (p: Project) => ({ ...p, meta }));
@@ -248,8 +246,8 @@ export function App() {
                   onDeleteAmbiente={deleteAmbiente}
                   onSelectAmbiente={setActiveAmbienteId}
                   onSymbolDialog={handleSymbolDialog}
-                  onExport={() => setShowExport(true)}
                 />
+
               </div>
 
               {/* Panel Derecho: Preview */}

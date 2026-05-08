@@ -19,8 +19,6 @@ interface EditorScreenProps {
   activeAmbiente: Ambiente;
   activeAmbienteId: string;
   activeTab: EditorTab;
-  undoAmbiente: () => void;
-  canUndo: boolean;
   symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
   onTabChange: (tab: EditorTab) => void;
   onUpdateMeta: (meta: Project['meta']) => void;
@@ -29,7 +27,6 @@ interface EditorScreenProps {
   onDeleteAmbiente: (id: string) => void;
   onSelectAmbiente: (id: string) => void;
   onSymbolDialog: (data: SymbolDialogData) => void;
-  onExport: () => void;
 }
 
 export function EditorScreen({
@@ -37,8 +34,6 @@ export function EditorScreen({
   activeAmbiente,
   activeAmbienteId,
   activeTab,
-  undoAmbiente,
-  canUndo,
   symbolsLib,
   onTabChange,
   onUpdateMeta,
@@ -47,7 +42,6 @@ export function EditorScreen({
   onDeleteAmbiente,
   onSelectAmbiente,
   onSymbolDialog,
-  onExport,
 }: EditorScreenProps) {
 
   // Guardas de seguridad
