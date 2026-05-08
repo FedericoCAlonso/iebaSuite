@@ -6,7 +6,7 @@ import React from 'react';
 import { NumInput } from './NumImput';
 import { Card } from './Card';
 import { F } from './Field';
-import { Abertura } from '../types';
+import {type Abertura } from '../types';
 
 interface OpeningCardProps {
   ab: Abertura;
@@ -26,7 +26,7 @@ export function OpeningCard({ ab, index, wallCount, onChange, onRemove }: Openin
     >
       <div className="field-row">
         <F label="Tipo">
-          <select value={ab.tipo||'puerta'} onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>onChange({...ab,tipo:e.target.value})}>
+          <select value={ab.tipo||'puerta'} onChange={(e: React.ChangeEvent<HTMLSelectElement>)=>onChange({...ab,tipo:( e.target.value as Abertura['tipo'])})}>
             <option value="puerta">Puerta</option>
             <option value="ventana">Ventana</option>
             <option value="vano">Vano</option>

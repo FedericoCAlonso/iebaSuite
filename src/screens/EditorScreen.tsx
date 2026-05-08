@@ -1,146 +1,235 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// MODULE: screens/EditorScreen.jsx
-// En React: src/screens/EditorScreen.tsx
-// ═══════════════════════════════════════════════════════════════════════════
-import React from "react";
-import { Card } from "../componets/Card";
-import { F } from "../componets/Field";
-import { NumInput } from "../componets/NumImput";
-import { WallCard } from "../componets/WallCard";
-import { OpeningCard } from "../componets/OpeningCard";
-import { ElectricalCard } from "../componets/ElectricalCard";
-import { STORAGE } from "../lib/storage";
+import { useState } from "react";
+import { Card } from "../components/Card";
+import { F } from "../components/Field";
+import { NumInput } from "../components/NumImput";
+import { WallCard } from "../components/WallCard";
+import { OpeningCard } from "../components/OpeningCard";
+import { ElectricalCard } from "../components/ElectricalCard";
+import { createPared, createAbertura, createElemento } from '../lib/storage';
 
+// Tipos
+import type { Project, Ambiente, Pared, Abertura, ElementoElectrico } from "../types";
+import type { SymbolDialogData } from "../App";
 
-export function EditorScreen({ project, activeAmbiente, activeAmbienteId, onUpdateMeta, onUpdateAmbiente,
-                        onAddAmbiente, onDeleteAmbiente, onSelectAmbiente, onSymbolDialog }) {
-  const [tab, setTab] = React.useState('proyecto');
-  const amb = activeAmbiente;
+/**
+ * Propiedades del componente EditorScreen.
+ * Sincronizado con la implementación en App.tsx
+ */
+interface EditorScreenProps {
+  project: Project;
+  activeAmbiente: Ambiente;
+  activeAmbienteId: string;
+  onUpdateMeta: (meta: Project['meta']) => void;
+  onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
+  onAddAmbiente: () => void;
+  onDeleteAmbiente: (id: string) => void;
+  onSelectAmbiente: (id: string) => void;
+  onSymbolDialog: (data: SymbolDialogData) => void;
+}
 
-  if (!project || !amb) return <div className="empty">Sin proyecto seleccionado</div>;
+/** Tipo para las pestañas de navegación interna */
+type TabId = 'proyecto' | 'paredes' | 'aberturas' | 'electrico';
 
-  const pw = (fn: (paredes: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, paredes: fn(a.paredes || []) }));
-  const ua = (fn: (aberturas: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, aberturas: fn(a.aberturas || []) }));
-  const ue = (fn: (elementos: any[]) => any) => onUpdateAmbiente((a: any) => ({ ...a, elementos: fn(a.elementos || []) }));
+export function EditorScreen({
+  project,
+  activeAmbiente,
+  activeAmbienteId,
+  onUpdateMeta,
+  onUpdateAmbiente,
+  onAddAmbiente,
+  onDeleteAmbiente,
+  onSelectAmbiente,
+  onSymbolDialog
+}: EditorScreenProps) {
+
+  const [tab, setTab] = useState<TabId>('proyecto');
+
+  // Guardas de seguridad (aunque App.tsx ya las maneja, aquí actúan como guardas de tipo)
+  if (!project || !activeAmbiente) return <div className="empty">Sin proyecto seleccionado</div>;
+
+  // --- Helpers de actualización semántica ---
+
+  /** Actualiza la lista de paredes */
+  const updateWalls = (fn: (paredes: Pared[]) => Pared[]) =>
+    onUpdateAmbiente(a => ({ ...a, paredes: fn(a.paredes || []) }));
+
+  /** Actualiza la lista de aberturas */
+  const updateOpenings = (fn: (aberturas: Abertura[]) => Abertura[]) =>
+    onUpdateAmbiente(a => ({ ...a, aberturas: fn(a.aberturas || []) }));
+
+  /** Actualiza la lista de elementos eléctricos */
+  const updateElectrical = (fn: (elementos: ElementoElectrico[]) => ElementoElectrico[]) =>
+    onUpdateAmbiente(a => ({ ...a, elementos: fn(a.elementos || []) }));
 
   return (
     <div className="panel-left">
-      {/* Selector de ambientes */}
+      {/* Selector de ambientes (Tabs superiores) */}
       <div className="amb-bar">
-        {(project.ambientes||[]).map((a: any)=>(
-          <button key={a.id} className={`amb-tab ${a.id===activeAmbienteId?'active':''}`} onClick={()=>onSelectAmbiente(a.id)}>
+        {(project.ambientes || []).map((a) => (
+          <button
+            key={a.id}
+            className={`amb-tab ${a.id === activeAmbienteId ? 'active' : ''}`}
+            onClick={() => onSelectAmbiente(a.id)}
+          >
             {a.nombre}
           </button>
         ))}
         <button className="amb-tab-add" onClick={onAddAmbiente} title="Nuevo ambiente">＋</button>
       </div>
 
-      {/* Tabs de edición */}
+      {/* Navegación por categorías */}
       <div className="panel-tabs">
-        {[['proyecto','Proyecto'],['paredes','Paredes'],['aberturas','Abert.'],['electrico','Eléct.']].map(([k,l])=>(
-          <button key={k} className={`panel-tab ${tab===k?'active':''}`} onClick={()=>setTab(k)}>{l}</button>
-        ))}
+        {(['proyecto', 'paredes', 'aberturas', 'electrico'] as const).map((k) => {
+          const labels: Record<TabId, string> = {
+            proyecto: 'Proyecto', paredes: 'Paredes', aberturas: 'Abert.', electrico: 'Eléct.'
+          };
+          return (
+            <button
+              key={k}
+              className={`panel-tab ${tab === k ? 'active' : ''}`}
+              onClick={() => setTab(k)}
+            >
+              {labels[k]}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Feed de contenido */}
+      {/* Contenido dinámico según Tab */}
       <div className="panel-feed">
         <div className="panel-feed-inner">
 
-          {tab==='proyecto' && (
+          {/* TAB: DATOS GENERALES */}
+          {tab === 'proyecto' && (
             <>
-              <Card idx="📋" title="Datos del proyecto" badge="" onRemove={()=>{}} defaultOpen={true}>
+              <Card idx="📋" title="Datos del proyecto" onRemove={() => { }} defaultOpen={true}>
                 <F label="Nombre del proyecto">
-                  <input value={project.meta.nombre||''} onChange={e=>onUpdateMeta({...project.meta,nombre:e.target.value})}/>
+                  <input
+                    value={project.meta.nombre}
+                    onChange={e => onUpdateMeta({ ...project.meta, nombre: e.target.value })}
+                  />
                 </F>
                 <div className="field-row">
                   <F label="Escala 1:">
-                    <NumInput value={project.meta.escala||50} onChange={v=>onUpdateMeta({...project.meta,escala:Math.round(v)||50})}/>
+                    <NumInput
+                      value={project.meta.escala}
+                      onChange={v => onUpdateMeta({ ...project.meta, escala: Math.round(v) || 50 })}
+                    />
                   </F>
                   <F label="Grosor pared (m)">
-                    <NumInput value={project.meta.grosor_pared_default||0.15} onChange={(v: number )=>onUpdateMeta({...project.meta,grosor_pared_default:v})} />
+                    <NumInput
+                      value={project.meta.grosor_pared_default}
+                      onChange={v => onUpdateMeta({ ...project.meta, grosor_pared_default: v })}
+                    />
                   </F>
                 </div>
               </Card>
-              <Card idx="🏠" title={`Ambiente: ${amb.nombre}`} badge="" onRemove={()=>{}} defaultOpen={true}>
+
+              <Card idx="🏠" title={`Ambiente: ${activeAmbiente.nombre}`} onRemove={() => { }} defaultOpen={true}>
                 <F label="Nombre del ambiente">
-                  <input value={amb.nombre||''} onChange={e=>onUpdateAmbiente((a: any)=>({...a,nombre:e.target.value}))}/>
+                  <input
+                    value={activeAmbiente.nombre}
+                    onChange={e => onUpdateAmbiente(a => ({ ...a, nombre: e.target.value }))}
+                  />
                 </F>
                 <div className="field-row">
                   <F label="Sentido de recorrido">
-                    <select value={amb.sentido||'horario'} onChange={e=>onUpdateAmbiente((a: any)=>({...a,sentido:e.target.value}))}>
+                    <select
+                      value={activeAmbiente.sentido}
+                      onChange={e => onUpdateAmbiente(a => ({ ...a, sentido: e.target.value as Ambiente['sentido'] }))}
+                    >
                       <option value="horario">Horario</option>
                       <option value="antihorario">Antihorario</option>
                     </select>
                   </F>
                   <F label="Mostrar cotas">
-                    <select value={amb.mostrar_cotas!==false?'si':'no'} onChange={e=>onUpdateAmbiente((a: any) =>({...a,mostrar_cotas:e.target.value==='si'}))}>
+                    <select
+                      value={activeAmbiente.mostrar_cotas ? 'si' : 'no'}
+                      onChange={e => onUpdateAmbiente(a => ({ ...a, mostrar_cotas: e.target.value === 'si' }))}
+                    >
                       <option value="si">Sí</option>
                       <option value="no">No</option>
                     </select>
                   </F>
                 </div>
-                {(project.ambientes||[]).length>1 && (
-                  <button className="btn btn-danger btn-sm" onClick={()=>onDeleteAmbiente(amb.id)}>Eliminar este ambiente</button>
+                {project.ambientes.length > 1 && (
+                  <button className="btn btn-danger btn-sm" onClick={() => onDeleteAmbiente(activeAmbiente.id)}>
+                    Eliminar este ambiente
+                  </button>
                 )}
               </Card>
             </>
           )}
 
-          {tab==='paredes' && (
-            <>
-              {(amb.paredes||[]).map((w: any,i: number)=>(
-                <WallCard key={w.id||i} pared={w} index={i}
-                  onChange={(nw: any) => pw(ps => ps.map((x: any, j: number) => j === i ? nw : x))}
-                  onRemove={() => pw(ps => ps.filter((_: any, j: number) => j !== i))}
-                />
-              ))}
-            </>
+          {/* TAB: PAREDES */}
+          {tab === 'paredes' && (
+            activeAmbiente.paredes.map((w, i) => (
+              <WallCard
+                key={w.id}
+                pared={w}
+                index={i}
+                onChange={(nw) => updateWalls(ps => ps.map((x, j) => j === i ? nw : x))}
+                onRemove={() => updateWalls(ps => ps.filter((_, j) => j !== i))}
+              />
+            ))
           )}
 
-          {tab==='aberturas' && (
-            <>
-              {(amb.aberturas||[]).map((ab: any,i: number)=>(
-                <OpeningCard key={ab.id||i} ab={ab} index={i} wallCount={amb.paredes?.length||0}
-                  onChange={(nab: any) => ua(ps => ps.map((x: any, j: number) => j === i ? nab : x))}
-                  onRemove={() => ua(ps => ps.filter((_: any, j: number) => j !== i))}
-                />
-              ))}
-            </>
+          {/* TAB: ABERTURAS */}
+          {tab === 'aberturas' && (
+            activeAmbiente.aberturas.map((ab, i) => (
+              <OpeningCard
+                key={ab.id}
+                ab={ab}
+                index={i}
+                wallCount={activeAmbiente.paredes.length}
+                onChange={(nab) => updateOpenings(ps => ps.map((x, j) => j === i ? nab : x))}
+                onRemove={() => updateOpenings(ps => ps.filter((_, j) => j !== i))}
+              />
+            ))
           )}
 
-          {tab==='electrico' && (
+
+          {/* TAB: ELÉCTRICO */}
+          {tab === 'electrico' && (
             <>
-              <div style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)',padding:'4px 0',lineHeight:1.6}}>
-                Click en el plano para insertar.<br/>
-                Símbolos de pared hacen snap a la pared más cercana.
+              <div className="info-helper">
+                Click en el plano para insertar.<br />
+                Símbolos de pared hacen snap automáticamente.
               </div>
-              {(amb.elementos||[]).map((el: any,i: number)=>(
-                <ElectricalCard key={el.id||i} el={{...el,_escala:project.meta?.escala||50}} index={i}
-                  wallCount={amb.paredes?.length||0}
-                  onChange={(nel: any) => ue(ps => ps.map((x: any, j: number) => j === i ? nel : x))}
-                  onRemove={() => ue(ps => ps.filter((_: any, j: number) => j !== i))}
+              {activeAmbiente.elementos.map((el, i) => (
+                <ElectricalCard
+                  key={el.id}
+                  el={el} // Pasamos el elemento puro
+                  escala={project.meta.escala} // Pasamos la escala como prop aparte
+                  index={i}
+                  wallCount={activeAmbiente.paredes.length}
+                  onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
+                  onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
+                  onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}
                 />
               ))}
             </>
           )}
         </div>
 
-        {/* Botón agregar al pie del feed */}
-        {tab==='paredes' && (
-          <div className="add-row">
-            <button className="btn btn-ghost btn-full" onClick={()=>pw(ps=>[...ps,STORAGE.newPared()])}>+ Agregar pared</button>
-          </div>
-        )}
-        {tab==='aberturas' && (
-          <div className="add-row">
-            <button className="btn btn-ghost btn-full" onClick={()=>ua(ps=>[...ps,STORAGE.newAbertura()])}>+ Agregar abertura</button>
-          </div>
-        )}
-        {tab==='electrico' && (
-          <div className="add-row">
-            <button className="btn btn-ghost btn-full" onClick={()=>ue(ps=>[...ps,STORAGE.newElemento('sym-boca-techo',100,100)])}>+ Agregar elemento</button>
-          </div>
-        )}
+        {/* Botones de acción al pie */}
+        <div className="add-row">
+          {tab === 'paredes' && (
+            <button className="btn btn-ghost btn-full" onClick={() => updateWalls(ps => [...ps, createPared()])}>
+              + Agregar pared
+            </button>
+          )}
+          {tab === 'aberturas' && (
+            <button className="btn btn-ghost btn-full" onClick={() => updateOpenings(ps => [...ps, createAbertura()])}>
+              + Agregar abertura
+            </button>
+          )}
+          {tab === 'electrico' && (
+            <button className="btn btn-ghost btn-full" onClick={() => updateElectrical(ps => [...ps, createElemento('sym-boca-techo')])}>
+              + Agregar elemento libre
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,31 +1,28 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// MODULE: App.jsx  (root component)
-// En React: src/App.tsx
-// ═══════════════════════════════════════════════════════════════════════════
-
-
-
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import ReactDOM from 'react-dom/client';
+
+// Hooks
 import { useProjects } from './hooks/useProjects';
 import { useToast } from './hooks/useToast';
+
+// Componentes
 import { ProjectsScreen } from './screens/ProjectScreen';
-import { STORAGE } from './lib/storage';
-import {EditorScreen }from './screens/EditorScreen';
-import {Preview} from './componets/Preview';
-import {SymbolDialog} from './componets/SymbolDialog';
-import {ExportDialog} from './componets/ExportDialog';
-import type { Project, ElementoElectrico } from './types';
+import { EditorScreen } from './screens/EditorScreen';
+import { Preview } from './components/Preview';
+import { SymbolDialog } from './components/SymbolDialog';
+import { ExportDialog } from './components/ExportDialog';
+
+// Motores de lógica (Refactorizados a exportación nominal)
+import * as STORAGE from './lib/storage';
+import type { Project, ElementoElectrico, Ambiente } from './types';
 import '../style.css';
 
-/*
- Agregado 1
-defino tipos para los datos que se pasan al SymbolDialog, para evitar confusiones entre modo creación y edición.
-*/
-type SymbolDialogData = 
+// Tipado para el flujo de símbolos
+export type SymbolDialogData = 
   | { mode: 'create'; x: number; y: number; snapSegIdx?: number; snapPos?: number }
   | { mode: 'edit'; existing: ElementoElectrico };
 
+type ScreenView = 'projects' | 'editor';
 
 export function App() {
   const {
@@ -38,169 +35,172 @@ export function App() {
     addProject,
   } = useProjects();
 
-  const [screen,     setScreen]     = React.useState('projects');
-  // const [symDialog,  setSymDialog]  = React.useState<{existing?: ElementoElectrico} | null>(null);
-  /* Agregado 2 Para manejar los datos del diálogo de símbolos */
+  const [screen, setScreen] = useState<ScreenView>('projects');
   const [symDialog, setSymDialog] = useState<SymbolDialogData | null>(null);
-  const [showExport, setShowExport] = React.useState(false);
-  const { toast, show: showToast }  = useToast();
+  const [showExport, setShowExport] = useState(false);
+  const { toast, show: showToast } = useToast();
 
+  // --- Handlers de Navegación ---
+  const handleSelectProject = (id: string) => { 
+    selectProject(id); 
+    setScreen('editor'); 
+  };
 
-  const handleSelectProject = (id: string) => { selectProject(id); setScreen('editor'); };
-  const handleCreateProject = ()  => { createProject();    setScreen('editor'); };
+  const handleCreateProject = () => { 
+    createProject(); 
+    setScreen('editor'); 
+  };
 
-  /* Agregado 3: función para importar proyectos, con migración de formato viejo (sin ambientes) */
   const handleSymbolDialog = useCallback((data: SymbolDialogData) => {
-  setSymDialog(data);
-}, []);
+    setSymDialog(data);
+  }, []);
 
+  /**
+   * Procesa la confirmación del SymbolDialog.
+   * Maneja inserción, edición y borrado físico de elementos.
+   */
   const handleSymConfirm = useCallback((updatedElement: ElementoElectrico | null) => {
     if (!activeAmbiente) return;
-  
-    updateAmbiente(amb => {
+
+    updateAmbiente((amb: Ambiente) => {
       let nuevosElementos: ElementoElectrico[];
+      
+      // Caso 1: Borrado (el diálogo devuelve null y veníamos de edición)
       if (updatedElement === null && symDialog?.mode === 'edit') {
-        // eliminar
         nuevosElementos = amb.elementos.filter(e => e.id !== symDialog.existing.id);
-      } else if (updatedElement && symDialog?.mode === 'edit') {
-        // actualizar
+      } 
+      // Caso 2: Actualización de existente
+      else if (updatedElement && symDialog?.mode === 'edit') {
         nuevosElementos = amb.elementos.map(e => e.id === updatedElement.id ? updatedElement : e);
-      } else if (updatedElement && symDialog?.mode === 'create') {
-        // agregar nuevo
+      } 
+      // Caso 3: Inserción de nuevo
+      else if (updatedElement && symDialog?.mode === 'create') {
         nuevosElementos = [...amb.elementos, updatedElement];
-      } else {
-        return amb; // sin cambios
-      }
+      } 
+      else return amb; // Si no hay match, no tocamos nada
+      
       return { ...amb, elementos: nuevosElementos };
     });
+    
     setSymDialog(null);
   }, [activeAmbiente, symDialog, updateAmbiente]);
 
+  /**
+   * Importación con Normalización:
+   * Convierte proyectos de versiones anteriores o planos sueltos al esquema de Ambientes.
+   */
   const handleImportProject = (data: any) => {
-  const newProject = {
-    ...STORAGE.newProject(),
-    ...data,
-    id: Date.now().toString(),
-    updatedAt: Date.now(),
-    ambientes: data.ambientes || [{ ...STORAGE.newAmbiente(), paredes: data.paredes || [], aberturas: data.aberturas || [], elementos: data.elementos || [] }]
-  };
-  // limpiar propiedades antiguas
-  delete newProject.paredes; delete newProject.aberturas; delete newProject.elementos;
-  addProject(newProject);
-  selectProject(newProject.id);
-  setScreen('editor');
-  showToast('Proyecto importado');
+    // Creamos una base limpia con la factory de storage
+    const newProject: Project = {
+      ...STORAGE.createProject(),
+      ...data,
+      id: Date.now().toString(), // Generamos ID único para la instancia local
+      updatedAt: Date.now(),
+      // Si el JSON no tiene ambientes, movemos los datos de la raíz al primer ambiente
+      ambientes: data.ambientes || [{ 
+        ...STORAGE.createAmbiente('Ambiente Importado'), 
+        paredes: data.paredes || [], 
+        aberturas: data.aberturas || [], 
+        elementos: data.elementos || [] 
+      }]
+    };
+
+    // Limpiamos propiedades residuales que podrían venir en la raíz del JSON
+    delete (newProject as any).paredes;
+    delete (newProject as any).aberturas;
+    delete (newProject as any).elementos;
+
+    addProject(newProject);
+    selectProject(newProject.id);
+    setScreen('editor');
+    showToast('Proyecto importado correctamente');
   };
 
-  /*const handleImportProject = (data: any) => {
-    // migrar proyectos viejos (sin ambientes)
-    let p : any = { ...STORAGE.newProject(), ...data, id:Date.now().toString(), updatedAt:Date.now() };
-    if (!p.ambientes) {
-      p.ambientes = [{ ...STORAGE.newAmbiente(), paredes:p.paredes||[], aberturas:p.aberturas||[], elementos:p.elementos||[] }];
-      delete p.paredes; delete p.aberturas; delete p.elementos;
-    }
-    updateProject(p.id, ()=>p); // no existe aún
-    // simplest: agregar directo
-    selectProject(p.id);
-    setScreen('editor');
-    showToast('Proyecto importado');
-    // usamos setProjects indirectamente
-    setTimeout(()=>{ },0);
-  }; 
-  */
-/*
-  const handleSymbolDialog = React.useCallback((clickData: any) => {
-    setSymDialog(clickData);
-  },[]);
-*/
- /* const handleSymConfirm = React.useCallback((data: any) => {
-    if (!activeAmbiente) return;
-    updateAmbiente((a: Ambiente) => {
-      const elems = a.elementos||[];
-      const existingId = symDialog?.existing?.id;
-      if (!data) {
-        // eliminar
-        return { ...a, elementos: elems.filter((e: ElementoElectrico)=>e.id!==existingId) };
-      }
-      if (existingId) {
-        return { ...a, elementos: elems.map((e: ElementoElectrico)=>e.id===data.id?data:e) };
-      }
-      return { ...a, elementos: [...elems, data] };
-    });
-    setSymDialog(null);
-  },[activeAmbiente, symDialog, updateAmbiente]);
-*/
   return (
     <div className="app">
-      {/* ── Topbar ── */}
-      <div className="topbar">
-        <span className="topbar-logo">ieBA</span>
-        {screen==='editor' && <>
-          <span className="topbar-crumb">▸ <span>{activeProject?.meta?.nombre||'—'}</span></span>
-          <button className="btn btn-ghost btn-sm" onClick={()=>setScreen('projects')}>Proyectos</button>
-        </>}
-        <span className="topbar-sep"/>
-        {screen==='editor' && activeProject && (
-          <div className="topbar-status">
-            <span>{activeAmbiente?.paredes?.length||0}p · {activeAmbiente?.aberturas?.length||0}a · {activeAmbiente?.elementos?.length||0}e</span>
-            <button className="btn btn-ghost btn-sm" onClick={()=>setShowExport(true)}>Exportar</button>
+      {/* ── Topbar: Navegación y Breadcrumbs ── */}
+      <header className="topbar">
+        <span className="topbar-logo" onClick={() => setScreen('projects')}>ieBA</span>
+        {screen === 'editor' && activeProject && (
+          <span className="topbar-crumb">▸ <span>{activeProject.meta.nombre}</span></span>
+        )}
+        <div className="topbar-sep"/>
+        {screen === 'editor' && (
+          <div className="topbar-actions">
+             <button className="btn btn-ghost btn-sm" onClick={() => setShowExport(true)}>Exportar</button>
+             <button className="btn btn-ghost btn-sm" onClick={() => setScreen('projects')}>Proyectos</button>
           </div>
         )}
-        {screen==='projects' && (
-          <span style={{fontFamily:'var(--mono)',fontSize:10,color:'var(--text3)'}}>Planta eléctrica v0.7</span>
+      </header>
+
+      {/* ── Contenido Principal ── */}
+      <main className="main-content">
+        {screen === 'projects' ? (
+          <ProjectsScreen
+            projects={projects}
+            activeId={activeProjectId}
+            onSelect={handleSelectProject}
+            onCreate={handleCreateProject}
+            onDelete={deleteProject}
+            onImport={handleImportProject}
+          />
+        ) : (
+          /* WORKSPACE: Solo se monta si tenemos un proyecto y ambiente cargado */
+          activeProject && activeAmbiente && activeAmbienteId ? (
+            <div className="workspace">
+              <EditorScreen
+                project={activeProject}
+                activeAmbiente={activeAmbiente}
+                activeAmbienteId={activeAmbienteId}
+                onUpdateMeta={(meta: any) => {
+                  if (activeProjectId) updateProject(activeProjectId, (p: Project) => ({ ...p, meta }));
+                }}
+                onUpdateAmbiente={updateAmbiente}
+                onAddAmbiente={addAmbiente}
+                onDeleteAmbiente={deleteAmbiente}
+                onSelectAmbiente={setActiveAmbienteId}
+                onSymbolDialog={handleSymbolDialog}
+              />
+              <Preview
+                ambiente={activeAmbiente}
+                meta={activeProject.meta}
+                onInsertElemento={handleSymbolDialog}
+              />
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>No se pudo cargar el ambiente. Seleccione un proyecto válido.</p>
+              <button className="btn btn-acc" onClick={() => setScreen('projects')}>Volver a Proyectos</button>
+            </div>
+          )
         )}
-      </div>
+      </main>
 
-      {/* ── Contenido principal ── */}
-      {screen==='projects' ? (
-        <ProjectsScreen
-          projects={projects}
-          activeId={activeProjectId}
-          onSelect={handleSelectProject}
-          onCreate={handleCreateProject}
-          onDelete={deleteProject}
-          onImport={handleImportProject}
-        />
-      ) : (
-        <div className="workspace">
-          <EditorScreen
-            project={activeProject}
-            activeAmbiente={activeAmbiente}
-            activeAmbienteId={activeAmbienteId}
-            onUpdateMeta={(meta: any) =>updateProject(activeProjectId,(p: Project)=>({...p,meta}))}
-            onUpdateAmbiente={updateAmbiente}
-            onAddAmbiente={addAmbiente}
-            onDeleteAmbiente={deleteAmbiente}
-            onSelectAmbiente={setActiveAmbienteId}
-            onSymbolDialog={handleSymbolDialog}
-          />
-          <Preview
-            ambiente={activeAmbiente}
-            meta={activeProject?.meta}
-            onInsertElemento={handleSymbolDialog}
-          />
-        </div>
-      )}
-
-      {/* ── Dialogs ── */}
+      {/* ── Modales y Notificaciones ── */}
       {symDialog && (
         <SymbolDialog
           clickData={symDialog}
           onConfirm={handleSymConfirm}
-          onCancel={()=>setSymDialog(null)}
+          onCancel={() => setSymDialog(null)}
+          escala={activeProject?.meta.escala}
         />
       )}
+
       {showExport && activeProject && (
         <ExportDialog
           project={activeProject}
-          onClose={()=>setShowExport(false)}
+          onClose={() => setShowExport(false)}
           onToast={showToast}
         />
       )}
-      {toast && <div className="toast">{toast}</div>}
+
+      {toast && <div className="toast animate-in">{toast}</div>}
     </div>
   );
 }
 
-// ── Bootstrap ──
-ReactDOM.createRoot(document.getElementById('root')!).render(<App/>);
+// Inicialización del DOM
+const rootElement = document.getElementById('root');
+if (rootElement) {
+  ReactDOM.createRoot(rootElement).render(<App />);
+}

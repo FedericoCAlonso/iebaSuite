@@ -39,7 +39,7 @@ export interface Irregularidad {
 export interface Abertura {
   id: string
   pared: number
-  tipo: 'puerta' | 'ventana' | 'vano'
+  tipo: 'puerta' | 'ventana' | 'vano' | string;
   posicion: number
   ancho: number
   hojas: number
