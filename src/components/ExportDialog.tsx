@@ -3,16 +3,18 @@
 // En React: src/components/ExportDialog.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 import React from "react";
-import { SIMBOLOS_INFO, type Project } from "../types";
+import { type Project } from "../types";
+import type { DefinicionSimbolo } from "../lib/symbols";
 import { RENDERER } from "../lib/renderer";
 
 interface ExportDialogProps {
   project: Project;
+  symbolsLib: DefinicionSimbolo[];
   onClose: () => void;
   onToast: (msg: string) => void;
 }
 
-export function ExportDialog({ project, onClose, onToast }: ExportDialogProps) {
+export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDialogProps) {
   const [inclRefs, setInclRefs] = React.useState(true);
 
   const downloadBlob = (content: string, name: string, type: string) => {
@@ -23,7 +25,7 @@ export function ExportDialog({ project, onClose, onToast }: ExportDialogProps) {
 
   const exportSVG = () => {
     for (const amb of (project.ambientes||[])) {
-      const svg = RENDERER.render(amb, project.meta, inclRefs);
+      const svg = RENDERER.render(amb, project.meta, symbolsLib, inclRefs);
       downloadBlob(svg, `${project.meta.nombre||'planta'}_${amb.nombre||'amb'}.svg`, 'image/svg+xml');
     }
     onToast(`${project.ambientes?.length||1} SVG exportados`);
@@ -52,9 +54,10 @@ export function ExportDialog({ project, onClose, onToast }: ExportDialogProps) {
     const rows=[['Proyecto','Ambiente','Tipo','Referencia','Clave','Valor']];
     for (const amb of (project.ambientes||[])) {
       for (const el of (amb.elementos||[])) {
-        const info=SIMBOLOS_INFO[el.tipo]||{label:el.tipo};
-        if (!el.datos?.length) rows.push([project.meta.nombre,amb.nombre,info.label,el.referencia||'','','']);
-        else for (const d of el.datos) rows.push([project.meta.nombre,amb.nombre,info.label,el.referencia||'',d.clave,d.valor]);
+        const symDef = symbolsLib.find(s => s.id === el.tipo);
+        const label = symDef ? symDef.label : el.tipo;
+        if (!el.datos?.length) rows.push([project.meta.nombre,amb.nombre,label,el.referencia||'','','']);
+        else for (const d of el.datos) rows.push([project.meta.nombre,amb.nombre,label,el.referencia||'',d.clave,d.valor]);
       }
     }
     const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');

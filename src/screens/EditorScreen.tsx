@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { Card } from "../components/Card";
 import { F } from "../components/Field";
 import { NumInput } from "../components/NumImput";
 import { WallCard } from "../components/WallCard";
 import { OpeningCard } from "../components/OpeningCard";
 import { ElectricalCard } from "../components/ElectricalCard";
-import { createPared, createAbertura, createElemento } from '../lib/storage';
+import { createPared, createAbertura, createElemento, createTexto } from '../lib/storage';
 
 // Tipos
 import type { Project, Ambiente, Pared, Abertura, ElementoElectrico } from "../types";
@@ -20,6 +19,9 @@ interface EditorScreenProps {
   activeAmbiente: Ambiente;
   activeAmbienteId: string;
   activeTab: EditorTab;
+  undoAmbiente: () => void;
+  canUndo: boolean;
+  symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
   onTabChange: (tab: EditorTab) => void;
   onUpdateMeta: (meta: Project['meta']) => void;
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
@@ -34,6 +36,9 @@ export function EditorScreen({
   activeAmbiente,
   activeAmbienteId,
   activeTab,
+  undoAmbiente,
+  canUndo,
+  symbolsLib,
   onTabChange,
   onUpdateMeta,
   onUpdateAmbiente,
@@ -89,6 +94,25 @@ export function EditorScreen({
             {tabLabels[k]}
           </button>
         ))}
+        
+        {/* Botón de Deshacer */}
+        <button 
+          className="panel-tab" 
+          onClick={(e) => { e.stopPropagation(); e.preventDefault(); undoAmbiente(); }} 
+          disabled={!canUndo}
+          style={{ 
+            marginLeft: 'auto', 
+            flex: 'none', 
+            padding: '0 15px', 
+            fontSize: '14px',
+            opacity: canUndo ? 1 : 0.4,
+            cursor: canUndo ? 'pointer' : 'default',
+            color: 'var(--acc)'
+          }}
+          title="Deshacer último cambio"
+        >
+          ↶
+        </button>
       </div>
 
       {/* Feed de tarjetas */}
@@ -154,6 +178,47 @@ export function EditorScreen({
                   </button>
                 )}
               </Card>
+
+              {/* SECCIÓN DE TEXTOS LIBRES */}
+              <Card idx="T" title="Anotaciones en el plano" onRemove={() => { }} defaultOpen={true}>
+                <div className="info-helper">Agregá textos libres en el plano (ej: "Cocina", "Pasillo").</div>
+                {(activeAmbiente.textos || []).map((t) => (
+                  <div key={t.id} className="field-row" style={{ alignItems: 'flex-end', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ flex: 2 }}>
+                      <F label="Texto">
+                        <input 
+                          value={t.texto} 
+                          onChange={e => onUpdateAmbiente(a => ({
+                            ...a, textos: (a.textos || []).map(xt => xt.id === t.id ? { ...xt, texto: e.target.value } : xt)
+                          }))}
+                        />
+                      </F>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <F label="X">
+                        <NumInput value={Math.round(t.x)} onChange={v => onUpdateAmbiente(a => ({
+                          ...a, textos: (a.textos || []).map(xt => xt.id === t.id ? { ...xt, x: v } : xt)
+                        }))} />
+                      </F>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <F label="Y">
+                        <NumInput value={Math.round(t.y)} onChange={v => onUpdateAmbiente(a => ({
+                          ...a, textos: (a.textos || []).map(xt => xt.id === t.id ? { ...xt, y: v } : xt)
+                        }))} />
+                      </F>
+                    </div>
+                    <button className="btn btn-danger btn-sm" onClick={() => onUpdateAmbiente(a => ({
+                      ...a, textos: (a.textos || []).filter(xt => xt.id !== t.id)
+                    }))}>✕</button>
+                  </div>
+                ))}
+                <button className="btn btn-ghost btn-sm btn-full" onClick={() => onUpdateAmbiente(a => ({
+                  ...a, textos: [...(a.textos || []), createTexto()]
+                }))}>
+                  + Agregar texto
+                </button>
+              </Card>
             </>
           )}
 
@@ -206,6 +271,7 @@ export function EditorScreen({
                   escala={project.meta.escala}
                   index={i}
                   wallCount={activeAmbiente.paredes.length}
+                  symbolsLib={symbolsLib}
                   onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
                   onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
                   onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}
@@ -223,7 +289,13 @@ export function EditorScreen({
             </button>
           )}
           {activeTab === 'aberturas' && (
-            <button className="btn btn-ghost btn-full" onClick={() => updateOpenings(ps => [...ps, createAbertura()])}>
+            <button className="btn btn-ghost btn-full" onClick={() => updateOpenings(ps => {
+              const lastAb = ps.length > 0 ? ps[ps.length - 1] : null;
+              return [...ps, createAbertura(lastAb ? { 
+                tipo: lastAb.tipo, ancho: lastAb.ancho, 
+                hojas: lastAb.hojas, lado: lastAb.lado, sentido: lastAb.sentido 
+              } : {})];
+            })}>
               + Agregar abertura a mano
             </button>
           )}

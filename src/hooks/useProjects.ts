@@ -10,6 +10,8 @@ import {
   createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
+import { loadSymbols } from '../lib/symbols';
+import type { DefinicionSimbolo } from '../lib/symbols';
 import type { Project, Ambiente } from '../types';
 
 export function useProjects() {
@@ -19,6 +21,17 @@ export function useProjects() {
   // IDs de seguimiento para la navegación y edición
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [activeAmbienteId, setActiveAmbienteId] = useState<string | null>(null);
+
+  // Historial de deshacer (Undo) local a la sesión del ambiente actual
+  const [ambienteHistory, setAmbienteHistory] = useState<Ambiente[]>([]);
+
+  // Librería de símbolos
+  const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>(() => loadSymbols());
+
+  // Limpiar el historial cuando se cambia de ambiente activo
+  useEffect(() => {
+    setAmbienteHistory([]);
+  }, [activeAmbienteId]);
 
   // Efecto de persistencia: guarda en storage cada vez que cambia el array de proyectos
   useEffect(() => { 
@@ -80,11 +93,30 @@ export function useProjects() {
 
     updateProject(activeProjectId, (project) => ({
       ...project,
-      ambientes: project.ambientes.map(a => 
-        a.id === activeAmbienteId ? fn(a) : a
-      )
+      ambientes: project.ambientes.map(a => {
+        if (a.id === activeAmbienteId) {
+            const next = fn(a);
+            // Guardar estado actual en el historial antes de aplicar el cambio (max 20 estados)
+            setAmbienteHistory(h => [...h, a].slice(-20));
+            return next;
+        }
+        return a;
+      })
     }));
   }, [activeProjectId, activeAmbienteId, updateProject]);
+
+  /** Deshace el último cambio en el ambiente activo */
+  const undoAmbiente = useCallback(() => {
+    if (ambienteHistory.length === 0 || !activeProjectId || !activeAmbienteId) return;
+    
+    const prev = ambienteHistory[ambienteHistory.length - 1];
+    setAmbienteHistory(h => h.slice(0, -1));
+    
+    updateProject(activeProjectId, project => ({
+      ...project,
+      ambientes: project.ambientes.map(a => a.id === activeAmbienteId ? prev : a)
+    }));
+  }, [ambienteHistory, activeProjectId, activeAmbienteId, updateProject]);
 
   /** Agrega un ambiente nuevo al proyecto activo */
   const addAmbiente = useCallback(() => {
@@ -131,6 +163,10 @@ export function useProjects() {
     deleteAmbiente,
     updateProject,
     updateAmbiente,
+    undoAmbiente,
+    canUndo: ambienteHistory.length > 0,
+    symbolsLib,
+    setSymbolsLib,
     addProject // <--- Ahora disponible para App.tsx
   };
 }

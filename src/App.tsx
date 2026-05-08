@@ -34,6 +34,8 @@ export function App() {
     createProject, deleteProject,
     addAmbiente, deleteAmbiente,
     updateProject, updateAmbiente,
+    undoAmbiente, canUndo,
+    symbolsLib,
     addProject,
   } = useProjects();
 
@@ -129,9 +131,18 @@ export function App() {
       const snapPosPx = snapPos ?? 0;
       const posM = parseFloat(GEO.pxToM(snapPosPx, activeProject.meta.escala).toFixed(2));
 
+      // Heredar dimensiones y tipo de la última abertura insertada
+      const lastAb = activeAmbiente.aberturas?.length 
+        ? activeAmbiente.aberturas[activeAmbiente.aberturas.length - 1] 
+        : null;
+
       const nuevaAbertura: Abertura = STORAGE.createAbertura({
         pared: snapSegIdx,
         posicion: posM,
+        ...(lastAb ? { 
+          tipo: lastAb.tipo, ancho: lastAb.ancho, 
+          hojas: lastAb.hojas, lado: lastAb.lado, sentido: lastAb.sentido 
+        } : {})
       });
 
       updateAmbiente((amb: Ambiente) => ({
@@ -207,6 +218,9 @@ export function App() {
                   activeAmbienteId={activeAmbienteId}
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
+                  undoAmbiente={undoAmbiente}
+                  canUndo={canUndo}
+                  symbolsLib={symbolsLib}
                   onUpdateMeta={(meta: any) => {
                     if (activeProjectId) updateProject(activeProjectId, (p: Project) => ({ ...p, meta }));
                   }}
@@ -224,6 +238,7 @@ export function App() {
                   ambiente={activeAmbiente}
                   meta={activeProject.meta}
                   activeTab={activeTab}
+                  symbolsLib={symbolsLib}
                   onCanvasClick={handleCanvasClick}
                 />
               </div>
@@ -249,6 +264,7 @@ export function App() {
       {symDialog && (
         <SymbolDialog
           clickData={symDialog}
+          symbolsLib={symbolsLib}
           onConfirm={handleSymConfirm}
           onCancel={() => setSymDialog(null)}
           escala={activeProject?.meta.escala}
@@ -258,6 +274,7 @@ export function App() {
       {showExport && activeProject && (
         <ExportDialog
           project={activeProject}
+          symbolsLib={symbolsLib}
           onClose={() => setShowExport(false)}
           onToast={showToast}
         />

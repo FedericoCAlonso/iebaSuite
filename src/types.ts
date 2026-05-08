@@ -19,6 +19,7 @@ export interface Ambiente {
   paredes: Pared[]
   aberturas: Abertura[]
   elementos: ElementoElectrico[]
+  textos?: TextoPlano[]
 }
 
 export interface Pared {
@@ -61,37 +62,11 @@ export interface ElementoElectrico {
 
 export type SymbolId = string;
 
-
-// IDs de símbolos disponibles
-const SYMBOL_IDS = {
-  // Libres (techo/planta)
-  BOCA_TECHO:   'sym-boca-techo',
-  TIERRA:       'sym-tierra',
-  // De pared
-  TOMA:         'sym-toma',
-  BOCA_PARED:   'sym-boca-pared',
-  TABLERO_S:    'sym-ts',
-  TABLERO_P:    'sym-tp',
-  LLAVE_1:      'sym-llave-1',
-  LLAVE_2:      'sym-llave-2',
-  LLAVE_COMB:   'sym-llave-comb',
-};
-
-export const SIMBOLOS_LIBRES = [SYMBOL_IDS.BOCA_TECHO, SYMBOL_IDS.TIERRA];
-export const SIMBOLOS_PARED  = [
-  SYMBOL_IDS.TOMA, SYMBOL_IDS.BOCA_PARED,
-  SYMBOL_IDS.TABLERO_S, SYMBOL_IDS.TABLERO_P,
-  SYMBOL_IDS.LLAVE_1, SYMBOL_IDS.LLAVE_2, SYMBOL_IDS.LLAVE_COMB,
-];
-
-export const SIMBOLOS_INFO = {
-  [SYMBOL_IDS.BOCA_TECHO]:  { label: 'Centro (boca techo)', grupo: 'libre' },
-  [SYMBOL_IDS.TIERRA]:      { label: 'Puesta a tierra (jabalina)', grupo: 'libre' },
-  [SYMBOL_IDS.TOMA]:        { label: 'Tomacorriente', grupo: 'pared' },
-  [SYMBOL_IDS.BOCA_PARED]:  { label: 'Boca iluminación pared', grupo: 'pared' },
-  [SYMBOL_IDS.TABLERO_S]:   { label: 'Tablero seccional', grupo: 'pared' },
-  [SYMBOL_IDS.TABLERO_P]:   { label: 'Tablero principal', grupo: 'pared' },
-  [SYMBOL_IDS.LLAVE_1]:     { label: 'Llave 1 punto', grupo: 'pared' },
-  [SYMBOL_IDS.LLAVE_2]:     { label: 'Llave 2 puntos', grupo: 'pared' },
-  [SYMBOL_IDS.LLAVE_COMB]:  { label: 'Llave combinación', grupo: 'pared' },
-};
+export interface TextoPlano {
+  id: string;
+  texto: string;
+  x: number;
+  y: number;
+  tamano: number;
+}
+

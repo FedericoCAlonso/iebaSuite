@@ -14,7 +14,8 @@ import type {
   Pared, 
   Abertura, 
   ElementoElectrico, 
-  SymbolId 
+  SymbolId,
+  TextoPlano
 } from '../types';
 
 const KEY = 'ieba_croquis_v2';
@@ -80,6 +81,7 @@ export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
   paredes: [createPared({ id: 'w1' })],
   aberturas: [],
   elementos: [],
+  textos: [],
 });
 
 /**
@@ -131,4 +133,15 @@ export const createElemento = (
   paredPos: null,
   datos: [],
   mostrarDato: false,
+});
+
+/**
+ * Crea una nueva anotación de texto libre.
+ */
+export const createTexto = (texto = 'Texto', x = 0, y = 0): TextoPlano => ({
+  id: generateId(),
+  texto,
+  x,
+  y,
+  tamano: 12,
 });

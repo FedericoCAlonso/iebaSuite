@@ -13,9 +13,9 @@ import type {
   Pared, 
   Abertura, 
   ElementoElectrico, 
-  Irregularidad, 
-  SymbolId 
+  Irregularidad
 } from '../types';
+import type { DefinicionSimbolo } from './symbols';
 
 /** Interfaz para los metadatos globales del proyecto necesarios para el cálculo */
 interface Meta {
@@ -75,19 +75,33 @@ function _renderIrregularidad(out: string[], seg: any, irr: Irregularidad, escal
   const bI = GEO.add(seg.inicio, GEO.scale(seg.dir, posPx));
   const bF = GEO.add(bI, GEO.scale(seg.dir, aPx));
   
-  let pts: Point[];
-  if (irr.profundidad > 0) { // Columna hacia afuera
-    const eI = GEO.add(bI, GEO.scale(seg.v_ext, seg.grosorPx));
-    const eF = GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx));
-    pts = [eI, eF, GEO.add(eF, GEO.scale(seg.v_ext, pPx)), GEO.add(eI, GEO.scale(seg.v_ext, pPx))];
-  } else { // Nicho hacia adentro
-    const off = seg.grosorPx - pPx;
-    pts = [GEO.add(bI, GEO.scale(seg.v_ext, off)), GEO.add(bF, GEO.scale(seg.v_ext, off)), 
-           GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx)), GEO.add(bI, GEO.scale(seg.v_ext, seg.grosorPx))];
+  if (irr.profundidad > 0) { // Columna hacia el interior del ambiente
+    const p1 = GEO.add(bI, GEO.scale(seg.v_int, pPx));
+    const p2 = GEO.add(bF, GEO.scale(seg.v_int, pPx));
+    const pts = [bI, bF, p2, p1].map(p => GEO.add(p, [dx, dy]));
+    
+    // Polígono relleno de la columna
+    out.push(`<polygon points="${ptsAttr(pts)}" fill="${C.PARED_FILL}" stroke="none"/>`);
+    // Bordes visibles interiores
+    out.push(line(pts[0], pts[3], C.INT, C.INT_W));
+    out.push(line(pts[3], pts[2], C.INT, C.INT_W));
+    out.push(line(pts[2], pts[1], C.INT, C.INT_W));
+    // Tapa la línea interior original de la pared
+    out.push(line(pts[0], pts[1], C.PARED_FILL, C.INT_W * 1.5));
+  } else { // Nicho hacia el exterior (hueco en la pared, gana espacio interior)
+    const p1 = GEO.add(bI, GEO.scale(seg.v_ext, pPx));
+    const p2 = GEO.add(bF, GEO.scale(seg.v_ext, pPx));
+    const pts = [bI, bF, p2, p1].map(p => GEO.add(p, [dx, dy]));
+    
+    // Polígono del nicho (color piso) para "comer" la pared gris
+    out.push(`<polygon points="${ptsAttr(pts)}" fill="${C.INT_FILL}" stroke="none"/>`);
+    // Bordes del nicho (ahora son el nuevo interior)
+    out.push(line(pts[0], pts[3], C.INT, C.INT_W));
+    out.push(line(pts[3], pts[2], C.INT, C.INT_W));
+    out.push(line(pts[2], pts[1], C.INT, C.INT_W));
+    // Tapa la línea interior original de la pared con color de piso
+    out.push(line(pts[0], pts[1], C.INT_FILL, C.INT_W * 1.5));
   }
-  
-  const ptsT = pts.map(p => GEO.add(p, [dx, dy]));
-  out.push(`<polygon points="${ptsAttr(ptsT)}" fill="${C.PARED_FILL}" stroke="${C.EXT}" stroke-width="${C.EXT_W}"/>`);
 }
 
 /**
@@ -166,7 +180,7 @@ function _renderCotas(out: string[], segs: any[], escala: number, dx: number, dy
  * Renderiza un símbolo eléctrico individual.
  * Si el elemento tiene pared asignada, calcula automáticamente su posición y rotación.
  */
-function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], k: number, dx: number, dy: number, exportMode: boolean): void {
+function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], k: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[]): void {
   let ex = el.x + dx;
   let ey = el.y + dy;
   let angRot = 0;
@@ -179,9 +193,21 @@ function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], k: n
     angRot = GEO.anguloSimboloPared(seg);
   }
 
-  const sym = RENDERER.symbolPath(el.tipo, k);
-  out.push(`<g transform="translate(${f(ex)},${f(ey)}) rotate(${f(angRot)})" data-elec-id="${el.id}" style="cursor:pointer">`);
-  out.push(sym);
+  const symDef = symbolsLib.find(s => s.id === el.tipo);
+  
+  out.push(`<g transform="translate(${f(ex)},${f(ey)}) rotate(${f(angRot)})" data-elec-id="${el.id}" style="cursor:pointer" color="${C.ELEC}">`);
+  
+  if (symDef) {
+    // Aplicamos la escala base del símbolo multiplicada por el tamaño unitario k
+    const scaleFactor = k * symDef.escalaBase;
+    out.push(`<g transform="scale(${f(scaleFactor)})" stroke-width="${f(0.9 / scaleFactor)}">`);
+    out.push(symDef.svgContent);
+    out.push('</g>');
+  } else {
+    // Fallback genérico si el símbolo no existe
+    out.push(`<circle cx="0" cy="0" r="${f(k * 0.4)}" fill="none" stroke="currentColor" stroke-width="0.8"/>`);
+  }
+
   if (exportMode && el.referencia) {
     out.push(txt([k * 0.8, -k * 0.8], el.referencia, -angRot, C.ELEC, 9, 'start'));
   }
@@ -191,38 +217,7 @@ function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], k: n
 // ─── OBJETO PÚBLICO RENDERER ───
 
 export const RENDERER = {
-  /**
-   * Genera el path SVG para un símbolo específico.
-   * @param tipo ID del símbolo (ej: 'sym-toma').
-   * @param k Tamaño base del símbolo en píxeles según escala.
-   */
-  symbolPath(tipo: SymbolId, k: number): string {
-    const c = C.ELEC;
-    const sw = 0.9;
-    switch (tipo) {
-      case 'sym-boca-techo': return `<circle cx="0" cy="0" r="${f(k * 0.48)}" fill="${c}"/>`;
-      case 'sym-tierra': {
-        const [w1, w2, w3, sp] = [k * 0.9, k * 0.6, k * 0.3, k * 0.28];
-        return [
-          line([-w1 / 2, -sp], [w1 / 2, -sp], c, sw),
-          line([-w2 / 2, 0], [w2 / 2, 0], c, sw),
-          line([-w3 / 2, sp], [w3 / 2, sp], c, sw),
-          line([0, -sp * 1.8], [0, -sp], c, sw),
-        ].join('');
-      }
-      case 'sym-toma': {
-        const r = k * 0.45, pw = r * 0.5;
-        return [
-          `<path d="M${f(-r)},0 A${f(r)},${f(r)} 0 0,1 ${f(r)},0" fill="none" stroke="${c}" stroke-width="${sw}"/>`,
-          line([-r, 0], [-r, r * 1.2], c, sw),
-          line([r, 0], [r, r * 1.2], c, sw),
-          line([-pw / 2, -r * 0.2], [pw / 2, -r * 0.2], c, sw),
-        ].join('');
-      }
-      // Se pueden añadir más cases aquí para los otros símbolos (llaves, tableros...)
-      default: return `<circle cx="0" cy="0" r="${f(k * 0.4)}" fill="none" stroke="${c}" stroke-width="0.8"/>`;
-    }
-  },
+  // El antiguo symbolPath(tipo, k) se elimina ya que ahora es dinámico
 
   /**
    * Genera los segmentos geométricos procesados a partir de los datos de paredes.
@@ -264,7 +259,7 @@ export const RENDERER = {
    * @param meta Metadatos del proyecto (escala, nombre).
    * @param exportMode Si es true, añade etiquetas técnicas (referencias) para impresión.
    */
-  render(ambiente: Ambiente, meta: Meta, exportMode = false): string {
+  render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false): string {
     const segs = this.buildSegs(ambiente, meta);
     if (!segs.length) return `<svg width="300" height="200"></svg>`;
 
@@ -299,10 +294,16 @@ export const RENDERER = {
     // 5. Elementos Eléctricos
     const kSize = GEO.mToPx(0.22, meta.escala);
     ambiente.elementos?.forEach((el: ElementoElectrico) => {
-      _renderElemento(out, el, segs, kSize, dx, dy, exportMode);
+      _renderElemento(out, el, segs, kSize, dx, dy, exportMode, symbolsLib);
     });
 
-    // 6. Pie de plano (Título)
+    // 6. Textos libres
+    ambiente.textos?.forEach((t) => {
+      // Usamos C.TXT o un color oscuro.
+      out.push(txt([t.x + dx, t.y + dy], t.texto, 0, '#333', t.tamano, 'middle'));
+    });
+
+    // 7. Pie de plano (Título)
     out.push(txt([W / 2, H - 10], `${meta.nombre} — ${ambiente.nombre}`, 0, '#333', 11, 'middle'));
 
     // Envolver todo en el tag <svg>

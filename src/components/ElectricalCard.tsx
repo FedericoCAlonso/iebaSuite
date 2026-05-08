@@ -2,8 +2,8 @@
 // MODULE: components/ElectricalCard.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { SIMBOLOS_LIBRES, SIMBOLOS_PARED, SIMBOLOS_INFO } from '../types';
 import type { ElementoElectrico } from '../types';
+import type { DefinicionSimbolo } from '../lib/symbols';
 
 // Importamos las funciones específicas del motor geométrico
 import { pxToM, mToPx } from '../lib/geometry'; 
@@ -17,6 +17,7 @@ interface ElectricalCardProps {
   index: number;
   wallCount: number;
   escala: number;
+  symbolsLib: DefinicionSimbolo[];
   onChange: (el: ElementoElectrico) => void;
   onRemove: () => void;
   onEdit: () => void;
@@ -27,19 +28,24 @@ export function ElectricalCard({
   index, 
   wallCount, 
   escala, 
+  symbolsLib,
   onChange, 
   onRemove, 
   onEdit 
 }: ElectricalCardProps) {
   
-  const info = SIMBOLOS_INFO[el.tipo] || { label: el.tipo };
-  const esPared = SIMBOLOS_PARED.includes(el.tipo);
+  const symDef = symbolsLib.find(s => s.id === el.tipo);
+  const label = symDef ? symDef.label : el.tipo;
+  const esPared = symDef ? symDef.grupo === 'pared' : false;
+
+  const libres = symbolsLib.filter(s => s.grupo === 'libre');
+  const pared = symbolsLib.filter(s => s.grupo === 'pared');
 
   return (
     <Card
       idx={`E${index}`} 
       idxColor="var(--red)"
-      title={info.label}
+      title={label}
       badge={el.referencia || '—'}
       onRemove={onRemove}
     >
@@ -53,20 +59,24 @@ export function ElectricalCard({
       <F label="Tipo de símbolo">
         <select 
           value={el.tipo} 
-          onChange={(e) => onChange({
-            ...el,
-            tipo: e.target.value,
-            paredIdx: SIMBOLOS_PARED.includes(e.target.value) ? el.paredIdx : null
-          })}
+          onChange={(e) => {
+            const nuevoSym = symbolsLib.find(s => s.id === e.target.value);
+            const esNuevoPared = nuevoSym ? nuevoSym.grupo === 'pared' : false;
+            onChange({
+              ...el,
+              tipo: e.target.value,
+              paredIdx: esNuevoPared ? el.paredIdx : null
+            });
+          }}
         >
           <optgroup label="— Libre (techo/planta)">
-            {SIMBOLOS_LIBRES.map(id => (
-              <option key={id} value={id}>{SIMBOLOS_INFO[id]?.label || id}</option>
+            {libres.map(s => (
+              <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </optgroup>
           <optgroup label="— De pared">
-            {SIMBOLOS_PARED.map(id => (
-              <option key={id} value={id}>{SIMBOLOS_INFO[id]?.label || id}</option>
+            {pared.map(s => (
+              <option key={s.id} value={s.id}>{s.label}</option>
             ))}
           </optgroup>
         </select>

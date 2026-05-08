@@ -20,8 +20,8 @@ interface WallCardProps {
 export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardProps) {
   const [openIrr, setOpenIrr] = useState(false);
 
-  // Una pared no-primera con largo=0 en posición final se trata como cierre automático
-  const isAutoClose = isLast && index > 0 && (pared.largo === 'auto' || pared.largo === 0);
+  // Una pared final con largo=0 se trata como cierre automático (requiere al menos 3 paredes, index >= 2)
+  const isAutoClose = isLast && index >= 2 && (pared.largo === 'auto' || pared.largo === 0);
 
   // Formateo de títulos para la cabecera de la tarjeta
   const largoText = isAutoClose ? 'AUTO' : pared.largo === 'auto' ? 'AUTO' : pared.largo ? `${pared.largo}m` : '0m';
@@ -102,16 +102,6 @@ export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardP
             value={pared.grosor ?? 0} 
             onChange={(v) => onChange({ ...pared, grosor: v || null })} 
             placeholder="heredar"
-          />
-        </F>
-        <F label="Mocheta/Saliente (m)">
-          <NumInput
-            value={pared.esquina_saliente?.ancho ?? 0}
-            onChange={(v) => onChange({ 
-              ...pared, 
-              esquina_saliente: v ? { ancho: v } : null 
-            })}
-            placeholder="0.00"
           />
         </F>
       </div>

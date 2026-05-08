@@ -3,12 +3,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
-import { 
-  SIMBOLOS_LIBRES, 
-  SIMBOLOS_PARED, 
-  SIMBOLOS_INFO, 
-  type ElementoElectrico 
-} from '../types';
+import type { ElementoElectrico } from '../types';
+import type { DefinicionSimbolo } from '../lib/symbols';
 import { F } from './Field';   
 import { createElemento } from '../lib/storage';
 import { pxToM } from '../lib/geometry';
@@ -22,9 +18,10 @@ interface SymbolDialogProps {
   onCancel: () => void;
   /** Escala necesaria para mostrar la posición de snap en metros */
   escala?: number; 
+  symbolsLib: DefinicionSimbolo[];
 }
 
-export function SymbolDialog({ clickData, onConfirm, onCancel, escala = 50 }: SymbolDialogProps) {
+export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escala = 50 }: SymbolDialogProps) {
   // Identificamos si estamos en modo edición o creación
   const isEdit = clickData.mode === 'edit';
   const existing = isEdit ? clickData.existing : null;
@@ -35,7 +32,11 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, escala = 50 }: Sy
   const [datos, setDatos] = useState(existing?.datos || []);
   const [mostrar, setMostrar] = useState(existing?.mostrarDato || false);
 
-  const esPared = SIMBOLOS_PARED.includes(tipo);
+  const symDef = symbolsLib.find(s => s.id === tipo);
+  const esPared = symDef ? symDef.grupo === 'pared' : false;
+
+  const libres = symbolsLib.filter(s => s.grupo === 'libre');
+  const pared = symbolsLib.filter(s => s.grupo === 'pared');
 
   /**
    * Procesa la confirmación dependiendo del modo
@@ -79,13 +80,13 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, escala = 50 }: Sy
         <F label="Tipo de dispositivo">
           <select value={tipo} onChange={e => setTipo(e.target.value)}>
             <optgroup label="— Libre (techo/planta)">
-              {SIMBOLOS_LIBRES.map(id => (
-                <option key={id} value={id}>{SIMBOLOS_INFO[id]?.label || id}</option>
+              {libres.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </optgroup>
             <optgroup label="— De pared">
-              {SIMBOLOS_PARED.map(id => (
-                <option key={id} value={id}>{SIMBOLOS_INFO[id]?.label || id}</option>
+              {pared.map(s => (
+                <option key={s.id} value={s.id}>{s.label}</option>
               ))}
             </optgroup>
           </select>

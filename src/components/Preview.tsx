@@ -12,12 +12,13 @@ import { useZoomPan } from '../hooks/useZoomPan';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 
-import type { Ambiente, ElementoElectrico } from '../types';
+import type { Ambiente } from '../types';
 import type { EditorTab } from '../App';
 
 interface PreviewProps {
   ambiente: Ambiente;
   meta: { nombre: string; escala: number; grosor_pared_default: number };
+  symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
   activeTab: EditorTab;
   onCanvasClick: (
     rawX: number,
@@ -44,7 +45,7 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
 };
 
-export function Preview({ ambiente, meta, activeTab, onCanvasClick }: PreviewProps) {
+export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
@@ -53,8 +54,8 @@ export function Preview({ ambiente, meta, activeTab, onCanvasClick }: PreviewPro
    */
   const svgContent = useMemo(() => {
     if (!ambiente || !meta) return null;
-    return RENDERER.render(ambiente, meta, false);
-  }, [ambiente, meta]);
+    return RENDERER.render(ambiente, meta, symbolsLib, false);
+  }, [ambiente, meta, symbolsLib]);
 
   /**
    * Maneja el clic en el área del plano.
@@ -159,15 +160,14 @@ export function Preview({ ambiente, meta, activeTab, onCanvasClick }: PreviewPro
           </div>
         )}
 
-        {/* Overlay visual cuando tab es 'aberturas' */}
-        {activeTab === 'aberturas' && (
-          <div className="preview-mode-badge">
-            🚪 Modo abertura — tocá una pared
-          </div>
-        )}
+        {/* Toast Helper */}
+        <div className={`toolbar-help ${activeTab !== 'proyecto' && activeTab !== 'paredes' ? 'active' : ''}`}>
+          {activeTab === 'electrico' ? '⚡ Tocá el plano para insertar' : 
+           activeTab === 'aberturas' ? '🚪 Tocá una pared' : ''}
+        </div>
 
         {/* Controles de Zoom */}
-        <div className="zoom-controls">
+        <div className="zoom-controls" onClick={(e) => e.stopPropagation()}>
           <button className="zoom-btn" onClick={zoomIn} title="Aumentar">+</button>
           <button className="zoom-btn" onClick={zoomOut} title="Reducir">−</button>
           <button className="zoom-btn" onClick={resetZoom} title="Ajustar">↺</button>

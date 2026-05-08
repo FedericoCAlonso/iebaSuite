@@ -103,8 +103,10 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number)
     // Aplicar rotación acumulada (excepto en la primera pared que define el origen)
     if (i > 0) dir = rot(dir, sentido * (pared.angulo || 0));
 
-    // Caso de cierre automático
-    if (pared.largo === 'auto') {
+    // Caso de cierre automático (mínimo 3 paredes para formar un polígono, es decir, index >= 2)
+    const esAutoCierre = pared.largo === 'auto' || (pared.largo === 0 && i >= 2);
+    
+    if (esAutoCierre) {
       if (i !== paredes.length - 1) return; // Solo la última puede ser auto-cierre
       const cierre: Point = [-pos[0], -pos[1]];
       const dist = len(cierre);
@@ -119,7 +121,8 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number)
       });
       pos = [0, 0];
     } else {
-      const largoPx = mToPx(pared.largo || 0, escala);
+      const largoNum = typeof pared.largo === 'number' ? pared.largo : 0;
+      const largoPx = mToPx(largoNum, escala);
       const fin = add(pos, scale(dir, largoPx));
       segs.push({
         inicio: pos,
