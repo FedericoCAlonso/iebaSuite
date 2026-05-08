@@ -36,10 +36,6 @@ export function ElectricalCard({
   
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   const label = symDef ? symDef.label : el.tipo;
-  const esPared = symDef ? symDef.grupo === 'pared' : false;
-
-  const libres = symbolsLib.filter(s => s.grupo === 'libre');
-  const pared = symbolsLib.filter(s => s.grupo === 'pared');
 
   return (
     <Card
@@ -58,27 +54,12 @@ export function ElectricalCard({
 
       <F label="Tipo de símbolo">
         <select 
-          value={el.tipo} 
-          onChange={(e) => {
-            const nuevoSym = symbolsLib.find(s => s.id === e.target.value);
-            const esNuevoPared = nuevoSym ? nuevoSym.grupo === 'pared' : false;
-            onChange({
-              ...el,
-              tipo: e.target.value,
-              paredIdx: esNuevoPared ? el.paredIdx : null
-            });
-          }}
+          value={el.tipo}
+          onChange={e => onChange({ ...el, tipo: e.target.value })}
         >
-          <optgroup label="— Libre (techo/planta)">
-            {libres.map(s => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </optgroup>
-          <optgroup label="— De pared">
-            {pared.map(s => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </optgroup>
+          {symbolsLib.map(s => (
+            <option key={s.id} value={s.id}>{s.label}</option>
+          ))}
         </select>
       </F>
 
@@ -101,7 +82,7 @@ export function ElectricalCard({
         </F>
       </div>
 
-      {esPared ? (
+      {el.paredIdx != null ? (
         <div className="field-row">
           <F label="Pared #">
             <NumInput 

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "sym-boca-techo",
+    "label": "Centro (boca techo)",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "<circle cx=\"0\" cy=\"0\" r=\"0.48\" fill=\"currentColor\"/>"
+  },
+  {
+    "id": "sym-tierra",
+    "label": "Puesta a tierra (jabalina)",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <line x1=\"-0.45\" y1=\"-0.28\" x2=\"0.45\" y2=\"-0.28\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"-0.30\" y1=\"0\" x2=\"0.30\" y2=\"0\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"-0.15\" y1=\"0.28\" x2=\"0.15\" y2=\"0.28\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"0\" y1=\"-0.504\" x2=\"0\" y2=\"-0.28\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-toma",
+    "label": "Tomacorriente",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <path d=\"M-0.45,0 A0.45,0.45 0 0,1 0.45,0\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"-0.45\" y1=\"0\" x2=\"-0.45\" y2=\"0.54\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"0.45\" y1=\"0\" x2=\"0.45\" y2=\"0.54\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"-0.11\" y1=\"-0.09\" x2=\"0.11\" y2=\"-0.09\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-boca-pared",
+    "label": "Boca iluminación pared",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <circle cx=\"0\" cy=\"0\" r=\"0.4\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"-0.4\" y1=\"0\" x2=\"0.4\" y2=\"0\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"0\" y1=\"-0.4\" x2=\"0\" y2=\"0.4\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-ts",
+    "label": "Tablero seccional",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <rect x=\"-0.4\" y=\"-0.2\" width=\"0.8\" height=\"0.4\" fill=\"currentColor\"/>\n      <line x1=\"-0.4\" y1=\"-0.2\" x2=\"0.4\" y2=\"0.2\" stroke=\"#fff\" stroke-width=\"0.1\"/>\n    "
+  },
+  {
+    "id": "sym-tp",
+    "label": "Tablero principal",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <rect x=\"-0.5\" y=\"-0.25\" width=\"1\" height=\"0.5\" fill=\"none\" stroke=\"currentColor\"/>\n      <rect x=\"-0.5\" y=\"-0.25\" width=\"0.5\" height=\"0.5\" fill=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-llave-1",
+    "label": "Llave 1 punto",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <circle cx=\"0\" cy=\"0\" r=\"0.25\" fill=\"currentColor\"/>\n      <line x1=\"0\" y1=\"0\" x2=\"0.35\" y2=\"-0.35\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-llave-2",
+    "label": "Llave 2 puntos",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <circle cx=\"0\" cy=\"0\" r=\"0.25\" fill=\"currentColor\"/>\n      <line x1=\"0\" y1=\"0\" x2=\"0.35\" y2=\"-0.35\" fill=\"none\" stroke=\"currentColor\"/>\n      <line x1=\"0\" y1=\"0\" x2=\"-0.35\" y2=\"-0.35\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  },
+  {
+    "id": "sym-llave-comb",
+    "label": "Llave combinación",
+    "escalaBase": 1,
+    "anclaje": {
+      "x": 0,
+      "y": 0
+    },
+    "svgContent": "\n      <circle cx=\"0\" cy=\"0\" r=\"0.25\" fill=\"none\" stroke=\"currentColor\"/>\n      <circle cx=\"0\" cy=\"0\" r=\"0.1\" fill=\"currentColor\"/>\n      <line x1=\"0\" y1=\"0\" x2=\"0.35\" y2=\"-0.35\" fill=\"none\" stroke=\"currentColor\"/>\n    "
+  }
+]

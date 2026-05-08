@@ -32,37 +32,42 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
   const [datos, setDatos] = useState(existing?.datos || []);
   const [mostrar, setMostrar] = useState(existing?.mostrarDato || false);
 
-  const symDef = symbolsLib.find(s => s.id === tipo);
-  const esPared = symDef ? symDef.grupo === 'pared' : false;
-
-  const libres = symbolsLib.filter(s => s.grupo === 'libre');
-  const pared = symbolsLib.filter(s => s.grupo === 'pared');
+  const [usarSnap, setUsarSnap] = useState<boolean>(() => {
+    if (isEdit && existing?.paredIdx != null) return true;
+    if (!isEdit && clickData.mode === 'create' && clickData.snapSegIdx != null) return true;
+    return false;
+  });
 
   /**
    * Procesa la confirmación dependiendo del modo
    */
   const handleConfirm = () => {
     if (isEdit && existing) {
-      // Actualizamos el objeto existente manteniendo su ID y posición original
-      onConfirm({ 
+      const updated = { 
         ...existing, 
         tipo, 
         referencia: ref, 
         datos, 
         mostrarDato: mostrar 
-      });
+      };
+      
+      // Si el usuario desactiva el snap, quitamos la referencia a la pared
+      if (!usarSnap) {
+        updated.paredIdx = null;
+        updated.paredPos = null;
+      }
+      onConfirm(updated);
     } else if (clickData.mode === 'create') {
-      // Creamos un elemento nuevo usando la fábrica de storage.ts
+      // Creamos un elemento nuevo
       const el = createElemento(tipo, clickData.x, clickData.y);
       el.referencia = ref;
       el.datos = datos;
       el.mostrarDato = mostrar;
 
-      // Si el símbolo es de pared y hubo snap, inyectamos los datos de anclaje
-      if (esPared && clickData.snapSegIdx != null) {
+      // Inyectamos anclaje solo si el usuario dejó marcado el snap
+      if (usarSnap && clickData.snapSegIdx != null) {
         el.paredIdx = clickData.snapSegIdx;
         el.paredPos = clickData.snapPos || 0;
-        // Al estar anclado, las coordenadas libres x,y suelen ignorarse en el render
         el.x = 0; 
         el.y = 0;
       }
@@ -79,23 +84,33 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
 
         <F label="Tipo de dispositivo">
           <select value={tipo} onChange={e => setTipo(e.target.value)}>
-            <optgroup label="— Libre (techo/planta)">
-              {libres.map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </optgroup>
-            <optgroup label="— De pared">
-              {pared.map(s => (
-                <option key={s.id} value={s.id}>{s.label}</option>
-              ))}
-            </optgroup>
+            {symbolsLib.map(s => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
           </select>
         </F>
 
-        {/* Feedback visual del Snap (Solo en modo creación) */}
-        {esPared && !isEdit && clickData.mode === 'create' && clickData.snapSegIdx != null && (
-          <div className="snap-info" style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--green)', marginBottom: 8 }}>
-            ✓ Snap a pared #{clickData.snapSegIdx} · pos {pxToM(clickData.snapPos || 0, escala).toFixed(2)}m
+        {/* Snap Control */}
+        {(!isEdit && clickData.mode === 'create' && clickData.snapSegIdx != null) && (
+          <div className="field-row" style={{ alignItems: 'center', marginBottom: 12, background: 'var(--bg-card)', padding: '8px', borderRadius: '4px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1 }}>
+              <input type="checkbox" checked={usarSnap} onChange={e => setUsarSnap(e.target.checked)} />
+              Anclar a la pared más cercana
+            </label>
+            {usarSnap && (
+              <div style={{ fontSize: 11, color: 'var(--green)', fontFamily: 'var(--mono)' }}>
+                pos {pxToM(clickData.snapPos || 0, escala).toFixed(2)}m
+              </div>
+            )}
+          </div>
+        )}
+        
+        {isEdit && existing?.paredIdx != null && (
+          <div className="field-row" style={{ alignItems: 'center', marginBottom: 12, background: 'var(--bg-card)', padding: '8px', borderRadius: '4px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={usarSnap} onChange={e => setUsarSnap(e.target.checked)} />
+              Mantener anclado a pared
+            </label>
           </div>
         )}
 

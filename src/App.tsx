@@ -10,6 +10,7 @@ import { EditorScreen } from './screens/EditorScreen';
 import { Preview } from './components/Preview';
 import { SymbolDialog } from './components/SymbolDialog';
 import { ExportDialog } from './components/ExportDialog';
+import { SymbolManagerDialog } from './components/SymbolManagerDialog';
 
 // Libs y Tipos
 import * as STORAGE from './lib/storage';
@@ -36,6 +37,7 @@ export function App() {
     updateProject, updateAmbiente,
     undoAmbiente, canUndo,
     symbolsLib,
+    setSymbolsLib,
     addProject,
   } = useProjects();
 
@@ -43,6 +45,7 @@ export function App() {
   const [mobileEditorVisible, setMobileEditorVisible] = useState(true);
   const [symDialog, setSymDialog] = useState<SymbolDialogData | null>(null);
   const [showExport, setShowExport] = useState(false);
+  const [showSymbolManager, setShowSymbolManager] = useState(false);
   const { toast, show: showToast } = useToast();
 
   // Tab del editor levantado a App para que Preview pueda reaccionar
@@ -206,6 +209,7 @@ export function App() {
             onCreate={handleCreateProject}
             onDelete={deleteProject}
             onImport={handleImportProject}
+            onManageSymbols={() => setShowSymbolManager(true)}
           />
         ) : (
           activeProject && activeAmbiente && activeAmbienteId ? (
@@ -277,6 +281,14 @@ export function App() {
           symbolsLib={symbolsLib}
           onClose={() => setShowExport(false)}
           onToast={showToast}
+        />
+      )}
+
+      {showSymbolManager && (
+        <SymbolManagerDialog
+          symbolsLib={symbolsLib}
+          onUpdate={setSymbolsLib}
+          onClose={() => setShowSymbolManager(false)}
         />
       )}
 

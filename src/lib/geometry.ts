@@ -250,8 +250,7 @@ export function snapAPared(cx: number, cy: number, segs: Segmento[]) {
 /** Devuelve la coordenada XY centrada en el grosor del muro para una posición dada */
 export function posEnPared(seg: Segmento, pos: number): Point {
   const v = norm(sub(seg.fin, seg.inicio));
-  const base = add(seg.inicio, scale(v, pos));
-  return add(base, scale(seg.v_ext, seg.grosorPx * 0.5));
+  return add(seg.inicio, scale(v, pos));
 }
 
 /** Calcula el ángulo de rotación de un símbolo para que su normal mire al interior */

@@ -11,7 +11,8 @@ interface ProjectsScreenProps {
   onSelect: (id: string) => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
-  onImport: (data: any) => void; // Recibe el JSON parseado
+  onImport: (data: any) => void;
+  onManageSymbols: () => void;
 }
 
 export function ProjectsScreen({ 
@@ -20,7 +21,8 @@ export function ProjectsScreen({
   onSelect, 
   onCreate, 
   onDelete, 
-  onImport 
+  onImport,
+  onManageSymbols
 }: ProjectsScreenProps) {
   
   // Tipamos el Ref para un elemento de entrada HTML
@@ -58,6 +60,12 @@ export function ProjectsScreen({
       <div className="screen-header">
         <span className="screen-title">Mis Proyectos</span>
         <div className="header-actions">
+          <button 
+            className="btn btn-ghost btn-sm" 
+            onClick={onManageSymbols}
+          >
+            ⚙️ Símbolos
+          </button>
           <button 
             className="btn btn-ghost btn-sm" 
             onClick={() => fileRef.current?.click()}

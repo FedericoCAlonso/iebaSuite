@@ -10,7 +10,7 @@ import {
   createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
-import { loadSymbols } from '../lib/symbols';
+import { loadSymbolsAsync } from '../lib/symbols';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import type { Project, Ambiente } from '../types';
 
@@ -26,7 +26,12 @@ export function useProjects() {
   const [ambienteHistory, setAmbienteHistory] = useState<Ambiente[]>([]);
 
   // Librería de símbolos
-  const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>(() => loadSymbols());
+  const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>([]);
+
+  // Cargar símbolos asíncronamente al iniciar
+  useEffect(() => {
+    loadSymbolsAsync().then(setSymbolsLib);
+  }, []);
 
   // Limpiar el historial cuando se cambia de ambiente activo
   useEffect(() => {
