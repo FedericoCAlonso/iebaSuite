@@ -11,11 +11,12 @@ interface CardProps {
   title: string;
   badge?: string;
   onRemove?: () => void;
+  onEdit?: () => void;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }
 
-export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, children, defaultOpen=true }: CardProps) {
+export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, onEdit, children, defaultOpen=true }: CardProps) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
     <div className="card">
@@ -23,10 +24,16 @@ export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, child
         <span className="card-idx" style={{color:idxColor}}>{idx}</span>
         <span className="card-title-main">{title}</span>
         {badge && <span className="card-badge">{badge}</span>}
-        {onRemove && (
-          <button className="btn btn-danger btn-xs btn-icon"
-            onClick={e=>{e.stopPropagation();onRemove();}} title="Eliminar">✕</button>
-        )}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {onEdit && (
+            <button className="btn btn-ghost btn-xs btn-icon"
+              onClick={e=>{e.stopPropagation();onEdit();}} title="Editar">✏️</button>
+          )}
+          {onRemove && (
+            <button className="btn btn-danger btn-xs btn-icon"
+              onClick={e=>{e.stopPropagation();onRemove();}} title="Eliminar">✕</button>
+          )}
+        </div>
         <span className={`card-chevron ${open?'open':''}`}>▶</span>
       </div>
       {open && <div className="card-body">{children}</div>}

@@ -82,6 +82,10 @@ export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
   aberturas: [],
   elementos: [],
   textos: [],
+  configHoja: {
+    formato: 'A4',
+    orientacion: 'horizontal'
+  }
 });
 
 /**
@@ -121,8 +125,8 @@ export const createAbertura = (overide: Partial<Abertura> = {}): Abertura => ({
  */
 export const createElemento = (
   tipo: SymbolId, 
-  x = 100, 
-  y = 100
+  x = 0, 
+  y = 0
 ): ElementoElectrico => ({
   id: generateId(),
   tipo,

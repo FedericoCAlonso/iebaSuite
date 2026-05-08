@@ -14,7 +14,6 @@ import { SymbolManagerDialog } from './components/SymbolManagerDialog';
 
 // Libs y Tipos
 import * as STORAGE from './lib/storage';
-import * as GEO from './lib/geometry';
 import { RENDERER } from './lib/renderer';
 import type { Project, Abertura, ElementoElectrico, Ambiente } from './types';
 
@@ -132,7 +131,7 @@ export function App() {
       if (!seg) return;
 
       const snapPosPx = snapPos ?? 0;
-      const posM = parseFloat(GEO.pxToM(snapPosPx, activeProject.meta.escala).toFixed(2));
+      const posM = parseFloat(snapPosPx.toFixed(2));
 
       // Heredar dimensiones y tipo de la última abertura insertada
       const lastAb = activeAmbiente.aberturas?.length 
@@ -233,6 +232,7 @@ export function App() {
                   onDeleteAmbiente={deleteAmbiente}
                   onSelectAmbiente={setActiveAmbienteId}
                   onSymbolDialog={handleSymbolDialog}
+                  onExport={() => setShowExport(true)}
                 />
               </div>
 

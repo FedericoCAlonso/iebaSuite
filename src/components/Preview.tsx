@@ -79,6 +79,10 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
     const px = rawX - dx;
     const py = rawY - dy;
 
+    // Convertimos de unidades de dibujo (mm papel) a metros reales
+    const pxM = GEO.pxToM(px, meta.escala);
+    const pyM = GEO.pxToM(py, meta.escala);
+
     // ¿Se hizo click sobre un símbolo eléctrico existente?
     const target = e.target as HTMLElement;
     const elecEl = target.closest('[data-elec-id]');
@@ -89,10 +93,10 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
     const snap = GEO.snapAPared(px, py, segs);
 
     onCanvasClick(
-      px,
-      py,
+      pxM,
+      pyM,
       snap.segIdx !== -1 ? snap.segIdx : undefined,
-      snap.pos,
+      GEO.pxToM(snap.pos, meta.escala),
       clickedElecId
     );
   }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick]);

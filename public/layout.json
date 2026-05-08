@@ -1,0 +1,18 @@
+{
+  "titleBlock": {
+    "width": 175,
+    "height": 35,
+    "elements": [
+      { "type": "rect", "x": 0, "y": 0, "width": 175, "height": 35, "stroke": "black", "strokeWidth": 0.5, "fill": "white" },
+      { "type": "line", "x1": 0, "y1": 17.5, "x2": 175, "y2": 17.5, "stroke": "black", "strokeWidth": 0.3 },
+      { "type": "line", "x1": 105, "y1": 0, "x2": 105, "y2": 17.5, "stroke": "black", "strokeWidth": 0.3 },
+      { "type": "text", "x": 5, "y": 7, "text": "PROYECTO:", "fontSize": 5, "fill": "#666", "anchor": "start" },
+      { "type": "text", "x": 5, "y": 14, "text": "{PROJECT_NAME}", "fontSize": 7.5, "fill": "black", "anchor": "start" },
+      { "type": "text", "x": 110, "y": 7, "text": "AMBIENTE:", "fontSize": 5, "fill": "#666", "anchor": "start" },
+      { "type": "text", "x": 110, "y": 14, "text": "{AMBIENTE_NAME}", "fontSize": 7.5, "fill": "black", "anchor": "start" },
+      { "type": "text", "x": 5, "y": 26, "text": "IEBA CROQUIS PWA — v1.3", "fontSize": 5, "fill": "#666", "anchor": "start" },
+      { "type": "text", "x": 170, "y": 26, "text": "ESCALA 1:{SCALE}", "fontSize": 7, "fill": "black", "anchor": "end" },
+      { "type": "text", "x": 170, "y": 32, "text": "{FORMAT} — {ORIENTATION}", "fontSize": 6, "fill": "#666", "anchor": "end" }
+    ]
+  }
+}

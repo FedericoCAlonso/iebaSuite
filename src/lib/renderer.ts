@@ -16,6 +16,7 @@ import type {
   Irregularidad
 } from '../types';
 import type { DefinicionSimbolo } from './symbols';
+import type { LayoutConfig } from './layout';
 
 /** Interfaz para los metadatos globales del proyecto necesarios para el cálculo */
 interface Meta {
@@ -43,6 +44,7 @@ const C = {
   COTA_OFF: 0.50,        // Distancia de la cota respecto al muro (metros)
   COTA_ARR: 0.12,        // Largo de los "arrastres" o terminales de cota
   COTA_MAR: 0.08,        // Margen del texto sobre la línea de cota
+  COTA_SIZE_DEFAULT: 2.5 // mm en papel
 } as const;
 
 /** Formatea números a 2 decimales para optimizar el tamaño del SVG */
@@ -150,29 +152,33 @@ function _renderAbertura(out: string[], ab: Abertura, segs: any[], escala: numbe
 /**
  * Renderiza las líneas de cota (medidas) externas del ambiente.
  */
-function _renderCotas(out: string[], segs: any[], escala: number, dx: number, dy: number): void {
+function _renderCotas(out: string[], ambiente: Ambiente, segs: any[], escala: number, dx: number, dy: number): void {
   const offPx = GEO.mToPx(C.COTA_OFF, escala);
   const arrPx = GEO.mToPx(C.COTA_ARR, escala);
   const marPx = GEO.mToPx(C.COTA_MAR, escala);
+  const cotaSize = ambiente.cotaSize || C.COTA_SIZE_DEFAULT;
 
   for (const seg of segs) {
     const dist = seg.grosorPx + offPx;
     const cI = GEO.add(GEO.add(seg.inicio, GEO.scale(seg.v_ext, dist)), [dx, dy]);
     const cF = GEO.add(GEO.add(seg.fin, GEO.scale(seg.v_ext, dist)), [dx, dy]);
     
-    out.push(line(cI, cF, C.COTA, 0.6));
+    out.push(line(cI, cF, C.COTA, 0.3)); // Línea más fina para cotas
     const diag = GEO.norm(GEO.add(GEO.norm(seg.dir), GEO.norm(seg.v_ext)));
     const diag2 = GEO.scale(diag, -1);
-    [cI, cF].forEach(pt => out.push(line(GEO.add(pt, GEO.scale(diag, arrPx / 2)), GEO.add(pt, GEO.scale(diag2, arrPx / 2)), C.COTA, 0.8)));
+    [cI, cF].forEach(pt => out.push(line(GEO.add(pt, GEO.scale(diag, arrPx / 2)), GEO.add(pt, GEO.scale(diag2, arrPx / 2)), C.COTA, 0.4)));
 
     const mid: Point = [(cI[0] + cF[0]) / 2, (cI[1] + cF[1]) / 2];
     let ang = Math.atan2(seg.dir[1], seg.dir[0]) * 180 / Math.PI;
+    
+    // Offset del texto proporcional al tamaño de fuente
+    const textOffset = cotaSize * 0.8;
     const tPos = (ang > 90 || ang < -90) 
-      ? (ang += 180, GEO.add(mid, GEO.scale(seg.v_ext, -(marPx + 6))))
-      : GEO.add(mid, GEO.scale(seg.v_ext, marPx + 5));
+      ? (ang += 180, GEO.add(mid, GEO.scale(seg.v_ext, -(marPx + textOffset))))
+      : GEO.add(mid, GEO.scale(seg.v_ext, marPx + textOffset));
 
     const mLen = (GEO.len(GEO.sub(seg.fin, seg.inicio)) * escala / 1000).toFixed(2);
-    out.push(txt(tPos, `${mLen} m`, ang, C.COTA, 11));
+    out.push(txt(tPos, `${mLen} m`, ang, C.COTA, cotaSize));
   }
 }
 
@@ -180,18 +186,21 @@ function _renderCotas(out: string[], segs: any[], escala: number, dx: number, dy
  * Renderiza un símbolo eléctrico individual.
  * Si el elemento tiene pared asignada, calcula automáticamente su posición y rotación.
  */
-function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], k: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[]): void {
-  let ex = el.x + dx;
-  let ey = el.y + dy;
+function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], escala: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[]): void {
+  // Convertimos las posiciones de metros a unidades de dibujo (mm papel)
+  let ex = GEO.mToPx(el.x, escala) + dx;
+  let ey = GEO.mToPx(el.y, escala) + dy;
   let angRot = 0;
 
   if (el.paredIdx !== null && el.paredIdx < segs.length) {
     const seg = segs[el.paredIdx];
-    const xy = GEO.posEnPared(seg, el.paredPos || 0);
+    const xy = GEO.posEnPared(seg, GEO.mToPx(el.paredPos || 0, escala));
     ex = xy[0] + dx;
     ey = xy[1] + dy;
     angRot = GEO.anguloSimboloPared(seg);
   }
+
+  const k = GEO.mToPx(0.22, escala); // Tamaño base 22cm en metros
 
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   
@@ -233,24 +242,46 @@ export const RENDERER = {
   },
 
   /**
-   * Calcula elBounding Box total del dibujo para centrarlo y dimensionar el SVG.
-   * @returns Desplazamiento (dx, dy) y dimensiones totales (W, H).
+   * Calcula el layout de la hoja (posiciones dx, dy y dimensiones de página)
    */
-  getBboxOffset(ambiente: Ambiente, meta: Meta) {
+  getLayout(ambiente: Ambiente, meta: Meta) {
     const segs = this.buildSegs(ambiente, meta);
-    if (!segs.length) return { dx: C.MARGEN, dy: C.MARGEN, W: 300, H: 200 };
+    const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
+    const margin = 10;
+    const rotuloH = 35;
+    
+    let pageW = conf.formato === 'A3' ? 420 : 297;
+    let pageH = conf.formato === 'A3' ? 297 : 210;
+    if (conf.orientacion === 'vertical') [pageW, pageH] = [pageH, pageW];
+
+    if (!segs.length) {
+      return { dx: margin, dy: margin, pageW, pageH, margin, rotuloH };
+    }
+
     const offPx = GEO.mToPx(C.COTA_OFF, meta.escala);
     const cotaPts = segs.flatMap(s => [
       GEO.add(s.inicio, GEO.scale(s.v_ext, s.grosorPx + offPx)),
       GEO.add(s.fin, GEO.scale(s.v_ext, s.grosorPx + offPx))
     ]);
     const [xMin, yMin, xMax, yMax] = GEO.bbox(segs, cotaPts as Point[]);
-    return {
-      dx: -xMin + C.MARGEN,
-      dy: -yMin + C.MARGEN,
-      W: (xMax - xMin) + 2 * C.MARGEN,
-      H: (yMax - yMin) + 2 * C.MARGEN + 28
-    };
+    
+    const drawW = xMax - xMin;
+    const drawH = yMax - yMin;
+    const availableW = pageW - 2 * margin;
+    const availableH = pageH - 2 * margin - rotuloH;
+    
+    const dx = -xMin + margin + (availableW - drawW) / 2;
+    const dy = -yMin + margin + (availableH - drawH) / 2;
+
+    return { dx, dy, pageW, pageH, margin, rotuloH };
+  },
+
+  /**
+   * Calcula elBounding Box total (Legacy, para compatibilidad si se requiere)
+   */
+  getBboxOffset(ambiente: Ambiente, meta: Meta) {
+    const layout = this.getLayout(ambiente, meta);
+    return { dx: layout.dx, dy: layout.dy, W: layout.pageW, H: layout.pageH };
   },
 
   /**
@@ -261,11 +292,19 @@ export const RENDERER = {
    */
   render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false): string {
     const segs = this.buildSegs(ambiente, meta);
-    if (!segs.length) return `<svg width="300" height="200"></svg>`;
-
-    const { dx, dy, W, H } = this.getBboxOffset(ambiente, meta);
-    const cerrado = GEO.esCerrado(segs);
+    const { dx, dy, pageW, pageH, margin } = this.getLayout(ambiente, meta);
+    const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
+    
     const out: string[] = [];
+    
+    if (!segs.length) {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">
+        <rect width="100%" height="100%" fill="white"/>
+        <rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="#ccc" stroke-width="0.5"/>
+      </svg>`;
+    }
+
+    const cerrado = GEO.esCerrado(segs);
 
     // 1. Polígono de fondo (piso)
     out.push(`<polygon points="${ptsAttr(segs.map(s => GEO.add(s.inicio, [dx, dy])))}" fill="${C.INT_FILL}" stroke="none"/>`);
@@ -289,25 +328,54 @@ export const RENDERER = {
 
     // 4. Aberturas y Cotas
     ambiente.aberturas?.forEach(ab => _renderAbertura(out, ab, segs, meta.escala, dx, dy));
-    if (ambiente.mostrar_cotas) _renderCotas(out, segs, meta.escala, dx, dy);
+    if (ambiente.mostrar_cotas) _renderCotas(out, ambiente, segs, meta.escala, dx, dy);
 
     // 5. Elementos Eléctricos
-    const kSize = GEO.mToPx(0.22, meta.escala);
     ambiente.elementos?.forEach((el: ElementoElectrico) => {
-      _renderElemento(out, el, segs, kSize, dx, dy, exportMode, symbolsLib);
+      _renderElemento(out, el, segs, meta.escala, dx, dy, exportMode, symbolsLib);
     });
 
     // 6. Textos libres
     ambiente.textos?.forEach((t) => {
-      // Usamos C.TXT o un color oscuro.
-      out.push(txt([t.x + dx, t.y + dy], t.texto, 0, '#333', t.tamano, 'middle'));
+      out.push(txt([GEO.mToPx(t.x, meta.escala) + dx, GEO.mToPx(t.y, meta.escala) + dy], t.texto, 0, '#333', t.tamano, 'middle'));
     });
 
-    // 7. Pie de plano (Título)
-    out.push(txt([W / 2, H - 10], `${meta.nombre} — ${ambiente.nombre}`, 0, '#333', 11, 'middle'));
+    // ─── ELEMENTOS DE HOJA (MARGEN Y RÓTULO) ───
+    const layout = (window as any).layoutConfig as LayoutConfig;
+    
+    // Línea de margen (1cm)
+    out.push(`<rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="black" stroke-width="0.5"/>`);
+    
+    if (layout?.titleBlock) {
+      const { width: rW, height: rH, elements } = layout.titleBlock;
+      const rX = pageW - margin - rW;
+      const rY = pageH - margin - rH;
+
+      out.push(`<g transform="translate(${rX},${rY})">`);
+      elements.forEach(e => {
+        if (e.type === 'rect') {
+          out.push(`<rect x="${e.x}" y="${e.y}" width="${e.width}" height="${e.height}" fill="${e.fill || 'none'}" stroke="${e.stroke || 'black'}" stroke-width="${e.strokeWidth || 0.5}"/>`);
+        } else if (e.type === 'line') {
+          out.push(`<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" stroke="${e.stroke || 'black'}" stroke-width="${e.strokeWidth || 0.5}"/>`);
+        } else if (e.type === 'text') {
+          let content = e.text || '';
+          content = content.replace('{PROJECT_NAME}', meta.nombre.toUpperCase())
+                          .replace('{AMBIENTE_NAME}', ambiente.nombre.toUpperCase())
+                          .replace('{SCALE}', meta.escala.toString())
+                          .replace('{FORMAT}', conf.formato)
+                          .replace('{ORIENTATION}', conf.orientacion.toUpperCase());
+          
+          out.push(txt([e.x || 0, e.y || 0], content, 0, e.fill || 'black', e.fontSize || 3, e.anchor || 'start'));
+        }
+      });
+      out.push('</g>');
+    }
 
     // Envolver todo en el tag <svg>
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${f(W)}" height="${f(H)}" viewBox="0 0 ${f(W)} ${f(H)}">
+    const widthAttr = exportMode ? `${pageW}mm` : `${pageW}`;
+    const heightAttr = exportMode ? `${pageH}mm` : `${pageH}`;
+    
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}">
       <rect width="100%" height="100%" fill="white"/>
       ${out.join('\n')}
     </svg>`;

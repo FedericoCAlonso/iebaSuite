@@ -11,6 +11,7 @@ import {
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
 import { loadSymbolsAsync } from '../lib/symbols';
+import { loadLayoutAsync } from '../lib/layout';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import type { Project, Ambiente } from '../types';
 
@@ -28,9 +29,12 @@ export function useProjects() {
   // Librería de símbolos
   const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>([]);
 
-  // Cargar símbolos asíncronamente al iniciar
+  // Cargar símbolos y layout asíncronamente al iniciar
   useEffect(() => {
     loadSymbolsAsync().then(setSymbolsLib);
+    loadLayoutAsync().then(layout => {
+      (window as any).layoutConfig = layout;
+    });
   }, []);
 
   // Limpiar el historial cuando se cambia de ambiente activo
@@ -38,8 +42,46 @@ export function useProjects() {
     setAmbienteHistory([]);
   }, [activeAmbienteId]);
 
-  // Efecto de persistencia: guarda en storage cada vez que cambia el array de proyectos
+  // Efecto de persistencia y Migración
   useEffect(() => { 
+    // MIGRACIÓN: De Pixels a Metros para posiciones de elementos y textos
+    // Si detectamos que los elementos están en el sistema viejo (px), los convertimos.
+    const migratedProjects = projects.map(p => {
+      const newAmbientes = p.ambientes.map(amb => {
+        
+        // Si hay elementos con paredPos > 50 o x > 50, es casi seguro que son píxeles
+        // (ya que un ambiente de > 50 metros es raro en este contexto de croquis)
+        const needsMigration = amb.elementos.some(el => (el.paredPos || 0) > 40 || Math.abs(el.x) > 100);
+        
+        if (needsMigration) {
+          const esc = p.meta.escala;
+          const elementos = amb.elementos.map(el => ({
+            ...el,
+            x: el.x * esc / 1000,
+            y: el.y * esc / 1000,
+            paredPos: el.paredPos ? el.paredPos * esc / 1000 : null
+          }));
+          const textos = amb.textos?.map(t => ({
+            ...t,
+            x: t.x * esc / 1000,
+            y: t.y * esc / 1000
+          }));
+          return { ...amb, elementos, textos };
+        }
+        return amb;
+      });
+
+      if (newAmbientes.some((a, i) => a !== p.ambientes[i])) {
+        return { ...p, ambientes: newAmbientes };
+      }
+      return p;
+    });
+
+    if (migratedProjects.some((p, i) => p !== projects[i])) {
+      setProjects(migratedProjects);
+      return; // El próximo ciclo de efecto guardará
+    }
+
     saveProjects(projects); 
   }, [projects]);
 

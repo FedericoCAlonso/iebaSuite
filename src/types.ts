@@ -15,11 +15,18 @@ export interface Ambiente {
   id: string
   nombre: string
   sentido: 'horario' | 'antihorario'
-  mostrar_cotas: boolean
   paredes: Pared[]
   aberturas: Abertura[]
   elementos: ElementoElectrico[]
   textos?: TextoPlano[]
+  configHoja?: ConfigHoja
+  mostrar_cotas: boolean
+  cotaSize?: number
+}
+
+export interface ConfigHoja {
+  formato: 'A4' | 'A3'
+  orientacion: 'vertical' | 'horizontal'
 }
 
 export interface Pared {
@@ -52,10 +59,10 @@ export interface ElementoElectrico {
   id: string
   tipo: SymbolId
   referencia: string
-  x: number
-  y: number            // posición en coordenadas del plano (px)
+  x: number                // posición X real (metros)
+  y: number                // posición Y real (metros)
   paredIdx: number | null  // null = libre (techo/tierra)
-  paredPos: number | null  // posición a lo largo de la pared (px)
+  paredPos: number | null  // posición a lo largo de la pared (metros)
   datos: { clave: string; valor: string }[]
   mostrarDato: boolean
 }
@@ -65,8 +72,8 @@ export type SymbolId = string;
 export interface TextoPlano {
   id: string;
   texto: string;
-  x: number;
-  y: number;
-  tamano: number;
+  x: number;               // metros
+  y: number;               // metros
+  tamano: number;          // mm en papel
 }
 

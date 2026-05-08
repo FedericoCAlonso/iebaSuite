@@ -59,8 +59,8 @@ export const norm = ([x, y]: Point): Point => {
   return l > 1e-10 ? [x / l, y / l] : [0, 0];
 };
 
-/** Devuelve el vector perpendicular izquierdo (Normal) */
-export const perpIzq = ([x, y]: Point): Point => [-y, x];
+/** Devuelve el vector perpendicular izquierdo (Normal) en sistema Y-down */
+export const perpIzq = ([x, y]: Point): Point => [y, -x];
 
 /** Producto punto entre dos vectores */
 export const dot = ([ax, ay]: Point, [bx, by]: Point): number => ax * bx + ay * by;
@@ -148,13 +148,15 @@ export function calcularVectores(segs: Segmento[]): void {
   const cw = area >= 0;
 
   segs.forEach(s => {
-    const p = perpIzq(s.dir);
+    const p = perpIzq(s.dir); // p es NORMAL IZQUIERDA
     if (cw) {
-      s.v_int = p;
-      s.v_ext = [-p[0], -p[1]] as Point;
+      // En sentido horario, el interior queda a la DERECHA
+      s.v_int = [-p[0], -p[1]] as Point; // Derecha = Interior
+      s.v_ext = p;                       // Izquierda = Exterior
     } else {
-      s.v_ext = p;
-      s.v_int = [-p[0], -p[1]] as Point;
+      // En sentido antihorario, el interior queda a la IZQUIERDA
+      s.v_int = p;                       // Izquierda = Interior
+      s.v_ext = [-p[0], -p[1]] as Point; // Derecha = Exterior
     }
   });
 }

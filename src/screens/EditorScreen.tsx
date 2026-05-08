@@ -29,6 +29,7 @@ interface EditorScreenProps {
   onDeleteAmbiente: (id: string) => void;
   onSelectAmbiente: (id: string) => void;
   onSymbolDialog: (data: SymbolDialogData) => void;
+  onExport: () => void;
 }
 
 export function EditorScreen({
@@ -46,6 +47,7 @@ export function EditorScreen({
   onDeleteAmbiente,
   onSelectAmbiente,
   onSymbolDialog,
+  onExport,
 }: EditorScreenProps) {
 
   // Guardas de seguridad
@@ -113,6 +115,22 @@ export function EditorScreen({
         >
           ↶
         </button>
+
+        {/* Botón de Exportar */}
+        <button 
+          className="panel-tab export-tab" 
+          onClick={onExport}
+          title="Exportar plano profesional"
+          style={{ 
+            background: 'var(--acc)', 
+            color: 'white', 
+            fontWeight: 'bold',
+            padding: '0 20px',
+            flex: 'none'
+          }}
+        >
+          📥 Exportar
+        </button>
       </div>
 
       {/* Feed de tarjetas */}
@@ -171,12 +189,50 @@ export function EditorScreen({
                       <option value="no">No</option>
                     </select>
                   </F>
+                  <F label="Tamaño cotas (mm)">
+                    <NumInput 
+                      value={activeAmbiente.cotaSize || 2.5}
+                      onChange={v => onUpdateAmbiente(a => ({ ...a, cotaSize: v }))}
+                    />
+                  </F>
                 </div>
                 {project.ambientes.length > 1 && (
                   <button className="btn btn-danger btn-sm" onClick={() => onDeleteAmbiente(activeAmbiente.id)}>
                     Eliminar este ambiente
                   </button>
                 )}
+              </Card>
+
+              <Card idx="📄" title="Configuración de Hoja" defaultOpen={false}>
+                <div className="field-row">
+                  <F label="Formato">
+                    <select
+                      value={activeAmbiente.configHoja?.formato || 'A4'}
+                      onChange={e => onUpdateAmbiente(a => ({ 
+                        ...a, 
+                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), formato: e.target.value as 'A4' | 'A3' } 
+                      }))}
+                    >
+                      <option value="A4">A4 (210x297mm)</option>
+                      <option value="A3">A3 (297x420mm)</option>
+                    </select>
+                  </F>
+                  <F label="Orientación">
+                    <select
+                      value={activeAmbiente.configHoja?.orientacion || 'horizontal'}
+                      onChange={e => onUpdateAmbiente(a => ({ 
+                        ...a, 
+                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), orientacion: e.target.value as 'vertical' | 'horizontal' } 
+                      }))}
+                    >
+                      <option value="vertical">Vertical</option>
+                      <option value="horizontal">Horizontal</option>
+                    </select>
+                  </F>
+                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '8px' }}>
+                  * El margen técnico se ajusta a 1cm (10mm).
+                </div>
               </Card>
 
               {/* SECCIÓN DE TEXTOS LIBRES */}
@@ -268,7 +324,6 @@ export function EditorScreen({
                 <ElectricalCard
                   key={el.id}
                   el={el}
-                  escala={project.meta.escala}
                   index={i}
                   wallCount={activeAmbiente.paredes.length}
                   symbolsLib={symbolsLib}
