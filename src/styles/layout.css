@@ -1,0 +1,260 @@
+/* ─────────────────────────────────────────────
+   layout.css — Estructura principal de la app
+   .app, .topbar, .workspace, .panel-left/right,
+   .statusbar, .main-content
+───────────────────────────────────────────── */
+
+/* ── App shell ── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Topbar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--topbar-h);
+  padding: 0 14px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--acc);
+}
+.topbar-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--acc);
+  letter-spacing: 3px;
+  cursor: pointer;
+}
+.topbar-crumb {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+.topbar-crumb span { color: var(--text2); }
+.topbar-sep { flex: 1; }
+.topbar-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.status-ok   { color: var(--green); }
+.status-warn { color: var(--acc); }
+.status-err  { color: var(--red); }
+
+/* ── Main content ── */
+main.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Workspace ── */
+.workspace {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Panel izquierdo (editor) ── */
+.panel-left {
+  width: var(--panel-w);
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tabs de categoría (Paredes / Aberturas / Eléct.) */
+.panel-tabs {
+  display: flex;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.panel-tab {
+  flex: 1;
+  padding: 9px 2px;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.panel-tab:hover  { color: var(--text); }
+.panel-tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+
+/* Feed de tarjetas */
+.panel-feed {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px 0;
+}
+.panel-feed-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+/* ── Panel derecho (preview/plano) ── */
+.panel-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg3);
+}
+.preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.preview-area {
+  touch-action: none;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  cursor: crosshair;
+  user-select: none;
+}
+.preview-area svg {
+  position: absolute;
+  transform-origin: 0 0;
+}
+.preview-hint {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  pointer-events: none;
+}
+.preview-mode-badge {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--acc);
+  color: #000;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  pointer-events: none;
+  z-index: 10;
+  animation: fadeDown 0.3s ease;
+}
+@keyframes fadeDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.toolbar-help {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  transition: color 0.2s;
+}
+.toolbar-help.active {
+  color: var(--acc);
+}
+.zoom-controls {
+  position: absolute;
+  bottom: 10px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--r);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
+}
+.zoom-btn:hover { background: var(--bg3); border-color: var(--acc); }
+
+/* ── Statusbar ── */
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 3px 12px;
+  background: var(--bg);
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+/* ── Helper dentro del panel ── */
+.info-helper {
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  line-height: 1.7;
+}
+
+/* ── Sección vacía (empty state) ── */
+.empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.8;
+}
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  color: var(--text3);
+  font-family: var(--mono);
+}

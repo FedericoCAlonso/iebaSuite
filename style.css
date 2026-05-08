@@ -66,7 +66,22 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
 .status-err  { color: var(--red); }
 
 /* ── Workspace ── */
-.workspace { display: flex; flex: 1; overflow: hidden; }
+
+main.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative; /* Importante para los hijos absolutos */
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
 
 /* ── Panel izquierdo ── */
 .panel-left {
@@ -112,6 +127,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--sans); font
   border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
 .preview-area {
+  touch-action: none; /* BLOQUEA el scroll del navegador sobre el plano */
   flex: 1; overflow: hidden; position: relative;
   cursor: crosshair; user-select: none;
 }
@@ -376,9 +392,73 @@ input[type=checkbox] {
    MOBILE LAYOUT
 ══════════════════════════════════════════ */
 
+/* El botón flotante solo se muestra en mobile */
+.mobile-view-toggle { display: none; }
+
+/* ══════════════════════════════════════════
+   MOBILE OPTIMIZATION (ieBA Professional)
+══════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .workspace { flex-direction: column; }
-  .panel-right { min-height: 40vh; }
-  .panel-left { width: 100%; height: 60vh; }
-  .topbar-status { display: none; }
+  /* El workspace debe ser el área de referencia */
+  .workspace {
+    position: relative;
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+
+  .panel-left {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    background: var(--bg2);
+    display: flex;         /* <--- CRUCIAL */
+    flex-direction: column; /* <--- CRUCIAL */
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .panel-left.mobile-visible {
+    transform: translateX(0);
+  }
+
+  /* Aseguramos que el feed (donde están las paredes) ocupe el resto del alto */
+  .panel-feed {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+  }
+
+  /* Ajuste para que los ambientes no desaparezcan arriba */
+  .amb-bar {
+    flex-shrink: 0; 
+    min-height: 40px;
+  }
+
+  .panel-right {
+    position: absolute;
+    inset: 0;
+    z-index: 10; /* Al fondo */
+    display: flex;
+  }
+
+  /* EL BOTÓN: Lo sacamos de cualquier contenedor conflictivo */
+  .mobile-view-toggle {
+    display: flex !important;
+    position: fixed; /* Fixed para que ignore el scroll de los paneles */
+    bottom: 25px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background: var(--acc);
+    color: #000;
+    border-radius: 50%;
+    z-index: 999; /* EL VALOR MÁS ALTO DE TODA LA APP */
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border: 2px solid #000; /* Para que resalte */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    cursor: pointer;
+  }
 }

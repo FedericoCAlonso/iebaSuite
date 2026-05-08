@@ -1,31 +1,55 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // MODULE: components/Preview.tsx
+// El plano reacciona según la tab activa del editor:
+//   - 'electrico'  → insertar símbolo eléctrico (cursor crosshair)
+//   - 'aberturas'  → snap a pared más cercana y crear abertura (cursor pointer sobre paredes)
+//   - otras tabs   → plano de solo lectura (cursor default)
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React, { useRef, useMemo, useCallback } from 'react';
 import { useZoomPan } from '../hooks/useZoomPan';
 
-// Motores refactorizados
-import {RENDERER } from '../lib/renderer';
+import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 
-// Tipos
 import type { Ambiente, ElementoElectrico } from '../types';
-import type { SymbolDialogData } from '../App';
+import type { EditorTab } from '../App';
 
 interface PreviewProps {
   ambiente: Ambiente;
   meta: { nombre: string; escala: number; grosor_pared_default: number };
-  onInsertElemento: (clickData: SymbolDialogData) => void;
+  activeTab: EditorTab;
+  onCanvasClick: (
+    rawX: number,
+    rawY: number,
+    snapSegIdx: number | undefined,
+    snapPos: number | undefined,
+    clickedElecId: string | undefined
+  ) => void;
 }
 
-export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
+/** Cursor del área del plano según el tab activo */
+const CURSOR_BY_TAB: Record<EditorTab, string> = {
+  proyecto:   'default',
+  paredes:    'default',
+  aberturas:  'crosshair',
+  electrico:  'crosshair',
+};
+
+/** Texto de ayuda en el toolbar según el tab activo */
+const HINT_BY_TAB: Record<EditorTab, string> = {
+  proyecto:  '— Solo lectura —',
+  paredes:   '— Solo lectura —',
+  aberturas: 'Tocá una pared para agregar abertura',
+  electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
+};
+
+export function Preview({ ambiente, meta, activeTab, onCanvasClick }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
   /**
-   * Genera el string SVG. 
-   * Se memoriza para evitar re-renderizados pesados si no cambian los datos.
+   * Genera el string SVG. Memorizado para evitar re-renderizados pesados.
    */
   const svgContent = useMemo(() => {
     if (!ambiente || !meta) return null;
@@ -34,53 +58,45 @@ export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
 
   /**
    * Maneja el clic en el área del plano.
-   * Convierte coordenadas de pantalla a coordenadas del plano técnico.
+   * Convierte coordenadas de pantalla → coordenadas del plano técnico
+   * y delega al handler unificado de App con toda la info necesaria.
    */
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!ambiente || !meta || !containerRef.current) return;
-    
+
+    // Tabs que no interactúan con el plano
+    if (activeTab === 'proyecto' || activeTab === 'paredes') return;
+
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
-    
-    // 1. Coordenadas relativas al contenedor SVG (considerando zoom y pan)
+
+    // Coordenadas en el espacio del plano (con zoom y pan)
     const rawX = (e.clientX - rect.left - pan.x) / zoom;
     const rawY = (e.clientY - rect.top - pan.y) / zoom;
 
     const { dx, dy } = RENDERER.getBboxOffset(ambiente, meta);
-
-    // 2. Ajustar por el offset del Bounding Box (dx, dy) que usa el     const { dx, dy } = getBboxOffset(ambiente, meta);
     const px = rawX - dx;
     const py = rawY - dy;
 
-    // 3. ¿Click en un símbolo existente? (Delegamos al modo 'edit')
+    // ¿Se hizo click sobre un símbolo eléctrico existente?
     const target = e.target as HTMLElement;
     const elecEl = target.closest('[data-elec-id]');
-    
-    if (elecEl) {
-      const id = elecEl.getAttribute('data-elec-id');
-      const el = ambiente.elementos?.find((x: ElementoElectrico) => x.id === id);
-      if (el) {
-        onInsertElemento({ mode: 'edit', existing: el });
-        return;
-      }
-    }
+    const clickedElecId = elecEl?.getAttribute('data-elec-id') ?? undefined;
 
-    // 4. Modo creación: Calcular snap a la pared más cercana
+    // Snap a la pared más cercana (útil tanto para eléctrico como aberturas)
     const segs = RENDERER.buildSegs(ambiente, meta);
     const snap = GEO.snapAPared(px, py, segs);
 
-    // Notificamos al App para que abra el SymbolDialog con los datos de inserción
-    onInsertElemento({ 
-      mode: 'create',
-      x: px, 
-      y: py, 
-      snapSegIdx: snap.segIdx !== -1 ? snap.segIdx : undefined, 
-      snapPos: snap.pos 
-    });
+    onCanvasClick(
+      px,
+      py,
+      snap.segIdx !== -1 ? snap.segIdx : undefined,
+      snap.pos,
+      clickedElecId
+    );
+  }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick]);
 
-  }, [ambiente, meta, pan, zoom, onInsertElemento]);
-
-  /** Informacion técnica de la geometría actual */
+  /** Información técnica de la geometría actual */
   const status = useMemo(() => {
     if (!ambiente) return null;
     const segs = RENDERER.buildSegs(ambiente, meta);
@@ -89,6 +105,8 @@ export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
       cerrado: GEO.esCerrado(segs) 
     };
   }, [ambiente, meta]);
+
+  const isInteractive = activeTab === 'electrico' || activeTab === 'aberturas';
 
   return (
     <div className="panel-right">
@@ -107,8 +125,8 @@ export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
           </div>
         )}
         
-        <span className="toolbar-help">
-          Click: insertar · Alt+Drag: pan · Scroll: zoom
+        <span className={`toolbar-help ${isInteractive ? 'active' : ''}`}>
+          {HINT_BY_TAB[activeTab]}
         </span>
       </div>
 
@@ -116,7 +134,11 @@ export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
         className="preview-area" 
         ref={containerRef} 
         onClick={handleClick}
-        style={{ overflow: 'hidden', position: 'relative', cursor: 'crosshair' }}
+        style={{ 
+          overflow: 'hidden', 
+          position: 'relative', 
+          cursor: CURSOR_BY_TAB[activeTab]
+        }}
       >
         {svgContent ? (
           <div
@@ -137,7 +159,14 @@ export function Preview({ ambiente, meta, onInsertElemento }: PreviewProps) {
           </div>
         )}
 
-        {/* Controles de Zoom Flotantes */}
+        {/* Overlay visual cuando tab es 'aberturas' */}
+        {activeTab === 'aberturas' && (
+          <div className="preview-mode-badge">
+            🚪 Modo abertura — tocá una pared
+          </div>
+        )}
+
+        {/* Controles de Zoom */}
         <div className="zoom-controls">
           <button className="zoom-btn" onClick={zoomIn} title="Aumentar">+</button>
           <button className="zoom-btn" onClick={zoomOut} title="Reducir">−</button>

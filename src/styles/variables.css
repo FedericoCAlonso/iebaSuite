@@ -1,0 +1,40 @@
+/* ─────────────────────────────────────────────
+   variables.css — Tokens de diseño globales
+   Paleta industrial/técnica: oscuro, amarillo técnico
+───────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;400;600;700&display=swap');
+
+:root {
+  /* Fondos */
+  --bg:      #0f1117;
+  --bg2:     #171b24;
+  --bg3:     #1e2330;
+
+  /* Bordes */
+  --border:  #252b3b;
+  --border2: #333d55;
+
+  /* Acentos */
+  --acc:     #f5c400;
+  --acc2:    #c89d00;
+
+  /* Estado */
+  --red:     #cc2200;
+  --blue:    #3a7fd4;
+  --green:   #2e8b57;
+
+  /* Texto */
+  --text:    #d8dce8;
+  --text2:   #7a8099;
+  --text3:   #444d66;
+
+  /* Tipografía */
+  --mono:    'Space Mono', monospace;
+  --sans:    'Barlow Condensed', sans-serif;
+
+  /* Utilidades */
+  --r:        3px;
+  --topbar-h: 48px;
+  --panel-w:  320px;
+}

@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/pwaCroquizador/dev-sw.js?dev-sw', { scope: '/pwaCroquizador/', type: 'classic' })

@@ -1,0 +1,88 @@
+/* ─────────────────────────────────────────────
+   mobile.css — Responsive: ≤768px
+   Layout adaptado para uso en campo con celular
+───────────────────────────────────────────── */
+
+/* El botón flotante: oculto en desktop por defecto */
+.mobile-view-toggle { display: none; }
+
+@media (max-width: 768px) {
+
+  /* Inputs más grandes para touch (evita zoom en iOS) */
+  input[type=text],
+  input[type=number],
+  select {
+    font-size: 16px;
+    padding: 9px 10px;
+  }
+
+  /* El workspace es el área de referencia en mobile */
+  .workspace {
+    position: relative;
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Panel izquierdo: slide-in desde la izquierda */
+  .panel-left {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    background: var(--bg2);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .panel-left.mobile-visible {
+    transform: translateX(0);
+  }
+
+  /* El feed ocupa el espacio restante con scroll táctil */
+  .panel-feed {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* La barra de ambientes no debe colapsar */
+  .amb-bar {
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+
+  /* Panel derecho: al fondo del stack */
+  .panel-right {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+  }
+
+  /* Botón flotante FAB — toggle entre plano y editor */
+  .mobile-view-toggle {
+    display: flex !important;
+    position: fixed;
+    bottom: 25px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    background: var(--acc);
+    color: #000;
+    border-radius: 50%;
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .mobile-view-toggle:active {
+    transform: scale(0.93);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+}

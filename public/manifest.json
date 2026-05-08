@@ -1,0 +1,33 @@
+{
+  "name": "ieBA Croquis",
+  "short_name": "ieBA",
+  "description": "Editor de croquis eléctricos para inspectores IEBA. Trabaja offline.",
+  "start_url": "/pwaCroquizador/",
+  "scope": "/pwaCroquizador/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1117",
+  "theme_color": "#f5c400",
+  "lang": "es",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    {
+      "src": "/pwaCroquizador/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwaCroquizador/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwaCroquizador/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

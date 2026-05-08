@@ -1,0 +1,26 @@
+/* ─────────────────────────────────────────────
+   index.css — Punto de entrada de estilos
+   Importa todos los módulos en orden correcto
+───────────────────────────────────────────── */
+
+/* 1. Tokens y fuentes (sin dependencias) */
+@import './variables.css';
+
+/* 2. Reset global (depende de las variables) */
+@import './reset.css';
+
+/* 3. Estructura de la app */
+@import './layout.css';
+
+/* 4. Componentes visuales */
+@import './cards.css';
+@import './forms.css';
+@import './buttons.css';
+@import './dialogs.css';
+
+/* 5. Pantallas específicas */
+@import './projects.css';
+@import './ambientes.css';
+
+/* 6. Responsive (siempre al final para poder sobreescribir) */
+@import './mobile.css';

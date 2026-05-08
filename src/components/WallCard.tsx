@@ -11,15 +11,20 @@ import type { Pared, Irregularidad } from '../types';
 interface WallCardProps {
   pared: Pared;
   index: number;
+  /** true si esta pared es la última del ambiente (puede ser cierre automático) */
+  isLast: boolean;
   onChange: (pared: Pared) => void;
   onRemove: () => void;
 }
 
-export function WallCard({ pared, index, onChange, onRemove }: WallCardProps) {
+export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardProps) {
   const [openIrr, setOpenIrr] = useState(false);
 
+  // Una pared no-primera con largo=0 en posición final se trata como cierre automático
+  const isAutoClose = isLast && index > 0 && (pared.largo === 'auto' || pared.largo === 0);
+
   // Formateo de títulos para la cabecera de la tarjeta
-  const largoText = pared.largo === 'auto' ? 'AUTO' : pared.largo ? `${pared.largo}m` : '0m';
+  const largoText = isAutoClose ? 'AUTO' : pared.largo === 'auto' ? 'AUTO' : pared.largo ? `${pared.largo}m` : '0m';
   const angText = pared.angulo != null ? `${pared.angulo}°` : '90°';
 
   /**
@@ -30,7 +35,9 @@ export function WallCard({ pared, index, onChange, onRemove }: WallCardProps) {
   };
 
   /**
-   * Maneja el cambio en el largo, permitiendo el valor especial 'auto'
+   * Maneja el cambio en el largo.
+   * - 'auto' (texto) → guarda 'auto'
+   * - 0 en última pared (no-primera) → guarda 0, el renderer lo trata como 'auto'
    */
   const handleLargoChange = (val: string) => {
     const cleanVal = val.toLowerCase().trim();
@@ -42,6 +49,9 @@ export function WallCard({ pared, index, onChange, onRemove }: WallCardProps) {
     }
   };
 
+  /** Valor mostrado en el input: si es 'auto', muestra 0 para que sea editable */
+  const largoDisplayValue = pared.largo === 'auto' ? 0 : (pared.largo ?? 0);
+
   return (
     <Card
       idx={`P${index}`}
@@ -51,13 +61,31 @@ export function WallCard({ pared, index, onChange, onRemove }: WallCardProps) {
     >
       {/* Geometría Básica */}
       <div className="field-row">
-        <F label="Largo (m o 'auto')">
-          <input
-            className="input-base"
-            value={pared.largo ?? ''}
-            onChange={(e) => handleLargoChange(e.target.value)}
-            placeholder="ej: 3.50 o auto"
-          />
+        <F label="Largo (m)">
+          <div style={{ position: 'relative' }}>
+            <input
+              className="input-base"
+              type="number"
+              min="0"
+              step="0.05"
+              value={largoDisplayValue}
+              onChange={(e) => handleLargoChange(e.target.value)}
+              placeholder="ej: 3.50"
+              style={isAutoClose ? { paddingRight: '90px', color: 'var(--acc)' } : {}}
+            />
+            {isAutoClose && (
+              <span style={{
+                position: 'absolute', right: '6px', top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '9px', fontFamily: 'var(--mono)',
+                color: 'var(--acc)', pointerEvents: 'none',
+                background: 'var(--bg)', padding: '0 3px',
+                whiteSpace: 'nowrap',
+              }}>
+                ⬡ CIERRE AUTO
+              </span>
+            )}
+          </div>
         </F>
         <F label="Ángulo de inicio (°)">
           <NumInput 

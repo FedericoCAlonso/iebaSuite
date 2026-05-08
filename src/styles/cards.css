@@ -1,0 +1,91 @@
+/* ─────────────────────────────────────────────
+   cards.css — Tarjetas colapsables del feed
+───────────────────────────────────────────── */
+
+.card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: visible;
+}
+
+.card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  background: var(--bg2);
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+  transition: background .12s;
+}
+.card-hdr:hover         { background: var(--bg3); }
+.card-hdr.open          { border-bottom-color: var(--border); }
+
+.card-idx {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--acc);
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.card-title-main {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.card-body {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-chevron {
+  color: var(--text3);
+  font-size: 9px;
+  flex-shrink: 0;
+  transition: transform .15s;
+}
+.card-chevron.open { transform: rotate(90deg); }
+
+/* Sub-card (ej: irregularidades dentro de pared) */
+.sub-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r); }
+.sub-card .card-hdr { background: var(--bg); }
+.sub-card-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+
+.irr-row { display: flex; align-items: flex-end; gap: 4px; }
+
+/* Encabezado de sección dentro de card */
+.sec-hdr {
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text3);
+  padding: 4px 0 3px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}

@@ -1,0 +1,40 @@
+/* ─────────────────────────────────────────────
+   ambientes.css — Selector de ambientes y tabs
+───────────────────────────────────────────── */
+
+/* Barra de tabs de ambientes */
+.amb-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.amb-tab {
+  padding: 7px 14px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text3);
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+}
+.amb-tab:hover  { color: var(--text); background: var(--bg2); }
+.amb-tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+
+.amb-tab-add {
+  padding: 7px 10px;
+  font-size: 16px;
+  color: var(--text3);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color .15s;
+}
+.amb-tab-add:hover { color: var(--acc); }
