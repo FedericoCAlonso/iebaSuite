@@ -12,21 +12,16 @@ import { useZoomPan } from '../hooks/useZoomPan';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 
-import type { Ambiente } from '../types';
-import type { EditorTab } from '../App';
+import type { Ambiente, Project, Meta, EditorTab } from '../types';
+import type { DefinicionSimbolo } from '../lib/symbols';
 
 interface PreviewProps {
+  project: Project;
   ambiente: Ambiente;
-  meta: { nombre: string; escala: number; grosor_pared_default: number };
-  symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
+  meta: Meta;
   activeTab: EditorTab;
-  onCanvasClick: (
-    rawX: number,
-    rawY: number,
-    snapSegIdx: number | undefined,
-    snapPos: number | undefined,
-    clickedElecId: string | undefined
-  ) => void;
+  symbolsLib: DefinicionSimbolo[];
+  onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string) => void;
 }
 
 /** Cursor del área del plano según el tab activo */
@@ -35,6 +30,9 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
   paredes:    'default',
   aberturas:  'crosshair',
   electrico:  'crosshair',
+  circuitos:  'default',
+  conexiones: 'default',
+  maestro:    'default',
 };
 
 /** Texto de ayuda en el toolbar según el tab activo */
@@ -43,9 +41,12 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   paredes:   '— Solo lectura —',
   aberturas: 'Tocá una pared para agregar abertura',
   electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
+  circuitos: '— Solo lectura —',
+  conexiones:'— Solo lectura —',
+  maestro:   '— Plano Maestro —',
 };
 
-export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }: PreviewProps) {
+export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanvasClick }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
@@ -53,9 +54,28 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
    * Genera el string SVG. Memorizado para evitar re-renderizados pesados.
    */
   const svgContent = useMemo(() => {
-    if (!ambiente || !meta) return null;
-    return RENDERER.render(ambiente, meta, symbolsLib, false);
-  }, [ambiente, meta, symbolsLib]);
+    try {
+      if (!ambiente || !meta) return '';
+      if (activeTab === 'maestro') {
+        return RENDERER.renderMaster(project, symbolsLib);
+      }
+      return RENDERER.render(ambiente, meta, symbolsLib, false, project);
+    } catch (err) {
+      console.error("Error en el renderizado SVG:", err);
+      return '__ERROR__';
+    }
+  }, [ambiente, meta, symbolsLib, activeTab, project]);
+
+  if (svgContent === '__ERROR__') {
+    return (
+      <div className="preview-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', background: '#fff' }}>
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <strong>⚠️ Error en el motor de dibujo</strong><br/>
+          <small>Los datos de geometría contienen valores inválidos.</small>
+        </div>
+      </div>
+    );
+  }
 
   /**
    * Maneja el clic en el área del plano.

@@ -3,7 +3,7 @@
 // En React: src/components/ExportDialog.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 import React from "react";
-import { type Project } from "../types";
+import { type Project, type Conexion } from "../types";
 import type { DefinicionSimbolo } from "../lib/symbols";
 import { RENDERER } from "../lib/renderer";
 
@@ -70,6 +70,30 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
     onToast('JSON guardado');
   };
 
+  const exportNetlistCSV = () => {
+    const rows = [['Circuito', 'Desde (Ambiente)', 'Desde (Ref)', 'Hacia (Ambiente)', 'Hacia (Ref)', 'Canalización', 'Conductores']];
+    (project.conexiones || []).forEach((c: Conexion) => {
+      const getAmb = (id: string) => project.ambientes.find(a => a.id === id);
+      const ambF = getAmb(c.from.ambienteId);
+      const ambT = getAmb(c.to.ambienteId);
+      const refF = ambF?.elementos.find(e => e.id === c.from.elementoId)?.referencia || 'S/R';
+      const refT = ambT?.elementos.find(e => e.id === c.to.elementoId)?.referencia || 'S/R';
+      
+      rows.push([
+        c.circuitoId || '-',
+        ambF?.nombre || '-',
+        refF,
+        ambT?.nombre || '-',
+        refT,
+        c.conducto || '-',
+        c.cables?.map(cb => cb.seccion).join(' + ') || '-'
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    downloadBlob(csv, `${project.meta.nombre}_netlist.csv`, 'text/csv');
+    onToast('CSV de Netlist exportado');
+  };
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="dialog" onClick={e=>e.stopPropagation()}>
@@ -84,7 +108,8 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
         <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:4}}>
           <button className="btn btn-acc" onClick={exportSVG}>↓ SVG ({project.ambientes?.length||1} arch.)</button>
           <button className="btn btn-ghost" onClick={exportYAML}>↓ YAML</button>
-          <button className="btn btn-ghost" onClick={exportCSV}>↓ CSV</button>
+          <button className="btn btn-ghost" onClick={exportCSV}>↓ CSV (Símbolos)</button>
+          <button className="btn btn-ghost" onClick={exportNetlistCSV}>↓ CSV (Netlist)</button>
           <button className="btn btn-ghost" onClick={exportJSON}>↓ JSON (backup)</button>
         </div>
         <div className="dialog-actions">

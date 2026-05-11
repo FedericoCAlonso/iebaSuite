@@ -4,15 +4,18 @@ import { NumInput } from "../components/NumImput";
 import { WallCard } from "../components/WallCard";
 import { OpeningCard } from "../components/OpeningCard";
 import { ElectricalCard } from "../components/ElectricalCard";
-import { createPared, createAbertura, createElemento, createTexto } from '../lib/storage';
+import { CircuitoCard } from "../components/CircuitoCard";
+import { ConexionCard } from "../components/ConexionCard";
+import { createPared, createAbertura, createElemento, createTexto, createCircuito, createConexion } from '../lib/storage';
 
 // Tipos
-import type { Project, Ambiente, Pared, Abertura, ElementoElectrico } from "../types";
-import type { SymbolDialogData, EditorTab } from "../App";
+import {
+  type Project, type Ambiente, type ElementoElectrico, type SymbolDialogData,
+  type EditorTab, type Pared, type Abertura, type Circuito, type Conexion
+} from '../types';
 
 /**
  * Propiedades del componente EditorScreen.
- * El tab activo y su setter vienen de App para compartirse con Preview.
  */
 interface EditorScreenProps {
   project: Project;
@@ -23,11 +26,15 @@ interface EditorScreenProps {
   onTabChange: (tab: EditorTab) => void;
   onUpdateMeta: (meta: Project['meta']) => void;
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
+  onUpdateProject: (fn: (p: Project) => Project) => void;
   onAddAmbiente: () => void;
   onDeleteAmbiente: (id: string) => void;
   onSelectAmbiente: (id: string) => void;
   onSymbolDialog: (data: SymbolDialogData) => void;
+  onShowNetlist: () => void;
 }
+
+
 
 export function EditorScreen({
   project,
@@ -38,13 +45,14 @@ export function EditorScreen({
   onTabChange,
   onUpdateMeta,
   onUpdateAmbiente,
+  onUpdateProject,
   onAddAmbiente,
   onDeleteAmbiente,
   onSelectAmbiente,
   onSymbolDialog,
+  onShowNetlist
 }: EditorScreenProps) {
 
-  // Guardas de seguridad
   if (!project || !activeAmbiente) return <div className="empty">Sin proyecto seleccionado</div>;
 
   // --- Helpers de actualización semántica ---
@@ -58,9 +66,24 @@ export function EditorScreen({
   const updateElectrical = (fn: (elementos: ElementoElectrico[]) => ElementoElectrico[]) =>
     onUpdateAmbiente(a => ({ ...a, elementos: fn(a.elementos || []) }));
 
-  // Etiquetas de tabs
-  const tabLabels: Record<EditorTab, string> = {
-    proyecto: 'Proyecto', paredes: 'Paredes', aberturas: 'Abert.', electrico: 'Eléct.'
+  const updateCircuitos = (fn: (circuitos: Circuito[]) => Circuito[]) =>
+    onUpdateProject(p => ({ ...p, circuitos: fn(p.circuitos || []) }));
+
+  const updateConexiones = (fn: (conexiones: Conexion[]) => Conexion[]) =>
+    onUpdateProject(p => ({ ...p, conexiones: fn(p.conexiones || []) }));
+
+  const circuitos = project.circuitos || [];
+  const conexiones = project.conexiones || [];
+
+  // Etiquetas e iconos de tabs
+  const tabConfig: Record<EditorTab, { label: string, icon: string }> = {
+    proyecto:   { label: 'Proy.', icon: '📋' },
+    paredes:    { label: 'Paredes', icon: '🧱' },
+    aberturas:  { label: 'Abert.', icon: '🚪' },
+    electrico:  { label: 'Bocas', icon: '⚡' },
+    circuitos:  { label: 'Circuit.', icon: '🔌' },
+    conexiones: { label: 'Conex.', icon: '🔗' },
+    maestro:    { label: 'Maestro', icon: '🗺️' }
   };
 
   return (
@@ -74,6 +97,11 @@ export function EditorScreen({
             onClick={() => onSelectAmbiente(a.id)}
           >
             {a.nombre}
+            {a.tipoAmbiente && a.tipoAmbiente !== 'interior' && (
+              <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>
+                {a.tipoAmbiente === 'exterior' ? '☀' : '⛅'}
+              </span>
+            )}
           </button>
         ))}
         <button className="amb-tab-add" onClick={onAddAmbiente} title="Nuevo ambiente">＋</button>
@@ -81,17 +109,17 @@ export function EditorScreen({
 
       {/* Tabs de categoría */}
       <div className="panel-tabs">
-        {(['proyecto', 'paredes', 'aberturas', 'electrico'] as const).map((k) => (
+        {(['proyecto', 'paredes', 'aberturas', 'electrico', 'circuitos', 'conexiones', 'maestro'] as const).map((k) => (
           <button
             key={k}
             className={`panel-tab ${activeTab === k ? 'active' : ''}`}
             onClick={() => onTabChange(k)}
           >
-            {tabLabels[k]}
+            <span style={{ fontSize: 16 }}>{tabConfig[k].icon}</span>
+            <span>{tabConfig[k].label}</span>
           </button>
         ))}
       </div>
-
 
       {/* Feed de tarjetas */}
       <div className="panel-feed">
@@ -120,6 +148,12 @@ export function EditorScreen({
                       onChange={v => onUpdateMeta({ ...project.meta, grosor_pared_default: v })}
                     />
                   </F>
+                  <F label="Altura techo def. (m)">
+                    <NumInput
+                      value={project.meta.alturaDefault ?? 2.6}
+                      onChange={v => onUpdateMeta({ ...project.meta, alturaDefault: v })}
+                    />
+                  </F>
                 </div>
               </Card>
 
@@ -131,6 +165,16 @@ export function EditorScreen({
                   />
                 </F>
                 <div className="field-row">
+                  <F label="Tipo de ambiente">
+                    <select
+                      value={activeAmbiente.tipoAmbiente || 'interior'}
+                      onChange={e => onUpdateAmbiente(a => ({ ...a, tipoAmbiente: e.target.value as Ambiente['tipoAmbiente'] }))}
+                    >
+                      <option value="interior">🏠 Interior</option>
+                      <option value="semi_cubierto">⛅ Semi-cubierto</option>
+                      <option value="exterior">☀ Exterior</option>
+                    </select>
+                  </F>
                   <F label="Sentido de recorrido">
                     <select
                       value={activeAmbiente.sentido}
@@ -139,6 +183,14 @@ export function EditorScreen({
                       <option value="horario">Horario</option>
                       <option value="antihorario">Antihorario</option>
                     </select>
+                  </F>
+                </div>
+                <div className="field-row">
+                  <F label="Altura de techo (m)">
+                    <NumInput
+                      value={activeAmbiente.alturaLocal ?? (project.meta.alturaDefault ?? 2.6)}
+                      onChange={v => onUpdateAmbiente(a => ({ ...a, alturaLocal: v }))}
+                    />
                   </F>
                   <F label="Mostrar cotas">
                     <select
@@ -150,7 +202,7 @@ export function EditorScreen({
                     </select>
                   </F>
                   <F label="Tamaño cotas (mm)">
-                    <NumInput 
+                    <NumInput
                       value={activeAmbiente.cotaSize || 2.5}
                       onChange={v => onUpdateAmbiente(a => ({ ...a, cotaSize: v }))}
                     />
@@ -168,9 +220,9 @@ export function EditorScreen({
                   <F label="Formato">
                     <select
                       value={activeAmbiente.configHoja?.formato || 'A4'}
-                      onChange={e => onUpdateAmbiente(a => ({ 
-                        ...a, 
-                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), formato: e.target.value as 'A4' | 'A3' } 
+                      onChange={e => onUpdateAmbiente(a => ({
+                        ...a,
+                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), formato: e.target.value as 'A4' | 'A3' }
                       }))}
                     >
                       <option value="A4">A4 (210x297mm)</option>
@@ -180,9 +232,9 @@ export function EditorScreen({
                   <F label="Orientación">
                     <select
                       value={activeAmbiente.configHoja?.orientacion || 'horizontal'}
-                      onChange={e => onUpdateAmbiente(a => ({ 
-                        ...a, 
-                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), orientacion: e.target.value as 'vertical' | 'horizontal' } 
+                      onChange={e => onUpdateAmbiente(a => ({
+                        ...a,
+                        configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), orientacion: e.target.value as 'vertical' | 'horizontal' }
                       }))}
                     >
                       <option value="vertical">Vertical</option>
@@ -202,8 +254,8 @@ export function EditorScreen({
                   <div key={t.id} className="field-row" style={{ alignItems: 'flex-end', marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
                     <div style={{ flex: 2 }}>
                       <F label="Texto">
-                        <input 
-                          value={t.texto} 
+                        <input
+                          value={t.texto}
                           onChange={e => onUpdateAmbiente(a => ({
                             ...a, textos: (a.textos || []).map(xt => xt.id === t.id ? { ...xt, texto: e.target.value } : xt)
                           }))}
@@ -255,7 +307,6 @@ export function EditorScreen({
           {/* TAB: ABERTURAS */}
           {activeTab === 'aberturas' && (
             <>
-              {/* Indicador contextual del modo de inserción */}
               <div className="info-helper">
                 🖱 Tocá una pared en el plano para agregar abertura.<br />
                 O usá el botón "+" para ingresarla a mano.
@@ -266,10 +317,67 @@ export function EditorScreen({
                   ab={ab}
                   index={i}
                   wallCount={activeAmbiente.paredes.length}
+                  ambientes={project.ambientes}
+                  activeAmbienteId={activeAmbienteId}
                   onChange={(nab) => updateOpenings(ps => ps.map((x, j) => j === i ? nab : x))}
                   onRemove={() => updateOpenings(ps => ps.filter((_, j) => j !== i))}
                 />
               ))}
+            </>
+          )}
+
+          {/* TAB: CIRCUITOS */}
+          {activeTab === 'circuitos' && (
+            <>
+              <div className="info-helper">
+                ⚡ Definí los circuitos del proyecto. Luego asigná cada boca a un circuito.<br />
+                Nomenclatura AEA: <strong>TS1.C1</strong> = Circuito C1 del Tablero Seccional 1.
+              </div>
+              {circuitos.map((c, i) => (
+                <CircuitoCard
+                  key={c.id}
+                  circuito={c}
+                  index={i}
+                  onChange={(nc) => updateCircuitos(cs => cs.map((x, j) => j === i ? nc : x))}
+                  onRemove={() => updateCircuitos(cs => cs.filter((_, j) => j !== i))}
+                />
+              ))}
+              {circuitos.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                  No hay circuitos definidos. Agregá el primero.
+                </div>
+              )}
+            </>
+          )}
+
+          {/* TAB: CONEXIONES */}
+          {activeTab === 'conexiones' && (
+            <>
+              <div className="info-helper">
+                🔗 Creá el netlist vinculando bocas entre sí. Estas líneas punteadas se verán en el plano.
+              </div>
+              {conexiones.map((c, i) => (
+                <ConexionCard
+                  key={c.id}
+                  conexion={c}
+                  index={i}
+                  ambientes={project.ambientes}
+                  circuitos={circuitos}
+                  onChange={nc => onUpdateProject(p => ({
+                    ...p,
+                    conexiones: (p.conexiones || []).map(cx => cx.id === nc.id ? nc : cx)
+                  }))}
+                  onRemove={() => onUpdateProject(p => ({
+                    ...p,
+                    conexiones: (p.conexiones || []).filter(cx => cx.id !== c.id)
+                  }))}
+                />
+              ))}
+              {conexiones.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                  No hay conexiones en el netlist. Agregá una para unir dos bocas.
+                </div>
+              )}
             </>
           )}
 
@@ -280,6 +388,11 @@ export function EditorScreen({
                 🖱 Tocá el plano para insertar un símbolo.<br />
                 Los símbolos de pared hacen snap automáticamente.
               </div>
+              <div style={{ padding: '0 8px 8px' }}>
+                <button className="btn btn-acc btn-full" onClick={onShowNetlist}>
+                  📄 Ver Listado de Materiales (Netlist)
+                </button>
+              </div>
               {activeAmbiente.elementos.map((el, i) => (
                 <ElectricalCard
                   key={el.id}
@@ -287,11 +400,56 @@ export function EditorScreen({
                   index={i}
                   wallCount={activeAmbiente.paredes.length}
                   symbolsLib={symbolsLib}
+                  circuitos={circuitos}
                   onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
                   onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
                   onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}
                 />
               ))}
+            </>
+          )}
+
+          {/* TAB: MAESTRO */}
+          {activeTab === 'maestro' && (
+            <>
+              <Card idx="📐" title="Configuración de Hoja Maestro" defaultOpen={true}>
+                <F label="Formato">
+                  <select
+                    value={activeAmbiente.configHoja?.formato || 'A4'}
+                    onChange={e => onUpdateAmbiente(a => ({ ...a, configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), formato: e.target.value as any } }))}
+                  >
+                    <option value="A4">A4 (210x297mm)</option>
+                    <option value="A3">A3 (297x420mm)</option>
+                  </select>
+                </F>
+                <F label="Orientación">
+                  <select
+                    value={activeAmbiente.configHoja?.orientacion || 'horizontal'}
+                    onChange={e => onUpdateAmbiente(a => ({ ...a, configHoja: { ...(a.configHoja || { formato: 'A4', orientacion: 'horizontal' }), orientacion: e.target.value as any } }))}
+                  >
+                    <option value="horizontal">Horizontal</option>
+                    <option value="vertical">Vertical</option>
+                  </select>
+                </F>
+              </Card>
+
+              <Card idx="🏗️" title="Integración en Proyecto" defaultOpen={true}>
+                <div className="info-helper">Posicioná este ambiente en el plano maestro (en metros).</div>
+                <div className="field-row">
+                  <F label="Posición X (m)">
+                    <NumInput
+                      value={activeAmbiente.posX || 0}
+                      onChange={v => onUpdateAmbiente(a => ({ ...a, posX: v }))}
+                    />
+                  </F>
+                  <F label="Posición Y (m)">
+                    <NumInput
+                      value={activeAmbiente.posY || 0}
+                      onChange={v => onUpdateAmbiente(a => ({ ...a, posY: v }))}
+                    />
+                  </F>
+                </div>
+              </Card>
             </>
           )}
         </div>
@@ -306,12 +464,22 @@ export function EditorScreen({
           {activeTab === 'aberturas' && (
             <button className="btn btn-ghost btn-full" onClick={() => updateOpenings(ps => {
               const lastAb = ps.length > 0 ? ps[ps.length - 1] : null;
-              return [...ps, createAbertura(lastAb ? { 
-                tipo: lastAb.tipo, ancho: lastAb.ancho, 
-                hojas: lastAb.hojas, lado: lastAb.lado, sentido: lastAb.sentido 
+              return [...ps, createAbertura(lastAb ? {
+                tipo: lastAb.tipo, ancho: lastAb.ancho,
+                hojas: lastAb.hojas, lado: lastAb.lado, sentido: lastAb.sentido
               } : {})];
             })}>
               + Agregar abertura a mano
+            </button>
+          )}
+          {activeTab === 'circuitos' && (
+            <button className="btn btn-ghost btn-full" onClick={() => updateCircuitos(cs => [...cs, createCircuito()])}>
+              + Agregar circuito
+            </button>
+          )}
+          {activeTab === 'conexiones' && (
+            <button className="btn btn-ghost btn-full" onClick={() => updateConexiones(cs => [...cs, createConexion({ ambienteId: activeAmbienteId, elementoId: '' }, { ambienteId: activeAmbienteId, elementoId: '' })])}>
+              + Agregar conexión
             </button>
           )}
           {activeTab === 'electrico' && (

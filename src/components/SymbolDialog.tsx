@@ -3,12 +3,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
-import type { ElementoElectrico } from '../types';
+import type { ElementoElectrico, SymbolDialogData } from '../types';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import { F } from './Field';   
 import { createElemento } from '../lib/storage';
 import { pxToM } from '../lib/geometry';
-import type { SymbolDialogData } from '../App';
 
 interface SymbolDialogProps {
   /** Datos provenientes del clic en el plano o del componente ElectricalCard */
@@ -132,7 +131,7 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
         <div className="sec-hdr">Datos técnicos adicionales</div>
         
         <div className="datos-tecnicos-list">
-          {datos.map((d, j) => (
+          {datos.map((d: any, j: number) => (
             <div key={j} className="field-row" style={{ alignItems: 'flex-end', gap: '4px', marginBottom: '4px' }}>
               <input 
                 style={{ flex: 1 }}

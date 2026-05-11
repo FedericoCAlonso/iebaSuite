@@ -24,6 +24,11 @@
   flex: 1;
 }
 
+.header-actions {
+  display: flex;
+  gap: 16px;
+}
+
 .project-list {
   display: flex;
   flex-direction: column;

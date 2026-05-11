@@ -14,13 +14,15 @@ export type Point = [number, number];
 
 /** Estructura de un segmento de muro procesado para el renderizado */
 export interface Segmento {
-  inicio: Point;
-  fin: Point;
-  dir: Point;         // Vector unitario de dirección
-  grosorPx: number;   // Grosor de la pared convertido a píxeles
-  pared: Pared;       // Referencia a la entidad original
-  v_ext: Point;       // Normal unitaria hacia el exterior
-  v_int: Point;       // Normal unitaria hacia el interior
+  inicio: Point;      // Punto [x, y] de inicio en mm papel
+  fin: Point;         // Punto [x, y] de fin en mm papel
+  dir: Point;         // Vector unitario de dirección del eje
+  grosorPx: number;   // Grosor de la pared convertido a mm papel
+  pared: Pared;       // Entidad original del modelo
+  v_ext: Point;       // Normal unitaria hacia el exterior (cara visible)
+  v_int: Point;       // Normal unitaria hacia el interior (cara oculta)
+  largoPx?: number;   // Longitud en mm papel (opcional cache)
+  largoM?: number;    // Longitud en metros reales (opcional cache)
 }
 
 // ─── UTILIDADES VECTORIALES ───
@@ -35,7 +37,12 @@ export const mToPx = (m: number, esc: number): number => m * 1000.0 / esc;
  */
 export const pxToM = (px: number, escala: number): number => (px * escala) / 1000;
 
-/** Rota un vector una cantidad de grados determinada */
+/** 
+ * Rota un vector una cantidad de grados determinada.
+ * IMPORTANTE: El ángulo es relativo a la dirección actual.
+ * En el sistema SVG (Y-down), un ángulo positivo gira en sentido horario 
+ * si el vector base es [1,0].
+ */
 export const rot = ([x, y]: Point, deg: number): Point => {
   const r = deg * Math.PI / 180;
   return [
@@ -100,8 +107,13 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number)
     const grosor = (pared.grosor !== null && pared.grosor !== 0) ? pared.grosor : 0.15;
     const grosorPx = mToPx(grosor, escala);
 
-    // Aplicar rotación acumulada (excepto en la primera pared que define el origen)
-    if (i > 0) dir = rot(dir, sentido * (pared.angulo || 0));
+    // Lógica de Rumbos:
+    // El primer muro (i=0) mantiene la dirección inicial [1, 0].
+    // Los muros siguientes rotan respecto al anterior usando el ángulo relativo.
+    // 'sentido' (1 o -1) invierte el giro para permitir trazados horarios/antihorarios.
+    if (i > 0) {
+      dir = rot(dir, sentido * (pared.angulo || 0));
+    }
 
     // Caso de cierre automático (mínimo 3 paredes para formar un polígono, es decir, index >= 2)
     const esAutoCierre = pared.largo === 'auto' || (pared.largo === 0 && i >= 2);

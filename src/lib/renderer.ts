@@ -9,21 +9,18 @@
 
 import * as GEO from './geometry';
 import type { 
+  Project,
   Ambiente, 
   Pared, 
   Abertura, 
   ElementoElectrico, 
-  Irregularidad
+  Irregularidad,
+  Meta
 } from '../types';
 import type { DefinicionSimbolo } from './symbols';
 import type { LayoutConfig } from './layout';
 
-/** Interfaz para los metadatos globales del proyecto necesarios para el cálculo */
-interface Meta {
-  nombre: string;
-  escala: number;
-  grosor_pared_default: number;
-}
+/** Interfaz para los metadatos globales del proyecto (Importada de types) */
 
 /** Tipo simplificado para coordenadas [x, y] */
 type Point = [number, number];
@@ -182,21 +179,92 @@ function _renderCotas(out: string[], ambiente: Ambiente, segs: any[], escala: nu
   }
 }
 
+/** 
+ * Calcula la posición [x,y] de un elemento en el canvas (mm papel)
+ */
+function _getElementPos(el: ElementoElectrico, segs: any[], escala: number, dx: number, dy: number): Point {
+  let ex = GEO.mToPx(el.x, escala) + dx;
+  let ey = GEO.mToPx(el.y, escala) + dy;
+  if (el.paredIdx !== null && el.paredIdx < segs.length) {
+    const seg = segs[el.paredIdx];
+    const xy = GEO.posEnPared(seg, GEO.mToPx(el.paredPos || 0, escala));
+    ex = xy[0] + dx;
+    ey = xy[1] + dy;
+  }
+  return [ex, ey];
+}
+
+/** 
+ * Calcula la posición global [x,y] de un elemento en el canvas maestro (mm papel sin offsets de layout)
+ */
+function _getGlobalElementPos(project: Project, ambienteId: string, elementoId: string, escala: number): Point | null {
+  const amb = project.ambientes.find(a => a.id === ambienteId);
+  if (!amb) return null;
+  const el = amb.elementos?.find(e => e.id === elementoId);
+  if (!el) return null;
+  
+  const segs = RENDERER.buildSegs(amb, project.meta);
+  const localPos = _getElementPos(el, segs, escala, 0, 0);
+  
+  const gX = GEO.mToPx(amb.posX || 0, escala) + localPos[0];
+  const gY = GEO.mToPx(amb.posY || 0, escala) + localPos[1];
+  return [gX, gY];
+}
+
+/**
+ * Renderiza las conexiones (netlist) entre bocas.
+ */
+function _renderConexiones(out: string[], ambiente: Ambiente, project: Project | undefined, _segs: any[], escala: number, dx: number, dy: number): void {
+  if (!project?.conexiones) return;
+  project.conexiones.forEach(con => {
+    // Si la conexión involucra a este ambiente
+    if (con.from.ambienteId === ambiente.id || con.to.ambienteId === ambiente.id) {
+      const p1Global = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala);
+      const p2Global = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala);
+      
+      if (p1Global && p2Global) {
+        const currGX = GEO.mToPx(ambiente.posX || 0, escala);
+        const currGY = GEO.mToPx(ambiente.posY || 0, escala);
+        
+        const p1: Point = [p1Global[0] - currGX + dx, p1Global[1] - currGY + dy];
+        const p2: Point = [p2Global[0] - currGX + dx, p2Global[1] - currGY + dy];
+
+        const midX = (p1[0] + p2[0]) / 2;
+        const midY = (p1[1] + p2[1]) / 2;
+        const dxDir = p2[0] - p1[0];
+        const dyDir = p2[1] - p1[1];
+        const len = Math.hypot(dxDir, dyDir);
+        const nx = len > 0 ? -dyDir / len : 0;
+        const ny = len > 0 ? dxDir / len : 0;
+        const curveOffset = Math.min(len * 0.15, 20);
+        const cx = midX + nx * curveOffset;
+        const cy = midY + ny * curveOffset;
+
+        let color = '#3498DB';
+        if (con.circuitoId) {
+          const circ = project.circuitos?.find(c => c.id === con.circuitoId);
+          if (circ && circ.color) color = circ.color;
+        }
+
+        out.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(cx)} ${f(cy)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+      }
+    }
+  });
+}
+
 /**
  * Renderiza un símbolo eléctrico individual.
  * Si el elemento tiene pared asignada, calcula automáticamente su posición y rotación.
  */
 function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], escala: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[]): void {
   // Convertimos las posiciones de metros a unidades de dibujo (mm papel)
-  let ex = GEO.mToPx(el.x, escala) + dx;
-  let ey = GEO.mToPx(el.y, escala) + dy;
+  const pos = _getElementPos(el, segs, escala, dx, dy);
+  const ex = pos[0];
+  const ey = pos[1];
   let angRot = 0;
 
   if (el.paredIdx !== null && el.paredIdx < segs.length) {
     const seg = segs[el.paredIdx];
-    const xy = GEO.posEnPared(seg, GEO.mToPx(el.paredPos || 0, escala));
-    ex = xy[0] + dx;
-    ey = xy[1] + dy;
     angRot = GEO.anguloSimboloPared(seg);
   }
 
@@ -289,8 +357,9 @@ export const RENDERER = {
    * @param ambiente Datos del ambiente (paredes, aberturas, elementos).
    * @param meta Metadatos del proyecto (escala, nombre).
    * @param exportMode Si es true, añade etiquetas técnicas (referencias) para impresión.
+   * @param project Proyecto completo (para renderizar conexiones).
    */
-  render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false): string {
+  render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project): string {
     const segs = this.buildSegs(ambiente, meta);
     const { dx, dy, pageW, pageH, margin } = this.getLayout(ambiente, meta);
     const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
@@ -329,6 +398,11 @@ export const RENDERER = {
     // 4. Aberturas y Cotas
     ambiente.aberturas?.forEach(ab => _renderAbertura(out, ab, segs, meta.escala, dx, dy));
     if (ambiente.mostrar_cotas) _renderCotas(out, ambiente, segs, meta.escala, dx, dy);
+
+    // 4.5 Conexiones
+    if (project) {
+      _renderConexiones(out, ambiente, project, segs, meta.escala, dx, dy);
+    }
 
     // 5. Elementos Eléctricos
     ambiente.elementos?.forEach((el: ElementoElectrico) => {
@@ -377,6 +451,93 @@ export const RENDERER = {
     
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}">
       <rect width="100%" height="100%" fill="white"/>
+      ${out.join('\n')}
+    </svg>`;
+  },
+  
+  /**
+   * Renderiza el Plano Maestro: Agrega todos los ambientes del proyecto en una sola vista.
+   */
+  renderMaster(project: Project, symbolsLib: DefinicionSimbolo[]): string {
+    const margin = 20;
+    const out: string[] = [];
+    const meta = project.meta;
+    const escala = meta.escala;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    project.ambientes.forEach((amb: Ambiente) => {
+      const segs = this.buildSegs(amb, meta);
+      if (!segs.length) return;
+      
+      const gX = GEO.mToPx(amb.posX || 0, escala);
+      const gY = GEO.mToPx(amb.posY || 0, escala);
+      
+      const pts = segs.map(s => GEO.add(s.inicio, [gX, gY]));
+      pts.forEach(p => {
+        if (p[0] < minX) minX = p[0];
+        if (p[1] < minY) minY = p[1];
+        if (p[0] > maxX) maxX = p[0];
+        if (p[1] > maxY) maxY = p[1];
+      });
+
+      // Dibujar polígono de fondo
+      out.push(`<polygon points="${pts.map(p => `${f(p[0])},${f(p[1])}`).join(' ')}" fill="${C.INT_FILL}" stroke="none"/>`);
+      
+      // Dibujar muros
+      const { ext } = GEO.poligonoMuro(segs, GEO.esCerrado(segs));
+      const extT = ext.map(p => GEO.add(p as Point, [gX, gY]));
+      out.push(`<polygon points="${ptsAttr(extT)}" fill="${C.PARED_FILL}" stroke="black" stroke-width="0.5"/>`);
+      
+      // Nombre del ambiente
+      const [bX1, bY1, bX2, bY2] = GEO.bbox(segs, []);
+      const mid: Point = [gX + (bX1+bX2)/2, gY + (bY1+bY2)/2];
+      out.push(txt(mid, amb.nombre.toUpperCase(), 0, '#666', 8));
+
+      // Elementos Eléctricos
+      amb.elementos?.forEach((el: ElementoElectrico) => {
+        _renderElemento(out, el, segs, escala, gX, gY, false, symbolsLib);
+      });
+    });
+
+    // Conexiones globales
+    if (project.conexiones) {
+      project.conexiones.forEach(con => {
+        const p1Global = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala);
+        const p2Global = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala);
+        if (p1Global && p2Global) {
+          const midX = (p1Global[0] + p2Global[0]) / 2;
+          const midY = (p1Global[1] + p2Global[1]) / 2;
+          const dxDir = p2Global[0] - p1Global[0];
+          const dyDir = p2Global[1] - p1Global[1];
+          const len = Math.hypot(dxDir, dyDir);
+          const nx = len > 0 ? -dyDir / len : 0;
+          const ny = len > 0 ? dxDir / len : 0;
+          const curveOffset = Math.min(len * 0.15, 20);
+          const cx = midX + nx * curveOffset;
+          const cy = midY + ny * curveOffset;
+
+          let color = '#3498DB';
+          if (con.circuitoId) {
+            const circ = project.circuitos?.find(c => c.id === con.circuitoId);
+            if (circ && circ.color) color = circ.color;
+          }
+          out.push(`<path d="M ${f(p1Global[0])} ${f(p1Global[1])} Q ${f(cx)} ${f(cy)}, ${f(p2Global[0])} ${f(p2Global[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+        }
+      });
+    }
+
+    if (minX === Infinity) {
+      return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 420 297"><rect width="100%" height="100%" fill="white"/></svg>`;
+    }
+
+    const w = maxX - minX + 2 * margin;
+    const h = maxY - minY + 2 * margin;
+    const vx = minX - margin;
+    const vy = minY - margin;
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="${f(vx)} ${f(vy)} ${f(w)} ${f(h)}">
+      <rect x="${f(vx)}" y="${f(vy)}" width="${f(w)}" height="${f(h)}" fill="white"/>
       ${out.join('\n')}
     </svg>`;
   }
