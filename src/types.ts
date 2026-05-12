@@ -22,6 +22,10 @@ export interface Ambiente {
   configHoja?: ConfigHoja
   mostrar_cotas: boolean
   cotaSize?: number
+  // Topología de plano maestro
+  posX?: number
+  posY?: number
+  rotation?: number
 }
 
 export interface ConfigHoja {
@@ -53,6 +57,10 @@ export interface Abertura {
   hojas: number
   lado: string
   sentido: string
+  // Enlace topológico
+  ambienteVecinoId?: string
+  aberturaVecinaId?: string
+  esPrincipal?: boolean
 }
 
 export interface ElementoElectrico {

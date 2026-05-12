@@ -12,6 +12,7 @@ import {
 } from '../lib/storage';
 import { loadSymbolsAsync } from '../lib/symbols';
 import { loadLayoutAsync } from '../lib/layout';
+import { calcularTransformacionEnlace } from '../lib/geometry';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import type { Project, Ambiente } from '../types';
 
@@ -195,6 +196,56 @@ export function useProjects() {
     }
   }, [activeProjectId, activeProject, activeAmbienteId, updateProject]);
 
+  /**
+   * PASO 2: Enlace Topológico por Portales.
+   * Conecta dos aberturas de distintos ambientes y calcula la posición relativa del ambiente B.
+   */
+  const enlazarAberturas = useCallback((proyectoId: string, ambA_id: string, abA_id: string, ambB_id: string, abB_id: string) => {
+    updateProject(proyectoId, (project) => {
+      const ambA = project.ambientes.find(a => a.id === ambA_id);
+      const ambB = project.ambientes.find(a => a.id === ambB_id);
+      const abA = ambA?.aberturas.find(ab => ab.id === abA_id);
+      const abB = ambB?.aberturas.find(ab => ab.id === abB_id);
+
+      if (!ambA || !ambB || !abA || !abB) return project;
+
+      // Calcular transformación necesaria para el acople
+      const transform = calcularTransformacionEnlace(ambA, abA, ambB, abB, project.meta.escala);
+
+      return {
+        ...project,
+        ambientes: project.ambientes.map(a => {
+          if (a.id === ambA_id) {
+            // Ambiente A: Setear como principal y vincular a B
+            return {
+              ...a,
+              aberturas: a.aberturas.map(ab => 
+                ab.id === abA_id 
+                  ? { ...ab, ambienteVecinoId: ambB_id, aberturaVecinaId: abB_id, esPrincipal: true }
+                  : ab
+              )
+            };
+          }
+          if (a.id === ambB_id) {
+            // Ambiente B: Aplicar transformación calculada y vincular a A como secundario
+            return {
+              ...a,
+              posX: transform.posX,
+              posY: transform.posY,
+              rotation: transform.rotation,
+              aberturas: a.aberturas.map(ab => 
+                ab.id === abB_id 
+                  ? { ...ab, ambienteVecinoId: ambA_id, aberturaVecinaId: abA_id, esPrincipal: false }
+                  : ab
+              )
+            };
+          }
+          return a;
+        })
+      };
+    });
+  }, [updateProject]);
+
   // Retornamos la API completa del hook
   return {
     projects,
@@ -214,6 +265,7 @@ export function useProjects() {
     canUndo: ambienteHistory.length > 0,
     symbolsLib,
     setSymbolsLib,
-    addProject // <--- Ahora disponible para App.tsx
+    addProject,
+    enlazarAberturas
   };
 }

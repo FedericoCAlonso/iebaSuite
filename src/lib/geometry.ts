@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import type { Pared } from '../types';
+import type { Pared, Ambiente, Abertura } from '../types';
 
 /** Punto o Vector en el plano 2D */
 export type Point = [number, number];
@@ -260,3 +260,110 @@ export function anguloSimboloPared(seg: Segmento): number {
   const [nx, ny] = seg.v_int;
   return Math.atan2(nx, -ny) * 180 / Math.PI;
 }
+
+/**
+ * PASO 1: Lógica Matemática para el acople de ambientes.
+ * Calcula la transformación (posición y rotación) necesaria para que el Ambiente B
+ * se alinee perfectamente con el Ambiente A a través de un portal (Abertura).
+ */
+export function calcularTransformacionEnlace(
+  ambA: Ambiente, abA: Abertura, 
+  ambB: Ambiente, abB: Abertura, 
+  escala: number
+): { posX: number, posY: number, rotation: number } {
+  
+  // Helper para construir ejes locales sin depender del renderer
+  const buildLocal = (amb: Ambiente) => {
+    const pds = (amb.paredes || []).map(p => ({
+      ...p,
+      grosor: p.grosor ?? 0.15
+    }));
+    return construirEjes(pds, escala, amb.sentido === 'horario' ? 1 : -1);
+  };
+
+  const segsA = buildLocal(ambA);
+  const segsB = buildLocal(ambB);
+
+  const sA = segsA[abA.pared];
+  const sB = segsB[abB.pared];
+
+  if (!sA || !sB) return { posX: 0, posY: 0, rotation: 0 };
+
+  // 1. Calcular el centro de la abertura en espacio local (píxeles)
+  // Usamos posEnPared con (posicion + ancho/2) para obtener el punto medio del portal
+  const centroA_px = posEnPared(sA, mToPx(abA.posicion + abA.ancho / 2, escala));
+  const centroB_px = posEnPared(sB, mToPx(abB.posicion + abB.ancho / 2, escala));
+
+  // 2. Calcular ángulos de los vectores directores de las paredes
+  // Math.atan2 devuelve el ángulo del vector en radianes
+  const angA_local = Math.atan2(sA.dir[1], sA.dir[0]) * 180 / Math.PI;
+  const angB_local = Math.atan2(sB.dir[1], sB.dir[0]) * 180 / Math.PI;
+
+  // 3. Determinar rotación necesaria para Ambiente B
+  // Para que las paredes se acoplen, la de B debe estar opuesta (180°) a la de A global
+  const angA_global = angA_local + (ambA.rotation || 0);
+  const rotationB = (angA_global + 180) - angB_local;
+
+  // 4. Calcular posición global del centro de la abertura de A
+  const centroA_global = add(rot(centroA_px, ambA.rotation || 0), [ambA.posX || 0, ambA.posY || 0]);
+
+  // 5. Calcular donde quedaría el centro de B tras aplicar la rotación calculada
+  const centroB_rotado = rot(centroB_px, rotationB);
+
+  // 6. El origen de B (posX, posY) se despeja para que centroB coincida con centroA
+  // GlobalA = PosB + RotadaB  =>  PosB = GlobalA - RotadaB
+  const posB = sub(centroA_global, centroB_rotado);
+
+  return {
+    posX: posB[0],
+    posY: posB[1],
+    rotation: rotationB
+  };
+}
+
+/**
+ * PASO 3: Corrección del Renderizado del Plano Maestro.
+ * Genera el conjunto de segmentos global evitando la duplicidad de paredes enlazadas.
+ */
+export function buildMasterMesh(ambientes: Ambiente[], escala: number, grosorParedDefault: number) {
+  const pool: Segmento[] = [];
+
+  ambientes.forEach(amb => {
+    // Generar geometría base del ambiente
+    const paredes = (amb.paredes || []).map(p => ({
+      ...p,
+      grosor: p.grosor ?? grosorParedDefault
+    }));
+    const segs = construirEjes(paredes, escala, amb.sentido === 'horario' ? 1 : -1);
+    calcularVectores(segs);
+
+    segs.forEach((seg, indexPared) => {
+      // REGLA ESTRICTA: Si la pared tiene una abertura enlazada y NO es el ambiente principal,
+      // se omite para evitar el error visual de la "doble pared".
+      const esParedDuplicada = amb.aberturas?.some(ab => 
+        ab.pared === indexPared && 
+        ab.ambienteVecinoId !== undefined && 
+        ab.esPrincipal === false
+      );
+
+      if (esParedDuplicada) return;
+
+      // Transformar segmento local a coordenadas globales del Plano Maestro
+      const r = amb.rotation || 0;
+      const off: Point = [amb.posX || 0, amb.posY || 0];
+      
+      const globalSeg: Segmento = {
+        ...seg,
+        inicio: add(rot(seg.inicio, r), off),
+        fin: add(rot(seg.fin, r), off),
+        dir: rot(seg.dir, r),
+        v_ext: rot(seg.v_ext, r),
+        v_int: rot(seg.v_int, r)
+      };
+
+      pool.push(globalSeg);
+    });
+  });
+
+  return pool;
+}
