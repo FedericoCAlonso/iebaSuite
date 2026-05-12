@@ -9,6 +9,7 @@ import { AppModals } from './components/AppModals';
 import { ProjectsScreen } from './screens/ProjectScreen';
 import { EditorScreen } from './screens/EditorScreen';
 import { Preview } from './components/Preview';
+import { MasterView } from './components/MasterView';
 
 /** 
  * Orquestador principal de la aplicación.
@@ -55,43 +56,55 @@ export function App() {
         ) : (
           projectState.activeProject && projectState.activeAmbiente && projectState.activeAmbienteId ? (
             <div className="workspace">
-              <div className={`panel-left ${uiState.mobileEditorVisible ? 'mobile-visible' : ''}`}>
-                <EditorScreen
+              {uiState.activeTab === 'maestro' ? (
+                <MasterView
                   project={projectState.activeProject}
-                  activeAmbiente={projectState.activeAmbiente}
-                  activeAmbienteId={projectState.activeAmbienteId}
-                  activeTab={uiState.activeTab}
-                  onTabChange={uiState.setActiveTab}
                   symbolsLib={projectState.symbolsLib}
-                  onUpdateMeta={(meta: any) => projectState.updateProject(projectState.activeProjectId!, (p: any) => ({ ...p, meta }))}
-                  onUpdateAmbiente={projectState.updateAmbiente}
-                  onUpdateProject={(fn: any) => projectState.updateProject(projectState.activeProjectId!, fn)}
-                  onAddAmbiente={projectState.addAmbiente}
-                  onDeleteAmbiente={projectState.deleteAmbiente}
+                  onUpdateAmbiente={(id, fn) => projectState.updateProject(projectState.activeProjectId!, p => ({
+                    ...p,
+                    ambientes: p.ambientes.map(a => a.id === id ? fn(a) : a)
+                  }))}
+                  onUpdateProject={(fn) => projectState.updateProject(projectState.activeProjectId!, fn)}
                   onSelectAmbiente={projectState.setActiveAmbienteId}
-                  onSymbolDialog={uiState.modals.setSymDialog}
-                  onShowNetlist={() => uiState.modals.setShowNetlist(true)}
+                  onTabChange={uiState.setActiveTab}
                 />
-              </div>
+              ) : (
+                <>
+                  <div className={`panel-left ${uiState.mobileEditorVisible ? 'mobile-visible' : ''}`}>
+                    <EditorScreen
+                      project={projectState.activeProject}
+                      activeAmbiente={projectState.activeAmbiente}
+                      activeAmbienteId={projectState.activeAmbienteId}
+                      activeTab={uiState.activeTab}
+                      onTabChange={uiState.setActiveTab}
+                      symbolsLib={projectState.symbolsLib}
+                      onUpdateMeta={(meta: any) => projectState.updateProject(projectState.activeProjectId!, (p: any) => ({ ...p, meta }))}
+                      onUpdateAmbiente={projectState.updateAmbiente}
+                      onUpdateProject={(fn: any) => projectState.updateProject(projectState.activeProjectId!, fn)}
+                      onAddAmbiente={projectState.addAmbiente}
+                      onDeleteAmbiente={projectState.deleteAmbiente}
+                      onSelectAmbiente={projectState.setActiveAmbienteId}
+                      onSymbolDialog={uiState.modals.setSymDialog}
+                      onShowNetlist={() => uiState.modals.setShowNetlist(true)}
+                    />
+                  </div>
 
-              <div className="panel-right">
-                <Preview
-                  project={projectState.activeProject}
-                  ambiente={projectState.activeAmbiente}
-                  meta={projectState.activeProject.meta}
-                  activeTab={uiState.activeTab}
-                  symbolsLib={projectState.symbolsLib}
-                  onCanvasClick={actions.handleCanvasClick}
-                />
-              </div>
-
-              <button className="mobile-view-toggle" onClick={uiState.toggleMobileEditor}>
-                {uiState.mobileEditorVisible ? '📐' : '📝'}
-              </button>
+                  <div className="panel-right">
+                    <Preview
+                      project={projectState.activeProject}
+                      ambiente={projectState.activeAmbiente}
+                      meta={projectState.activeProject.meta}
+                      activeTab={uiState.activeTab}
+                      symbolsLib={projectState.symbolsLib}
+                      onCanvasClick={actions.handleCanvasClick}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="empty-state">
-              <p>No se pudo cargar el ambiente.</p>
+              <p>No se pudo cargar la hoja.</p>
               <button className="btn btn-acc" onClick={uiState.closeEditor}>Volver</button>
             </div>
           )

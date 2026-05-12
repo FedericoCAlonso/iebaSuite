@@ -19,7 +19,7 @@ interface ConexionCardProps {
 export function ConexionCard({ conexion: c, index, ambientes, circuitos, onChange, onRemove }: ConexionCardProps) {
   // Helpers para renderizar las opciones agrupadas por ambiente
   const elementOptions = ambientes.map(a => (
-    <optgroup key={a.id} label={`Ambiente: ${a.nombre}`}>
+    <optgroup key={a.id} label={`Hoja: ${a.nombre}`}>
       {(a.elementos || []).map(el => (
         <option key={el.id} value={`${a.id}|${el.id}`}>
           {el.referencia ? `${el.referencia} (${el.tipo})` : el.tipo}

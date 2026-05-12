@@ -18,6 +18,7 @@ interface ElectricalCardProps {
   onChange: (el: ElementoElectrico) => void;
   onRemove: () => void;
   onEdit: () => void;
+  columnas?: import('../types').ElementoEstructural[];
 }
 
 export function ElectricalCard({ 
@@ -28,7 +29,8 @@ export function ElectricalCard({
   circuitos,
   onChange, 
   onRemove, 
-  onEdit 
+  onEdit,
+  columnas
 }: ElectricalCardProps) {
   
   const symDef = symbolsLib.find(s => s.id === el.tipo);
@@ -173,6 +175,21 @@ export function ElectricalCard({
               onChange={(v) => onChange({ ...el, y: v })}
             />
           </F>
+          {columnas && columnas.length > 0 && (
+            <F label="Anclado a Columna">
+              <select
+                value={el.columnaId || ''}
+                onChange={e => onChange({ ...el, columnaId: e.target.value || undefined })}
+              >
+                <option value="">— Ninguna —</option>
+                {columnas.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.descripcion || c.tipo}
+                  </option>
+                ))}
+              </select>
+            </F>
+          )}
         </div>
       )}
 

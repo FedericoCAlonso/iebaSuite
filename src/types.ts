@@ -17,7 +17,23 @@ export interface Project {
   circuitos?: Circuito[]       // Lista de circuitos del proyecto
   conexiones?: Conexion[]      // Netlist: relaciones entre elementos
   tableros?: Tablero[]         // Tableros eléctricos del proyecto
+  /** Lista de hojas maestras para composición de ambientes */
+  hojasMaestras?: HojaMaestra[]
   updatedAt: number
+}
+
+/**
+ * Define una composición de múltiples ambientes para visualización y reporte.
+ */
+export interface HojaMaestra {
+  /** Identificador único de la hoja maestra */
+  id: string
+  /** Nombre descriptivo de la hoja */
+  nombre: string
+  /** Descripción opcional de la hoja */
+  descripcion?: string
+  /** IDs de los ambientes que componen esta hoja */
+  ambientesIds: string[]
 }
 
 // ─── CIRCUITOS ───
@@ -80,18 +96,99 @@ export type TipoAmbiente = 'interior' | 'exterior' | 'semi_cubierto';
 export interface Ambiente {
   id: string
   nombre: string
+  /** Nombre corto para identificar en vista maestro (ej: "P.B.", "Jardín Norte") */
+  etiqueta?: string
   tipoAmbiente?: TipoAmbiente   // default: 'interior'
   sentido: 'horario' | 'antihorario'
   alturaLocal?: number           // Altura de techo en este ambiente (metros)
-  paredes: Pared[]
+  /** Lista de tramos de paredes que componen el ambiente */
+  tramos: Tramo[]
   aberturas: Abertura[]
   elementos: ElementoElectrico[]
+  /** Zonas de cobertura especiales (galerías, pérgolas, etc.) */
+  coberturas?: ZonaCobertura[]
+  /** Elementos de la estructura edilicia (columnas, vigas, pilar) */
+  elementosEstructurales?: ElementoEstructural[]
   textos?: TextoPlano[]
   configHoja?: ConfigHoja
   mostrar_cotas: boolean
   cotaSize?: number
+  /** Rotación global de la hoja en el plano maestro (grados) */
+  rotation?: number
   posX?: number
   posY?: number
+}
+
+/**
+ * Define una secuencia de paredes consecutivas.
+ */
+export interface Tramo {
+  /** Identificador único del tramo */
+  id: string
+  /** true = secuencia de paredes cierra polígono, false = tramo abierto */
+  cerrado: boolean
+  /** Lista de paredes que componen el tramo */
+  paredes: Pared[]
+  /** Coordenada absoluta X del primer vértice del tramo (metros) */
+  origenX?: number
+  /** Coordenada absoluta Y del primer vértice del tramo (metros) */
+  origenY?: number
+  /** Referencia espacial opcional para el inicio del tramo */
+  amarre?: PuntoAmarre
+}
+
+/**
+ * Define la referencia espacial de un tramo respecto a otro punto del plano.
+ */
+export interface PuntoAmarre {
+  /** Tipo de referencia: coincidencia con vértice, offset libre o flotante */
+  tipo: 'vertice' | 'medida_libre' | 'pendiente'
+  /** ID del ambiente de referencia */
+  ambienteRefId?: string
+  /** ID del tramo de referencia */
+  tramoRefId?: string
+  /** Índice del vértice en el tramo referenciado */
+  verticeRefIdx?: number
+  /** Desplazamiento horizontal en metros */
+  offsetX?: number
+  /** Desplazamiento vertical en metros */
+  offsetY?: number
+}
+
+/**
+ * Define áreas especiales de cobertura en el plano.
+ */
+export interface ZonaCobertura {
+  /** Identificador único de la zona */
+  id: string
+  /** Tipo de cobertura (total, galería, pérgola, sin techo) */
+  tipo: 'total' | 'galeria' | 'pergola' | 'sin_techo'
+  /** Polígono paramétrico relativo al ambiente */
+  segmentos: { largo: number; angulo: number }[]
+  /** Coordenada absoluta X del primer vértice (metros) */
+  origenX?: number
+  /** Coordenada absoluta Y del primer vértice (metros) */
+  origenY?: number
+}
+
+/**
+ * Define elementos de la estructura edilicia que no son paredes.
+ */
+export interface ElementoEstructural {
+  /** Identificador único del elemento */
+  id: string
+  /** Tipo de elemento estructural */
+  tipo: 'columna' | 'viga' | 'pilar'
+  /** Posición X en metros relativos al ambiente */
+  x: number
+  /** Posición Y en metros relativos al ambiente */
+  y: number
+  /** Ancho del elemento en metros */
+  ancho?: number
+  /** Profundidad del elemento en metros */
+  profundidad?: number
+  /** Descripción o notas adicionales */
+  descripcion?: string
 }
 
 export interface ConfigHoja {
@@ -134,11 +231,18 @@ export interface Abertura {
   lado: string
   sentido: string
   /**
+   * true = este ambiente "posee" la abertura y la renderiza
+   * false = la abertura es tomada del ambiente vecino (no renderizar duplicada)
+   * Si undefined, asumir true para backwards compatibility
+   */
+  esPrincipal?: boolean;
+  /**
    * ID del segundo ambiente que comparte esta abertura.
    * Una puerta pertenece a dos ambientes; se registra en uno
    * y se vincula al otro mediante este campo en el plano maestro.
    */
   ambienteVecinoId?: string;
+  aberturaVecinaId?: string;  // ID de la abertura vinculada en la otra hoja
   paredVecinaIdx?: number;   // Índice de pared en el ambiente vecino
 }
 
@@ -157,6 +261,7 @@ export interface ElementoElectrico {
   altura?: number;      // Altura de montaje en metros (ej: 0.4 para TUG, 1.2 para interruptores)
   circuitoId?: string;  // ID del Circuito (de Project.circuitos[])
   esTablero?: boolean;  // true si este elemento representa un tablero
+  columnaId?: string;   // ID de la columna a la que está anclado
 }
 
 // ─── TIPOS UI ───
@@ -171,7 +276,7 @@ export interface TextoPlano {
   tamano: number;          // mm en papel
 }
 
-export type EditorTab = 'proyecto' | 'paredes' | 'aberturas' | 'electrico' | 'circuitos' | 'conexiones' | 'maestro';
+export type EditorTab = 'proyecto' | 'paredes' | 'aberturas' | 'electrico' | 'circuitos' | 'conexiones' | 'maestro' | 'cobertura';
 
 export type ScreenView = 'projects' | 'editor';
 

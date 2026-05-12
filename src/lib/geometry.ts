@@ -98,9 +98,10 @@ const ingleteLimitado = (pBase: Point, pCand: Point | null, g: number, limit = 4
  * Genera la secuencia de ejes (Segmentos) a partir de la definición de paredes.
  * Maneja el cálculo de rumbos basándose en ángulos relativos.
  */
-export function construirEjes(paredes: Pared[], escala: number, sentido: number): Segmento[] {
+export function construirEjes(paredes: Pared[], escala: number, sentido: number, origenX = 0, origenY = 0): Segmento[] {
   const segs: Segmento[] = [];
-  let pos: Point = [0, 0];
+  let pos: Point = [mToPx(origenX, escala), mToPx(origenY, escala)];
+  const startPos: Point = [...pos]; // Para auto-cierre
   let dir: Point = [1, 0]; // Dirección inicial (Este)
 
   paredes.forEach((pared, i) => {
@@ -120,18 +121,18 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number)
     
     if (esAutoCierre) {
       if (i !== paredes.length - 1) return; // Solo la última puede ser auto-cierre
-      const cierre: Point = [-pos[0], -pos[1]];
+      const cierre: Point = [startPos[0] - pos[0], startPos[1] - pos[1]];
       const dist = len(cierre);
       if (dist < 1e-6) return;
       segs.push({
         inicio: pos,
-        fin: [0, 0],
+        fin: [...startPos],
         dir: norm(cierre),
         grosorPx,
         pared,
         v_ext: [0, 0], v_int: [0, 0]
       });
-      pos = [0, 0];
+      pos = [...startPos];
     } else {
       const largoNum = typeof pared.largo === 'number' ? pared.largo : 0;
       const largoPx = mToPx(largoNum, escala);
@@ -271,4 +272,28 @@ export function posEnPared(seg: Segmento, pos: number): Point {
 export function anguloSimboloPared(seg: Segmento): number {
   const [nx, ny] = seg.v_int;
   return Math.atan2(nx, -ny) * 180 / Math.PI;
+}
+
+/**
+ * Busca el vértice más cercano en una lista de segmentos de otros ambientes.
+ * @param targetPos Posición actual del origen del ambiente (en Px)
+ * @param otherAmbientesSegs Lista de arrays de segmentos de otros ambientes (en Px global)
+ * @param threshold Distancia máxima para el snap (en Px)
+ */
+export function findSnapPoint(
+  targetPos: Point, 
+  otherAmbientesSegs: Segmento[][], 
+  threshold: number
+): Point | null {
+  for (const segs of otherAmbientesSegs) {
+    for (const seg of segs) {
+      if (dist(targetPos, seg.inicio) < threshold) return seg.inicio;
+      if (dist(targetPos, seg.fin) < threshold) return seg.fin;
+    }
+  }
+  return null;
+}
+
+function dist(p1: Point, p2: Point): number {
+  return Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
 }

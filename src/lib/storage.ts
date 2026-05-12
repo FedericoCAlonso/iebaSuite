@@ -20,7 +20,10 @@ import type {
   Tablero,
   Conexion,
   Cable,
-  TipoCircuito
+  TipoCircuito,
+  Tramo,
+  ZonaCobertura,
+  ElementoEstructural
 } from '../types';
 
 const KEY = 'ieba_croquis_v2';
@@ -76,6 +79,16 @@ export const createPared = (overide: Partial<Pared> = {}): Pared => ({
 });
 
 /**
+ * Crea un nuevo tramo de paredes.
+ */
+export const createTramo = (overide: Partial<Tramo> = {}): Tramo => ({
+  id: generateId(),
+  cerrado: true,
+  paredes: [createPared()],
+  ...overide
+});
+
+/**
  * Crea una nueva instancia de Ambiente.
  */
 export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
@@ -85,7 +98,7 @@ export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
   sentido: 'horario',
   alturaLocal: undefined, // hereda meta.alturaDefault
   mostrar_cotas: true,
-  paredes: [createPared({ id: 'w1' })],
+  tramos: [createTramo()],
   aberturas: [],
   elementos: [],
   textos: [],
@@ -206,5 +219,28 @@ export const createConexion = (
     { tipo: 'pe', seccion: 2.5, color: 'verde-amarillo' } as Cable,
   ],
   conducto: 'PVC 20mm',
+  ...overide
+});
+
+/**
+ * Crea una nueva zona de cobertura.
+ */
+export const createZonaCobertura = (overide: Partial<ZonaCobertura> = {}): ZonaCobertura => ({
+  id: generateId(),
+  tipo: 'galeria',
+  segmentos: [{ largo: 1, angulo: 0 }],
+  ...overide
+});
+
+/**
+ * Crea un nuevo elemento estructural (columna).
+ */
+export const createElementoEstructural = (overide: Partial<ElementoEstructural> = {}): ElementoEstructural => ({
+  id: generateId(),
+  tipo: 'columna',
+  x: 1,
+  y: 1,
+  ancho: 0.2,
+  profundidad: 0.2,
   ...overide
 });

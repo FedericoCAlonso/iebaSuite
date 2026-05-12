@@ -34,12 +34,14 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
   const exportYAML = () => {
     for (const amb of (project.ambientes||[])) {
       let yaml=`proyecto:\n  nombre: "${project.meta.nombre}"\n  escala: "${project.meta.escala}"\n  grosor_pared_default: ${project.meta.grosor_pared_default||0.15}\n  mostrar_cotas: ${amb.mostrar_cotas!==false}\n  sentido: ${amb.sentido||'horario'}\n\nambiente:\n  nombre: "${amb.nombre}"\n  paredes:\n`;
-      for (const w of (amb.paredes||[])) {
-        yaml+=`    - largo: ${w.largo||0}\n`;
-        if (w.angulo) yaml+=`      angulo: ${w.angulo}\n`;
-        if (w.grosor) yaml+=`      grosor: ${w.grosor}\n`;
-        if (w.esquina_saliente) yaml+=`      esquina_saliente:\n        ancho: ${w.esquina_saliente.ancho}\n`;
-        if (w.irregularidades?.length) { yaml+=`      irregularidades:\n`; for (const i of w.irregularidades) yaml+=`        - posicion: ${i.posicion}\n          ancho: ${i.ancho}\n          profundidad: ${i.profundidad}\n`; }
+      for (const t of (amb.tramos || [])) {
+        for (const w of t.paredes) {
+          yaml+=`    - largo: ${w.largo||0}\n`;
+          if (w.angulo) yaml+=`      angulo: ${w.angulo}\n`;
+          if (w.grosor) yaml+=`      grosor: ${w.grosor}\n`;
+          if (w.esquina_saliente) yaml+=`      esquina_saliente:\n        ancho: ${w.esquina_saliente.ancho}\n`;
+          if (w.irregularidades?.length) { yaml+=`      irregularidades:\n`; for (const i of w.irregularidades) yaml+=`        - posicion: ${i.posicion}\n          ancho: ${i.ancho}\n          profundidad: ${i.profundidad}\n`; }
+        }
       }
       if (amb.aberturas?.length) {
         yaml+=`\n  aberturas:\n`;
@@ -51,7 +53,7 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
   };
 
   const exportCSV = () => {
-    const rows=[['Proyecto','Ambiente','Tipo','Referencia','Clave','Valor']];
+    const rows=[['Proyecto','Hoja','Tipo','Referencia','Clave','Valor']];
     for (const amb of (project.ambientes||[])) {
       for (const el of (amb.elementos||[])) {
         const symDef = symbolsLib.find(s => s.id === el.tipo);
@@ -71,7 +73,7 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
   };
 
   const exportNetlistCSV = () => {
-    const rows = [['Circuito', 'Desde (Ambiente)', 'Desde (Ref)', 'Hacia (Ambiente)', 'Hacia (Ref)', 'Canalización', 'Conductores']];
+    const rows = [['Circuito', 'Desde (Hoja)', 'Desde (Ref)', 'Hacia (Hoja)', 'Hacia (Ref)', 'Canalización', 'Conductores']];
     (project.conexiones || []).forEach((c: Conexion) => {
       const getAmb = (id: string) => project.ambientes.find(a => a.id === id);
       const ambF = getAmb(c.from.ambienteId);
@@ -99,7 +101,7 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
       <div className="dialog" onClick={e=>e.stopPropagation()}>
         <div className="dialog-title">Exportar proyecto</div>
         <div>
-          <div className="sec-hdr">SVG — un archivo por ambiente</div>
+          <div className="sec-hdr">SVG — un archivo por hoja</div>
           <label style={{display:'flex',alignItems:'center',gap:8,marginTop:8,cursor:'pointer',fontSize:12}}>
             <input type="checkbox" checked={inclRefs} onChange={e=>setInclRefs(e.target.checked)}/>
             Incluir referencias y datos eléctricos

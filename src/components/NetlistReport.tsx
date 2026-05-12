@@ -86,7 +86,7 @@ export function NetlistReport({ project, ambiente, onClose }: { project: Project
               {(!ambiente.elementos || ambiente.elementos.length === 0) && (
                 <tr>
                   <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--text3)' }}>
-                    No hay elementos eléctricos en este ambiente.
+                    No hay elementos eléctricos en esta hoja.
                   </td>
                 </tr>
               )}
@@ -121,7 +121,7 @@ export function NetlistReport({ project, ambiente, onClose }: { project: Project
               {conexionesLocales.length === 0 && (
                 <tr>
                   <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--text3)' }}>
-                    No hay conexiones definidas en este ambiente.
+                    No hay conexiones definidas en esta hoja.
                   </td>
                 </tr>
               )}

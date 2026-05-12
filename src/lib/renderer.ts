@@ -15,7 +15,9 @@ import type {
   Abertura, 
   ElementoElectrico, 
   Irregularidad,
-  Meta
+  Meta,
+  ZonaCobertura,
+  ElementoEstructural
 } from '../types';
 import type { DefinicionSimbolo } from './symbols';
 import type { LayoutConfig } from './layout';
@@ -107,6 +109,51 @@ function _renderIrregularidad(out: string[], seg: any, irr: Irregularidad, escal
  * Renderiza aberturas (Puertas, Ventanas, Vanos).
  * Calcula el corte en el muro y dibuja la carpintería correspondiente.
  */
+function _renderElementoEstructural(out: string[], ee: ElementoEstructural, escala: number, dx: number, dy: number): void {
+  const w = GEO.mToPx(ee.ancho || 0.2, escala);
+  const h = GEO.mToPx(ee.profundidad || 0.2, escala);
+  const x = GEO.mToPx(ee.x, escala) + dx - w/2;
+  const y = GEO.mToPx(ee.y, escala) + dy - h/2;
+
+  out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#444" stroke="#000" stroke-width="0.5"/>`);
+  if (ee.descripcion) {
+    out.push(txt([x + w/2, y + h + 4], ee.descripcion, 0, '#666', 2.5, 'middle'));
+  }
+}
+
+function _renderCobertura(out: string[], cob: ZonaCobertura, escala: number, dx: number, dy: number): void {
+  // Construir polígono a partir de segmentos (largo, ángulo)
+  const pts: [number, number][] = [[
+    GEO.mToPx(cob.origenX || 0, escala) + dx, 
+    GEO.mToPx(cob.origenY || 0, escala) + dy
+  ]];
+  let curAng = 0;
+  cob.segmentos.forEach((s: any) => {
+    curAng += s.angulo;
+    const last = pts[pts.length - 1];
+    const vx = s.largo * Math.cos(curAng * Math.PI / 180);
+    const vy = s.largo * Math.sin(curAng * Math.PI / 180);
+    pts.push([last[0] + GEO.mToPx(vx, escala), last[1] + GEO.mToPx(vy, escala)]);
+  });
+
+  const ptsAttr = pts.map(p => p.join(',')).join(' ');
+  let fill = 'none';
+  let stroke = 'rgba(0,0,0,0.5)';
+  let dash = '';
+
+  if (cob.tipo === 'total') {
+    fill = 'rgba(0,0,0,0.05)';
+  } else if (cob.tipo === 'galeria') {
+    fill = 'url(#hatch)';
+  } else if (cob.tipo === 'pergola') {
+    fill = 'url(#grid)';
+  } else if (cob.tipo === 'sin_techo') {
+    dash = '4,4';
+  }
+
+  out.push(`<polygon points="${ptsAttr}" fill="${fill}" stroke="${stroke}" stroke-width="0.8" stroke-dasharray="${dash}"/>`);
+}
+
 function _renderAbertura(out: string[], ab: Abertura, segs: any[], escala: number, dx: number, dy: number): void {
   const seg = segs[ab.pared];
   if (!seg) return;
@@ -187,6 +234,8 @@ function _getElementPos(el: ElementoElectrico, segs: any[], escala: number, dx: 
   let ey = GEO.mToPx(el.y, escala) + dy;
   if (el.paredIdx !== null && el.paredIdx < segs.length) {
     const seg = segs[el.paredIdx];
+    // CORRECCIÓN 6: El punto de anclaje es el centro del segmento base.
+    // El modelo ya guarda 'paredPos' que es la distancia desde el inicio del segmento.
     const xy = GEO.posEnPared(seg, GEO.mToPx(el.paredPos || 0, escala));
     ex = xy[0] + dx;
     ey = xy[1] + dy;
@@ -203,7 +252,7 @@ function _getGlobalElementPos(project: Project, ambienteId: string, elementoId: 
   const el = amb.elementos?.find(e => e.id === elementoId);
   if (!el) return null;
   
-  const segs = RENDERER.buildSegs(amb, project.meta);
+  const { allSegs: segs } = RENDERER.buildSegs(amb, project.meta);
   const localPos = _getElementPos(el, segs, escala, 0, 0);
   
   const gX = GEO.mToPx(amb.posX || 0, escala) + localPos[0];
@@ -214,39 +263,77 @@ function _getGlobalElementPos(project: Project, ambienteId: string, elementoId: 
 /**
  * Renderiza las conexiones (netlist) entre bocas.
  */
-function _renderConexiones(out: string[], ambiente: Ambiente, project: Project | undefined, _segs: any[], escala: number, dx: number, dy: number): void {
+function _renderConexiones(out: string[], ambiente: Ambiente, project: Project | undefined, segs: any[], escala: number, dx: number, dy: number): void {
   if (!project?.conexiones) return;
   project.conexiones.forEach(con => {
-    // Si la conexión involucra a este ambiente
-    if (con.from.ambienteId === ambiente.id || con.to.ambienteId === ambiente.id) {
-      const p1Global = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala);
-      const p2Global = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala);
-      
-      if (p1Global && p2Global) {
-        const currGX = GEO.mToPx(ambiente.posX || 0, escala);
-        const currGY = GEO.mToPx(ambiente.posY || 0, escala);
+    const isFrom = con.from.ambienteId === ambiente.id;
+    const isTo = con.to.ambienteId === ambiente.id;
+    const isInterSheet = con.from.ambienteId !== con.to.ambienteId;
+
+    if ((isFrom || isTo)) {
+      if (!isInterSheet) {
+        // Conexión interna (comportamiento actual)
+        const p1Global = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala);
+        const p2Global = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala);
+        if (p1Global && p2Global) {
+          const currGX = GEO.mToPx(ambiente.posX || 0, escala);
+          const currGY = GEO.mToPx(ambiente.posY || 0, escala);
+          const p1: Point = [p1Global[0] - currGX + dx, p1Global[1] - currGY + dy];
+          const p2: Point = [p2Global[0] - currGX + dx, p2Global[1] - currGY + dy];
+          const midX = (p1[0] + p2[0]) / 2;
+          const midY = (p1[1] + p2[1]) / 2;
+          const dxDir = p2[0] - p1[0];
+          const dyDir = p2[1] - p1[1];
+          const len = Math.hypot(dxDir, dyDir);
+          const nx = len > 0 ? -dyDir / len : 0;
+          const ny = len > 0 ? dxDir / len : 0;
+          const curveOffset = Math.min(len * 0.15, 20);
+          const cx = midX + nx * curveOffset;
+          const cy = midY + ny * curveOffset;
+          let color = '#3498DB';
+          if (con.circuitoId) {
+            const circ = project.circuitos?.find(c => c.id === con.circuitoId);
+            if (circ && circ.color) color = circ.color;
+          }
+          out.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(cx)} ${f(cy)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+        }
+      } else {
+        // CORRECCIÓN 7: Conexión inter-hoja
+        const elId = isFrom ? con.from.elementoId : con.to.elementoId;
+        const targetAmbId = isFrom ? con.to.ambienteId : con.from.ambienteId;
+        const targetElId = isFrom ? con.to.elementoId : con.from.elementoId;
         
-        const p1: Point = [p1Global[0] - currGX + dx, p1Global[1] - currGY + dy];
-        const p2: Point = [p2Global[0] - currGX + dx, p2Global[1] - currGY + dy];
+        const el = ambiente.elementos.find(e => e.id === elId);
+        if (!el) return;
 
-        const midX = (p1[0] + p2[0]) / 2;
-        const midY = (p1[1] + p2[1]) / 2;
-        const dxDir = p2[0] - p1[0];
-        const dyDir = p2[1] - p1[1];
-        const len = Math.hypot(dxDir, dyDir);
-        const nx = len > 0 ? -dyDir / len : 0;
-        const ny = len > 0 ? dxDir / len : 0;
-        const curveOffset = Math.min(len * 0.15, 20);
-        const cx = midX + nx * curveOffset;
-        const cy = midY + ny * curveOffset;
+        const pos = _getElementPos(el, segs, escala, dx, dy);
+        let dir: Point = [0, -1]; // Default hacia arriba
+        if (el.paredIdx !== null) {
+          const seg = segs[el.paredIdx];
+          dir = seg.v_int;
+        }
 
-        let color = '#3498DB';
-        if (con.circuitoId) {
-          const circ = project.circuitos?.find(c => c.id === con.circuitoId);
+        const arrowLen = project.meta.grosor_pared_default * 3;
+        const arrowPx = GEO.mToPx(arrowLen, escala);
+        const pEnd = GEO.add(pos, GEO.scale(dir, arrowPx));
+        
+        let color = '#555555';
+        if (el.circuitoId) {
+          const circ = project.circuitos?.find(c => c.id === el.circuitoId);
           if (circ && circ.color) color = circ.color;
         }
 
-        out.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(cx)} ${f(cy)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+        // Flecha
+        const p1 = GEO.add(pEnd, GEO.scale(GEO.rot(dir, 150), 3));
+        const p2 = GEO.add(pEnd, GEO.scale(GEO.rot(dir, -150), 3));
+        out.push(line(pos, pEnd, color, 0.8));
+        out.push(`<polygon points="${ptsAttr([pEnd, p1, p2])}" fill="${color}"/>`);
+
+        // Etiqueta
+        const targetAmb = project.ambientes.find(a => a.id === targetAmbId);
+        const targetEl = targetAmb?.elementos.find(e => e.id === targetElId);
+        const label = `${isFrom ? '→' : '←'} ${targetEl?.referencia || 'S/R'} (${targetAmb?.nombre || '?'})`;
+        out.push(txt(GEO.add(pEnd, GEO.scale(dir, 5)), label, 0, color, 3.5, 'middle'));
       }
     }
   });
@@ -256,11 +343,18 @@ function _renderConexiones(out: string[], ambiente: Ambiente, project: Project |
  * Renderiza un símbolo eléctrico individual.
  * Si el elemento tiene pared asignada, calcula automáticamente su posición y rotación.
  */
-function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], escala: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[]): void {
+function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], escala: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[], columnas?: ElementoEstructural[]): void {
   // Convertimos las posiciones de metros a unidades de dibujo (mm papel)
-  const pos = _getElementPos(el, segs, escala, dx, dy);
-  const ex = pos[0];
-  const ey = pos[1];
+  let [ex, ey] = _getElementPos(el, segs, escala, dx, dy);
+
+  // Si está anclado a una columna, la posición es relativa a ella
+  if (el.columnaId && columnas) {
+    const col = columnas.find(c => c.id === el.columnaId);
+    if (col) {
+      ex += GEO.mToPx(col.x, escala);
+      ey += GEO.mToPx(col.y, escala);
+    }
+  }
   let angRot = 0;
 
   if (el.paredIdx !== null && el.paredIdx < segs.length) {
@@ -299,21 +393,32 @@ export const RENDERER = {
   /**
    * Genera los segmentos geométricos procesados a partir de los datos de paredes.
    */
+  /**
+   * Genera los segmentos geométricos procesados a partir de los datos de tramos.
+   */
   buildSegs(ambiente: Ambiente, meta: Meta) {
-    const paredes = (ambiente.paredes || []).map((p: Pared) => ({
-      ...p,
-      grosor: p.grosor ?? meta.grosor_pared_default
-    }));
-    const segs = GEO.construirEjes(paredes, meta.escala, ambiente.sentido === 'horario' ? 1 : -1);
-    GEO.calcularVectores(segs);
-    return segs;
+    const tramos = (ambiente.tramos || []).map(t => {
+      const paredes = t.paredes.map((p: Pared) => ({
+        ...p,
+        grosor: p.grosor ?? meta.grosor_pared_default
+      }));
+      // CORRECCIÓN 1: Usar origenX y origenY
+      const segs = GEO.construirEjes(paredes, meta.escala, ambiente.sentido === 'horario' ? 1 : -1, t.origenX || 0, t.origenY || 0);
+      GEO.calcularVectores(segs);
+      return { segs, cerrado: t.cerrado };
+    });
+    
+    return {
+      tramos,
+      allSegs: tramos.flatMap(t => t.segs)
+    };
   },
 
   /**
    * Calcula el layout de la hoja (posiciones dx, dy y dimensiones de página)
    */
   getLayout(ambiente: Ambiente, meta: Meta) {
-    const segs = this.buildSegs(ambiente, meta);
+    const { allSegs: segs } = this.buildSegs(ambiente, meta);
     const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
     const margin = 10;
     const rotuloH = 35;
@@ -360,7 +465,7 @@ export const RENDERER = {
    * @param project Proyecto completo (para renderizar conexiones).
    */
   render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project): string {
-    const segs = this.buildSegs(ambiente, meta);
+    const { tramos, allSegs: segs } = this.buildSegs(ambiente, meta);
     const { dx, dy, pageW, pageH, margin } = this.getLayout(ambiente, meta);
     const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
     
@@ -373,20 +478,46 @@ export const RENDERER = {
       </svg>`;
     }
 
-    const cerrado = GEO.esCerrado(segs);
-
-    // 1. Polígono de fondo (piso)
-    out.push(`<polygon points="${ptsAttr(segs.map(s => GEO.add(s.inicio, [dx, dy])))}" fill="${C.INT_FILL}" stroke="none"/>`);
+    const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
+    
+    // 1. Polígono de fondo (piso) - Solo si TODOS los tramos son cerrados
+    if (allClosed) {
+      tramos.forEach(t => {
+        out.push(`<polygon points="${ptsAttr(t.segs.map(s => GEO.add(s.inicio, [dx, dy])))}" fill="${C.INT_FILL}" stroke="none"/>`);
+      });
+    }
 
     // 2. Muros principales
-    const { ext, int } = GEO.poligonoMuro(segs, cerrado);
-    const extT = ext.map(p => GEO.add(p as Point, [dx, dy]));
-    const intT = int.map(p => GEO.add(p as Point, [dx, dy]));
-    out.push(`<polygon points="${ptsAttr([...extT, ...([...intT].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
-    
-    // Contornos de muros
-    extT.forEach((p, i) => out.push(line(p, extT[(i + 1) % extT.length], C.EXT, C.EXT_W)));
-    intT.forEach((p, i) => out.push(line(p, intT[(i + 1) % intT.length], C.INT, C.INT_W)));
+    tramos.forEach(t => {
+      const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+      const extT = ext.map(p => GEO.add(p as Point, [dx, dy]));
+      const intT = int.map(p => GEO.add(p as Point, [dx, dy]));
+      
+      // Relleno del muro (gris)
+      out.push(`<polygon points="${ptsAttr([...extT, ...([...intT].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
+      
+      // Contornos de muros
+      for (let i = 0; i < extT.length - 1; i++) {
+        out.push(line(extT[i], extT[i+1], C.EXT, C.EXT_W));
+      }
+      for (let i = 0; i < intT.length - 1; i++) {
+        out.push(line(intT[i], intT[i+1], C.INT, C.INT_W));
+      }
+
+      // CORRECCIÓN 2: Cierre visual de extremos en tramos abiertos
+      if (!t.cerrado && t.segs.length > 0) {
+        
+        // Extremo inicial
+        const p1e = extT[0];
+        const p1i = intT[0];
+        out.push(line(p1e, p1i, C.EXT, C.EXT_W));
+        
+        // Extremo final
+        const pne = extT[extT.length - 1];
+        const pni = intT[intT.length - 1];
+        out.push(line(pne, pni, C.EXT, C.EXT_W));
+      }
+    });
 
     // 3. Irregularidades (columnas/nichos)
     segs.forEach(seg => {
@@ -404,12 +535,22 @@ export const RENDERER = {
       _renderConexiones(out, ambiente, project, segs, meta.escala, dx, dy);
     }
 
-    // 5. Elementos Eléctricos
-    ambiente.elementos?.forEach((el: ElementoElectrico) => {
-      _renderElemento(out, el, segs, meta.escala, dx, dy, exportMode, symbolsLib);
+    // 5. Coberturas
+    (ambiente.coberturas || []).forEach(cob => {
+      _renderCobertura(out, cob, meta.escala, dx, dy);
     });
 
-    // 6. Textos libres
+    // 6. Elementos Estructurales
+    (ambiente.elementosEstructurales || []).forEach(ee => {
+      _renderElementoEstructural(out, ee, meta.escala, dx, dy);
+    });
+
+    // 7. Elementos Eléctricos
+    ambiente.elementos?.forEach((el: ElementoElectrico) => {
+      _renderElemento(out, el, segs, meta.escala, dx, dy, exportMode, symbolsLib, ambiente.elementosEstructurales);
+    });
+
+    // 8. Textos libres
     ambiente.textos?.forEach((t) => {
       out.push(txt([GEO.mToPx(t.x, meta.escala) + dx, GEO.mToPx(t.y, meta.escala) + dy], t.texto, 0, '#333', t.tamano, 'middle'));
     });
@@ -418,7 +559,7 @@ export const RENDERER = {
     const layout = (window as any).layoutConfig as LayoutConfig;
     
     // Línea de margen (1cm)
-    out.push(`<rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="black" stroke-width="0.5"/>`);
+        out.push(`<rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="black" stroke-width="0.5"/>`);
     
     if (layout?.titleBlock) {
       const { width: rW, height: rH, elements } = layout.titleBlock;
@@ -450,11 +591,65 @@ export const RENDERER = {
     const heightAttr = exportMode ? `${pageH}mm` : `${pageH}`;
     
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}">
+      <defs>
+        <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+        </pattern>
+        <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
+          <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
       <rect width="100%" height="100%" fill="white"/>
       ${out.join('\n')}
     </svg>`;
   },
   
+  /**
+   * Renderiza solo el contenido geométrico de un ambiente (sin tag <svg>).
+   */
+  renderHoja(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[]): string {
+    const { tramos, allSegs: segs } = this.buildSegs(ambiente, meta);
+    if (!segs.length) return '';
+
+    const out: string[] = [];
+    const escala = meta.escala;
+
+    // 1. Piso
+    const allClosed = (ambiente.tramos || []).every(t => t.cerrado);
+    if (allClosed) {
+      tramos.forEach(t => {
+        const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
+        out.push(`<polygon points="${int.map(p => p.join(',')).join(' ')}" fill="${C.INT_FILL}"/>`);
+      });
+    }
+
+    // 2. Muros
+    tramos.forEach(t => {
+      const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+      out.push(`<polygon points="${ext.map(p => p.join(',')).join(' ')}" fill="${C.PARED_FILL}" stroke="${C.EXT}" stroke-width="0.5"/>`);
+      out.push(`<polyline points="${int.map(p => p.join(',')).join(' ')}" fill="none" stroke="${C.INT}" stroke-width="0.2"/>`);
+    });
+
+    // 3. Aberturas
+    ambiente.aberturas.forEach(ab => {
+      _renderAbertura(out, ab, segs, escala, 0, 0);
+    });
+
+    // 4. Elementos eléctricos
+    ambiente.elementos.forEach(el => {
+      _renderElemento(out, el, segs, escala, 0, 0, false, symbolsLib, ambiente.elementosEstructurales);
+    });
+
+    // 5. Textos
+    (ambiente.textos || []).forEach(t => {
+      const tx = GEO.mToPx(t.x, escala);
+      const ty = GEO.mToPx(t.y, escala);
+      out.push(txt([tx, ty], t.texto, 0, '#333', t.tamano || 3.5, 'middle'));
+    });
+
+    return out.join('\n');
+  },
+
   /**
    * Renderiza el Plano Maestro: Agrega todos los ambientes del proyecto en una sola vista.
    */
@@ -467,7 +662,7 @@ export const RENDERER = {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
     project.ambientes.forEach((amb: Ambiente) => {
-      const segs = this.buildSegs(amb, meta);
+      const { tramos, allSegs: segs } = this.buildSegs(amb, meta);
       if (!segs.length) return;
       
       const gX = GEO.mToPx(amb.posX || 0, escala);
@@ -481,13 +676,20 @@ export const RENDERER = {
         if (p[1] > maxY) maxY = p[1];
       });
 
-      // Dibujar polígono de fondo
-      out.push(`<polygon points="${pts.map(p => `${f(p[0])},${f(p[1])}`).join(' ')}" fill="${C.INT_FILL}" stroke="none"/>`);
+      // Dibujar polígono de fondo (solo si todos los tramos están cerrados)
+      if (tramos.every(t => t.cerrado)) {
+        tramos.forEach(t => {
+          const pts = t.segs.map(s => GEO.add(s.inicio, [gX, gY]));
+          out.push(`<polygon points="${pts.map(p => `${f(p[0])},${f(p[1])}`).join(' ')}" fill="${C.INT_FILL}" stroke="none"/>`);
+        });
+      }
       
       // Dibujar muros
-      const { ext } = GEO.poligonoMuro(segs, GEO.esCerrado(segs));
-      const extT = ext.map(p => GEO.add(p as Point, [gX, gY]));
-      out.push(`<polygon points="${ptsAttr(extT)}" fill="${C.PARED_FILL}" stroke="black" stroke-width="0.5"/>`);
+      tramos.forEach(t => {
+        const { ext } = GEO.poligonoMuro(t.segs, t.cerrado);
+        const extT = ext.map(p => GEO.add(p as Point, [gX, gY]));
+        out.push(`<polygon points="${ptsAttr(extT)}" fill="${C.PARED_FILL}" stroke="black" stroke-width="0.5"/>`);
+      });
       
       // Nombre del ambiente
       const [bX1, bY1, bX2, bY2] = GEO.bbox(segs, []);
@@ -540,5 +742,54 @@ export const RENDERER = {
       <rect x="${f(vx)}" y="${f(vy)}" width="${f(w)}" height="${f(h)}" fill="white"/>
       ${out.join('\n')}
     </svg>`;
+  },
+
+  renderMasterConnections(project: Project): string {
+    const out: string[] = [];
+    const escala = project.meta.escala;
+    const f = (n: number) => n.toFixed(2);
+
+    project.ambientes.forEach(amb => {
+      if (amb.posX === undefined || amb.posY === undefined) return;
+
+      amb.aberturas.forEach(ab => {
+        if (ab.ambienteVecinoId) {
+          const vecino = project.ambientes.find(a => a.id === ab.ambienteVecinoId);
+          if (vecino && vecino.posX !== undefined && vecino.posY !== undefined) {
+            const { allSegs: segs } = this.buildSegs(amb, project.meta);
+            const seg = segs[ab.pared];
+            if (!seg) return;
+
+            const pxPerM = 1000 / escala;
+            const distPx = ab.posicion * pxPerM;
+            const dirLen = GEO.len(seg.dir);
+            const p1 = GEO.add(
+              GEO.add(seg.inicio, GEO.scale(seg.dir, dirLen > 0 ? distPx / dirLen : 0)), 
+              [GEO.mToPx(amb.posX!, escala), GEO.mToPx(amb.posY!, escala)]
+            );
+            
+            const abVecina = vecino.aberturas.find(ax => ax.ambienteVecinoId === amb.id);
+            if (abVecina) {
+               const { allSegs: segsV } = this.buildSegs(vecino, project.meta);
+               const segV = segsV[abVecina.pared];
+               if (segV) {
+                 const distPxV = abVecina.posicion * pxPerM;
+                 const dirLenV = GEO.len(segV.dir);
+                 const pv = GEO.add(
+                   GEO.add(segV.inicio, GEO.scale(segV.dir, dirLenV > 0 ? distPxV / dirLenV : 0)), 
+                   [GEO.mToPx(vecino.posX!, escala), GEO.mToPx(vecino.posY!, escala)]
+                 );
+                 out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(pv[0])}" y2="${f(pv[1])}" stroke="#E67E22" stroke-width="1" stroke-dasharray="4,2" opacity="0.6"/>`);
+                 return;
+               }
+            }
+            const p2 = [GEO.mToPx(vecino.posX!, escala), GEO.mToPx(vecino.posY!, escala)];
+            out.push(`<line x1="${f(p1[0])}" y1="${f(p1[1])}" x2="${f(p2[0])}" y2="${f(p2[1])}" stroke="#E67E22" stroke-width="0.5" stroke-dasharray="2,2" opacity="0.4"/>`);
+          }
+        }
+      });
+    });
+
+    return out.join('\n');
   }
 };

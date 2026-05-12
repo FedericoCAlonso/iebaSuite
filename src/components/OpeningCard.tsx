@@ -14,6 +14,7 @@ interface OpeningCardProps {
   /** Lista de ambientes del proyecto para vincular abertura al ambiente vecino */
   ambientes: Ambiente[];
   activeAmbienteId: string;
+  onLinkOpening?: (targetAmbId: string, targetOpeningId: string, currentOpeningId: string) => void;
   onChange: (ab: Abertura) => void;
   onRemove: () => void;
 }
@@ -40,7 +41,9 @@ function buildTitle(ab: Abertura): string {
   return `${tipo}${subtipo} · Pared ${ab.pared}`;
 }
 
-export function OpeningCard({ ab, index, wallCount, ambientes, activeAmbienteId, onChange, onRemove }: OpeningCardProps) {
+export function OpeningCard({ 
+  ab, index, wallCount, ambientes, activeAmbienteId, onLinkOpening, onChange, onRemove 
+}: OpeningCardProps) {
   // Ambientes disponibles para vincular (todos excepto el actual)
   const otrosAmbientes = ambientes.filter(a => a.id !== activeAmbienteId);
 
@@ -51,6 +54,11 @@ export function OpeningCard({ ab, index, wallCount, ambientes, activeAmbienteId,
       badge={`${ab.ancho || '?'}m`}
       onRemove={onRemove}
     >
+      <div style={{ marginBottom: '12px', borderBottom: '1px solid var(--border-dim)', paddingBottom: '8px' }}>
+         <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+           ID: {ab.id} {ab.esPrincipal === false && '(Esclava)'}
+         </span>
+      </div>
       {/* Fila: tipo + subtipo */}
       <div className="field-row">
         <F label="Tipo">
@@ -144,22 +152,46 @@ export function OpeningCard({ ab, index, wallCount, ambientes, activeAmbienteId,
         </div>
       )}
 
-      {/* Ambiente vecino (para puertas entre ambientes) */}
-      {ab.tipo === 'puerta' && otrosAmbientes.length > 0 && (
-        <div className="field-row">
-          <F label="Comunica con ambiente">
-            <select
-              value={ab.ambienteVecinoId || ''}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                onChange({ ...ab, ambienteVecinoId: e.target.value || undefined })
-              }
-            >
-              <option value="">— Ninguno / Exterior —</option>
-              {otrosAmbientes.map(a => (
-                <option key={a.id} value={a.id}>{a.nombre}</option>
-              ))}
-            </select>
-          </F>
+      {/* Hoja vecina (para puertas entre hojas) */}
+      {otrosAmbientes.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border-dim)', marginTop: '12px', paddingTop: '12px' }}>
+          {ab.ambienteVecinoId ? (
+            <div className="status-tag ok" style={{ fontSize: '11px', display: 'inline-block' }}>
+              🔗 Vinculada a: {ambientes.find(a => a.id === ab.ambienteVecinoId)?.nombre || '?'}
+              <button 
+                className="btn btn-danger btn-sm" 
+                style={{ marginLeft: '8px', padding: '0 4px' }}
+                onClick={() => onChange({ ...ab, ambienteVecinoId: undefined, aberturaVecinaId: undefined, esPrincipal: undefined })}
+              >✕</button>
+            </div>
+          ) : (
+            <F label="Vincular a abertura existente en otra hoja">
+              <select
+                value=""
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const [ambId, opId] = val.split('|');
+                  onLinkOpening?.(ambId, opId, ab.id);
+                }}
+              >
+                <option value="">— Seleccionar abertura para vincular —</option>
+                {otrosAmbientes.map(amb => {
+                  const available = (amb.aberturas || []).filter(o => !o.ambienteVecinoId);
+                  if (available.length === 0) return null;
+                  return (
+                    <optgroup key={amb.id} label={amb.nombre}>
+                      {available.map(o => (
+                        <option key={o.id} value={`${amb.id}|${o.id}`}>
+                          {o.tipo} ({o.ancho}m) en Pared {o.pared}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+            </F>
+          )}
         </div>
       )}
     </Card>

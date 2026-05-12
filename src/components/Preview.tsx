@@ -22,6 +22,7 @@ interface PreviewProps {
   activeTab: EditorTab;
   symbolsLib: DefinicionSimbolo[];
   onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string) => void;
+  creationFlow?: { active: boolean; step: string; anchor: any; offsetX: number; offsetY: number };
 }
 
 /** Cursor del área del plano según el tab activo */
@@ -33,6 +34,7 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
   circuitos:  'default',
   conexiones: 'default',
   maestro:    'default',
+  cobertura:  'default',
 };
 
 /** Texto de ayuda en el toolbar según el tab activo */
@@ -44,9 +46,10 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   circuitos: '— Solo lectura —',
   conexiones:'— Solo lectura —',
   maestro:   '— Plano Maestro —',
+  cobertura: '— Solo lectura —',
 };
 
-export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanvasClick }: PreviewProps) {
+export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanvasClick, creationFlow }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
@@ -109,7 +112,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanv
     const clickedElecId = elecEl?.getAttribute('data-elec-id') ?? undefined;
 
     // Snap a la pared más cercana (útil tanto para eléctrico como aberturas)
-    const segs = RENDERER.buildSegs(ambiente, meta);
+    const { allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
     const snap = GEO.snapAPared(px, py, segs);
 
     onCanvasClick(
@@ -124,10 +127,11 @@ export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanv
   /** Información técnica de la geometría actual */
   const status = useMemo(() => {
     if (!ambiente) return null;
-    const segs = RENDERER.buildSegs(ambiente, meta);
+    const { tramos, allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
+    const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
     return { 
       paredes: segs.length, 
-      cerrado: GEO.esCerrado(segs) 
+      cerrado: allClosed 
     };
   }, [ambiente, meta]);
 
@@ -179,8 +183,27 @@ export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanv
           <div className="empty-overlay">
             <div className="empty-msg">
               Seleccioná un proyecto<br/>
-              para visualizar el croquis
+              para visualizar la hoja
             </div>
+          </div>
+        )}
+
+        {/* CORRECCIÓN 1: Marcador Paso B */}
+        {creationFlow?.active && creationFlow.step === 'B' && creationFlow.anchor && (
+          <div 
+            style={{
+              position: 'absolute',
+              left: pan.x + (RENDERER.getBboxOffset(ambiente, meta).dx + GEO.mToPx(creationFlow.anchor.x + creationFlow.offsetX, meta.escala)) * zoom,
+              top: pan.y + (RENDERER.getBboxOffset(ambiente, meta).dy + GEO.mToPx(creationFlow.anchor.y + creationFlow.offsetY, meta.escala)) * zoom,
+              pointerEvents: 'none',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="4" fill="none" stroke="var(--acc)" strokeWidth="1" strokeDasharray="2,2" />
+              <line x1="0" y1="10" x2="20" y2="10" stroke="var(--acc)" strokeWidth="1" />
+              <line x1="10" y1="0" x2="10" y2="20" stroke="var(--acc)" strokeWidth="1" />
+            </svg>
           </div>
         )}
 
