@@ -73,30 +73,51 @@ export function CargaRapidaParedes({
   /**
    * Maneja la navegación por teclado y la auto-creación de filas.
    */
+    /**
+   * Maneja la navegación por teclado y la auto-creación de filas.
+   */
   const handleKeyDown = (e: React.KeyboardEvent, idx: number, field: 'largo' | 'angulo') => {
-    // Si presiona Tab o Enter en el ángulo de la última pared, creamos una nueva.
-    if ((e.key === 'Tab' || e.key === 'Enter')) {
-      const isLastWall = idx === tramo.paredes.length - 1;
-      const isAngleField = field === 'angulo';
+    const isLastWall = idx === tramo.paredes.length - 1;
 
-      if (isLastWall && isAngleField) {
-        // Evitamos que el Tab se salga del formulario
+    const crearNuevaPared = () => {
+      updateAmbiente(amb => {
+        const newTramos = [...amb.tramos];
+        const targetTramo = { ...newTramos[tramoIndex] };
+        // Creamos la nueva pared con el ángulo de 90 por defecto
+        const nuevaPared = createPared({ largo: 0, angulo: 90 });
+        targetTramo.paredes = [...targetTramo.paredes, nuevaPared];
+        newTramos[tramoIndex] = targetTramo;
+        return { ...amb, tramos: newTramos };
+      });
+    };
+
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Evitamos el comportamiento por defecto del Enter en formularios
+
+      if (field === 'largo') {
+        // Si estamos en 'largo', saltamos al 'ángulo' de la misma fila
+        anguloRefs.current[idx]?.focus();
+        anguloRefs.current[idx]?.select(); // Seleccionamos el texto para que sea fácil sobrescribir
+      } else if (field === 'angulo') {
+        if (isLastWall) {
+          // Si es el último ángulo, creamos una pared nueva
+          crearNuevaPared();
+        } else {
+          // Si no es el último, saltamos al 'largo' de la SIGUIENTE fila
+          largoRefs.current[idx + 1]?.focus();
+          largoRefs.current[idx + 1]?.select();
+        }
+      }
+    } else if (e.key === 'Tab') {
+      // El navegador maneja el Tab hacia adelante naturalmente,
+      // SOLO interceptamos si es el último ángulo para auto-crear la fila.
+      if (field === 'angulo' && isLastWall) {
         e.preventDefault();
-        
-        updateAmbiente(amb => {
-          const newTramos = [...amb.tramos];
-          const targetTramo = { ...newTramos[tramoIndex] };
-          
-          // Creamos la nueva pared con el ángulo de 90 por defecto
-          const nuevaPared = createPared({ largo: 0, angulo: 90 });
-          targetTramo.paredes = [...targetTramo.paredes, nuevaPared];
-          
-          newTramos[tramoIndex] = targetTramo;
-          return { ...amb, tramos: newTramos };
-        });
+        crearNuevaPared();
       }
     }
   };
+
 
   /**
    * Elimina una pared (mínimo debe quedar una).
@@ -140,6 +161,7 @@ export function CargaRapidaParedes({
             />
 
             <input
+              ref={el => { anguloRefs.current[i] = el; }}
               type="number"
               inputMode="decimal"
               step="1"
