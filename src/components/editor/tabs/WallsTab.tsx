@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { F } from '../../Field';
 import { WallCard } from '../../WallCard';
+import { CargaRapidaParedes } from '../../CargaRapidaParedes';
 import { createPared } from '../../../lib/storage';
 import { type Ambiente } from '../../../types';
 
@@ -21,6 +22,7 @@ export const WallsTab: React.FC<WallsTabProps> = React.memo(({
   setActiveTramoIdx, 
   onUpdateAmbiente 
 }) => {
+  const [fastMode, setFastMode] = useState(false);
   const currentTramo = activeAmbiente.tramos[activeTramoIdx];
 
   if (!currentTramo) return null;
@@ -68,41 +70,68 @@ export const WallsTab: React.FC<WallsTabProps> = React.memo(({
         </div>
       </div>
 
-      {/* Lista de paredes del tramo activo */}
-      <div>
-        {currentTramo.paredes.map((w, i) => (
-          <WallCard
-            key={w.id}
-            pared={w}
-            index={i}
-            isLast={i === currentTramo.paredes.length - 1}
-            onChange={(nw) => onUpdateAmbiente(a => {
-              const nts = [...a.tramos];
-              const nps = [...nts[activeTramoIdx].paredes];
-              nps[i] = nw;
-              nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: nps };
-              return { ...a, tramos: nts };
-            })}
-            onRemove={() => onUpdateAmbiente(a => {
-              const nts = [...a.tramos];
-              const nps = nts[activeTramoIdx].paredes.filter((_, j) => j !== i);
-              nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: nps };
-              return { ...a, tramos: nts };
-            })}
-          />
-        ))}
+      {/* Selector de Modo de Visualización */}
+      <div style={{ padding: '0 8px 12px 8px', display: 'flex', gap: '8px' }}>
         <button 
-          className="btn btn-ghost btn-sm btn-full" 
-          style={{ marginTop: '8px' }} 
-          onClick={() => onUpdateAmbiente(a => {
-            const nts = [...a.tramos];
-            nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: [...nts[activeTramoIdx].paredes, createPared()] };
-            return { ...a, tramos: nts };
-          })}
+          className={`btn btn-sm ${!fastMode ? 'btn-acc' : 'btn-ghost'}`} 
+          style={{ flex: 1, fontSize: '12px' }}
+          onClick={() => setFastMode(false)}
         >
-          + Agregar pared al tramo {activeTramoIdx + 1}
+          🎴 Vista Fichas
+        </button>
+        <button 
+          className={`btn btn-sm ${fastMode ? 'btn-acc' : 'btn-ghost'}`} 
+          style={{ flex: 1, fontSize: '12px' }}
+          onClick={() => setFastMode(true)}
+        >
+          ⚡ Carga Rápida
         </button>
       </div>
+
+      {/* Renderizado condicional según el modo */}
+      {fastMode ? (
+        <CargaRapidaParedes 
+          ambiente={activeAmbiente}
+          tramoIndex={activeTramoIdx}
+          updateAmbiente={onUpdateAmbiente}
+        />
+      ) : (
+        /* Lista de paredes del tramo activo (Fichas) */
+        <div>
+          {currentTramo.paredes.map((w, i) => (
+            <WallCard
+              key={w.id}
+              pared={w}
+              index={i}
+              isLast={i === currentTramo.paredes.length - 1}
+              onChange={(nw) => onUpdateAmbiente(a => {
+                const nts = [...a.tramos];
+                const nps = [...nts[activeTramoIdx].paredes];
+                nps[i] = nw;
+                nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: nps };
+                return { ...a, tramos: nts };
+              })}
+              onRemove={() => onUpdateAmbiente(a => {
+                const nts = [...a.tramos];
+                const nps = nts[activeTramoIdx].paredes.filter((_, j) => j !== i);
+                nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: nps };
+                return { ...a, tramos: nts };
+              })}
+            />
+          ))}
+          <button 
+            className="btn btn-ghost btn-sm btn-full" 
+            style={{ marginTop: '8px' }} 
+            onClick={() => onUpdateAmbiente(a => {
+              const nts = [...a.tramos];
+              nts[activeTramoIdx] = { ...nts[activeTramoIdx], paredes: [...nts[activeTramoIdx].paredes, createPared()] };
+              return { ...a, tramos: nts };
+            })}
+          >
+            + Agregar pared al tramo {activeTramoIdx + 1}
+          </button>
+        </div>
+      )}
     </div>
   );
 });

@@ -258,6 +258,11 @@ export function posEnPared(seg: Segmento, pos: number): Point {
   return add(seg.inicio, scale(seg.dir, pos));
 }
 
+export function anguloSimboloPared(seg: Segmento): number {
+  const [nx, ny] = seg.v_int;
+  return Math.atan2(nx, -ny) * 180 / Math.PI;
+}
+
 export function buildSegs(amb: Ambiente, meta: any) {
   const tramos = (amb.tramos || []).map((t: any) => {
     const s = construirEjes(t.paredes, meta.escala, t.sentido || 1);

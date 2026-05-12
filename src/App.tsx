@@ -122,6 +122,17 @@ export function App() {
       />
 
       {toast && <div className="toast animate-in">{toast}</div>}
+
+      {/* Botón flotante para Mobile: Toggle entre Editor y Plano */}
+      {uiState.screen === 'editor' && (
+        <button 
+          className="mobile-view-toggle" 
+          onClick={uiState.toggleMobileEditor}
+          title={uiState.mobileEditorVisible ? "Ver plano" : "Editar datos"}
+        >
+          {uiState.mobileEditorVisible ? '🗺️' : '✏️'}
+        </button>
+      )}
     </div>
   );
 }
