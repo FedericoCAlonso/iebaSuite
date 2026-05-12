@@ -267,7 +267,10 @@ export function MasterView({
                   <span className={`status-dot ${amb.posX !== undefined ? 'placed' : ''}`} title={amb.posX !== undefined ? 'Ubicada' : 'Sin ubicar'}></span>
                 </div>
                 <div className="amb-item-actions">
-                  <button className="btn btn-xs" onClick={() => onSelectAmbiente(amb.id)}>Editar</button>
+                  <button className="btn btn-xs" onClick={() => {
+                    onSelectAmbiente(amb.id);
+                    onTabChange('proyecto');
+                  }}>Editar</button>
                 </div>
               </div>
             ))}

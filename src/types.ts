@@ -262,6 +262,7 @@ export interface ElementoElectrico {
   circuitoId?: string;  // ID del Circuito (de Project.circuitos[])
   esTablero?: boolean;  // true si este elemento representa un tablero
   columnaId?: string;   // ID de la columna a la que está anclado
+  lado?: 'interior' | 'exterior'; // Lado de la pared donde se monta (default 'interior')
 }
 
 // ─── TIPOS UI ───

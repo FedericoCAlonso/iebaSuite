@@ -8,10 +8,11 @@
  */
 
 import * as GEO from './geometry';
+import { type Segmento, type Point } from './geometry';
 import type { 
   Project,
   Ambiente, 
-  Pared, 
+  Pared,
   Abertura, 
   ElementoElectrico, 
   Irregularidad,
@@ -24,14 +25,12 @@ import type { LayoutConfig } from './layout';
 
 /** Interfaz para los metadatos globales del proyecto (Importada de types) */
 
-/** Tipo simplificado para coordenadas [x, y] */
-type Point = [number, number];
-
 /** Configuración visual: Colores, grosores de línea y offsets de cotas */
 const C = {
   PARED_FILL: '#D0D0D0', // Color de relleno de los muros
-  EXT: '#111111',        // Línea de cara externa
-  INT: '#444444',        // Línea de cara interna
+  EXT: '#111111',        // Línea de cara externa (Negro)
+  INT: '#444444',        // Línea de cara interna (Gris para editor)
+  MASTER_LINE: '#000000',// Color único para todas las líneas en plano maestro
   EXT_W: 1.2,            // Grosor línea externa
   INT_W: 0.4,            // Grosor línea interna
   INT_FILL: '#F8F8F0',   // Color de fondo del interior del ambiente
@@ -68,7 +67,7 @@ const txt = (pos: Point, text: string | number, ang: number, color: string, size
  * @param seg Segmento de pared (calculado por GEO) donde se apoya la irregularidad.
  * @param irr Objeto con la definición de la irregularidad (posición, ancho, profundidad).
  */
-function _renderIrregularidad(out: string[], seg: any, irr: Irregularidad, escala: number, dx: number, dy: number): void {
+function _renderIrregularidad(out: string[], seg: Segmento, irr: Irregularidad, escala: number, dx: number, dy: number): void {
   const posPx = GEO.mToPx(irr.posicion, escala);
   const aPx = GEO.mToPx(irr.ancho, escala);
   const pPx = GEO.mToPx(Math.abs(irr.profundidad), escala);
@@ -154,7 +153,7 @@ function _renderCobertura(out: string[], cob: ZonaCobertura, escala: number, dx:
   out.push(`<polygon points="${ptsAttr}" fill="${fill}" stroke="${stroke}" stroke-width="0.8" stroke-dasharray="${dash}"/>`);
 }
 
-function _renderAbertura(out: string[], ab: Abertura, segs: any[], escala: number, dx: number, dy: number): void {
+function _renderAbertura(out: string[], ab: Abertura, segs: Segmento[], escala: number, dx: number, dy: number, onlyHueco = false): void {
   const seg = segs[ab.pared];
   if (!seg) return;
 
@@ -162,13 +161,22 @@ function _renderAbertura(out: string[], ab: Abertura, segs: any[], escala: numbe
   const aPx = GEO.mToPx(ab.ancho, escala);
   const bI = GEO.add(seg.inicio, GEO.scale(seg.dir, posPx));
   const bF = GEO.add(bI, GEO.scale(seg.dir, aPx));
+  
+  // Hueco del muro con pequeño margen de seguridad (buffer)
+  const buf = 0.5;
+  const hI1 = GEO.add(bI, GEO.scale(seg.v_int, buf));
+  const hI2 = GEO.add(bF, GEO.scale(seg.v_int, buf));
+  const hE1 = GEO.add(bI, GEO.scale(seg.v_ext, seg.grosorPx + buf));
+  const hE2 = GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx + buf));
+
+  const ptsH = [hI1, hI2, hE2, hE1].map(p => GEO.add(p, [dx, dy]));
+  out.push(`<polygon points="${ptsAttr(ptsH)}" fill="white" stroke="none"/>`);
+  
+  if (onlyHueco) return;
+
   const eI = GEO.add(bI, GEO.scale(seg.v_ext, seg.grosorPx));
   const eF = GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx));
-  
   const [bIT, bFT, eIT, eFT] = ([bI, bF, eI, eF] as Point[]).map(p => GEO.add(p, [dx, dy]));
-  
-  // Limpia el fondo del muro (hueco)
-  out.push(`<polygon points="${ptsAttr([bIT, bFT, eFT, eIT])}" fill="white" stroke="none"/>`);
 
   if (ab.tipo === 'vano') {
     out.push(line(bIT, eIT, C.EXT, C.EXT_W * 2), line(bFT, eFT, C.EXT, C.EXT_W * 2));
@@ -359,6 +367,14 @@ function _renderElemento(out: string[], el: ElementoElectrico, segs: any[], esca
   if (el.paredIdx !== null && el.paredIdx < segs.length) {
     const seg = segs[el.paredIdx];
     angRot = GEO.anguloSimboloPared(seg);
+    
+    // Soporte para montaje en cara exterior
+    if (el.lado === 'exterior') {
+      const gPx = seg.grosorPx;
+      ex += seg.v_ext[0] * gPx;
+      ey += seg.v_ext[1] * gPx;
+      angRot += 180;
+    }
   }
 
   const k = GEO.mToPx(0.22, escala); // Tamaño base 22cm en metros
@@ -520,9 +536,11 @@ export const RENDERER = {
 
     // 3. Irregularidades (columnas/nichos)
     segs.forEach(seg => {
-      seg.pared.irregularidades?.forEach((irr: Irregularidad) => {
-        _renderIrregularidad(out, seg, irr, meta.escala, dx, dy);
-      });
+      if (seg.pared) {
+        seg.pared.irregularidades?.forEach((irr: Irregularidad) => {
+          _renderIrregularidad(out, seg, irr, meta.escala, dx, dy);
+        });
+      }
     });
 
     // 4. Aberturas y Cotas
@@ -668,120 +686,15 @@ export const RENDERER = {
     if (!placed.length) return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="white"/></svg>`;
     
     // Capas de renderizado para asegurar correcta superposición
-    const floors: string[] = [];
-    const walls: string[] = [];
-    const openings: string[] = [];
-    const symbols: string[] = [];
-    const connections: string[] = [];
-    const labels: string[] = [];
-
-    // 1. Recopilar y Globalizar Geometría
+    // 1. Recopilar Geometría para BBox
     const globalData = placed.map(amb => {
-      const { tramos, allSegs } = this.buildSegs(amb, meta);
+      const { allSegs } = this.buildSegs(amb, meta);
       const rot = amb.rotation || 0;
       const gSegs = allSegs.map(s => GEO.transformSegment(s, amb.posX!, amb.posY!, rot, escala));
-      
-      return { amb, tramos, gSegs, rot };
+      return { gSegs };
     });
 
-    // 2. Renderizar Suelos (Floors)
-    globalData.forEach(({ amb, tramos, rot }) => {
-      const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
-      if (allClosed) {
-        tramos.forEach(t => {
-          const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
-          const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
-          floors.push(`<polygon points="${ptsAttr(gInt)}" fill="${C.INT_FILL}" stroke="none"/>`);
-        });
-      }
-    });
-
-    // 3. Renderizar Muros y Aberturas con Fusión
-    // Identificamos aberturas compartidas para no dibujarlas doble y para "unificar" la pared
-    const sharedOpenings = new Set<string>();
-    placed.forEach(amb => {
-      amb.aberturas.forEach(ab => {
-        if (ab.ambienteVecinoId && ab.aberturaVecinaId && ab.esPrincipal === false) {
-          sharedOpenings.add(ab.id);
-        }
-      });
-    });
-
-    globalData.forEach(({ amb, tramos, rot }) => {
-      // Dibujar Muros
-      tramos.forEach(t => {
-        const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
-        const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
-        const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
-        
-        // El relleno del muro solo se dibuja si no es una pared compartida "esclava"
-        // Para simplificar, dibujamos todos los rellenos pero las líneas finales serán unificadas
-        walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
-        
-        // Líneas de contorno (solo dibujamos si no es la cara compartida de un vínculo? 
-        // Por ahora dibujamos todo, el alineamiento perfecto debería hacer que parezca una sola)
-        for (let i = 0; i < gExt.length - 1; i++) {
-          walls.push(line(gExt[i], gExt[i+1], C.EXT, C.EXT_W));
-        }
-        for (let i = 0; i < gInt.length - 1; i++) {
-          walls.push(line(gInt[i], gInt[i+1], C.INT, C.INT_W));
-        }
-      });
-
-      // Dibujar Aberturas
-      amb.aberturas.forEach(ab => {
-        if (sharedOpenings.has(ab.id)) return; // No dibujar abertura esclava
-        
-        const dx = GEO.mToPx(amb.posX!, escala);
-        const dy = GEO.mToPx(amb.posY!, escala);
-        
-        // Para aberturas, necesitamos aplicar la rotación dentro de _renderAbertura o globalizar segs
-        // Hack: Temporalmente usamos un <g transform> para las aberturas dentro del master
-        const abOut: string[] = [];
-        _renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0);
-        openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${abOut.join('\n')}</g>`);
-      });
-
-      // Símbolos Eléctricos
-      amb.elementos?.forEach(el => {
-        const dx = GEO.mToPx(amb.posX!, escala);
-        const dy = GEO.mToPx(amb.posY!, escala);
-        const symOut: string[] = [];
-        _renderElemento(symOut, el, tramos.flatMap(t => t.segs), escala, 0, 0, false, symbolsLib);
-        symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
-      });
-
-      // Etiquetas
-      const { allSegs: localSegs } = this.buildSegs(amb, meta);
-      const [bX1, bY1, bX2, bY2] = GEO.bbox(localSegs, []);
-      const localMid: Point = [(bX1 + bX2) / 2, (bY1 + bY2) / 2];
-      const gMid = GEO.transformPoint(localMid, amb.posX!, amb.posY!, rot, escala);
-      labels.push(txt(gMid, amb.nombre.toUpperCase(), 0, '#666', 8));
-    });
-
-    // 4. Conexiones (Netlist)
-    if (project.conexiones) {
-      project.conexiones.forEach(con => {
-        const p1 = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala, ambs);
-        const p2 = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala, ambs);
-        if (p1 && p2) {
-          const dxDir = p2[0] - p1[0];
-          const dyDir = p2[1] - p1[1];
-          const len = Math.hypot(dxDir, dyDir);
-          const midX = (p1[0] + p2[0]) / 2 + (-dyDir/len || 0) * Math.min(len * 0.15, 20);
-          const midY = (p1[1] + p2[1]) / 2 + (dxDir/len || 0) * Math.min(len * 0.15, 20);
-          
-          let color = '#3498DB';
-          if (con.circuitoId) {
-            const circ = project.circuitos?.find(c => c.id === con.circuitoId);
-            if (circ?.color) color = circ.color;
-          }
-          connections.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(midX)} ${f(midY)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
-        }
-      });
-    }
-
-    // 5. Ensamblaje Final y BBox
+    // 2. Ensamblaje Final y BBox
     const allGlobalPts = globalData.flatMap(d => d.gSegs.flatMap(s => [s.inicio, s.fin]));
     const [minX, minY, maxX, maxY] = GEO.bbox([], allGlobalPts);
     
@@ -792,9 +705,6 @@ export const RENDERER = {
 
     return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="${f(vx)} ${f(vy)} ${f(w)} ${f(h)}">
       <defs>
-        <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
-        </pattern>
         <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
           <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>
         </pattern>
@@ -826,96 +736,116 @@ export const RENDERER = {
       return { amb, tramos, rot };
     });
 
-    // 1. Suelos
-    globalData.forEach(({ amb, tramos, rot }) => {
-      const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
-      if (allClosed) {
-        tramos.forEach(t => {
-          const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
-          const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
-          floors.push(`<polygon points="${ptsAttr(gInt)}" fill="${C.INT_FILL}" stroke="none"/>`);
-        });
-      }
+    // 1. CONSTRUCCIÓN DE GEOMETRÍA GLOBAL
+    // 1.1. Polígonos de Suelo (Para rellenos y detección de envolvente)
+    const allRoomPolys: Point[][] = placed.map(amb => {
+      const { allSegs } = GEO.buildSegs(amb, meta);
+      const { int } = GEO.poligonoMuro(allSegs, true);
+      return int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, amb.rotation || 0, escala));
     });
 
-    // 2. Muros y Aberturas con Fusión
-    const sharedOpenings = new Set<string>();
-    const slaveSegments = new Map<string, Set<number>>(); // ambienteId -> set of segIdx
-    
-    placed.forEach(amb => {
-      amb.aberturas.forEach(ab => {
-        if (ab.ambienteVecinoId && ab.aberturaVecinaId) {
-          if (ab.esPrincipal === false) {
-            sharedOpenings.add(ab.id);
-            // Marcar este segmento como "esclavo" para no dibujarlo
-            if (!slaveSegments.has(amb.id)) slaveSegments.set(amb.id, new Set());
-            slaveSegments.get(amb.id)!.add(ab.pared);
-          }
-        }
+    // 2. RENDERIZADO DE CAPAS BASE
+    // 2.1. Capas Locales (Suelos y Rellenos de Muro para mantener ingletes perfectos)
+    allRoomPolys.forEach(poly => {
+      floors.push(`<polygon points="${ptsAttr(poly)}" fill="${C.INT_FILL}" stroke="none"/>`);
+    });
+
+    globalData.forEach(({ amb, tramos, rot }) => {
+      // Rellenos de Muro (Gris)
+      tramos.forEach(t => {
+        const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+        const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
       });
     });
 
+    // 2.2. EXTRACCIÓN DE CARAS Y FILTRADO DE ENVOLVENTE
+    // Recolectamos todos los bordes de los polígonos de muros (ya tienen ingletes)
+    const facePool: {inicio: Point, fin: Point, isExterior: boolean}[] = [];
+    
     globalData.forEach(({ amb, tramos, rot }) => {
-      const slaveSet = slaveSegments.get(amb.id);
-      
       tramos.forEach(t => {
-        // Filtramos segmentos que son esclavos para no duplicar paredes
-        const filteredSegs = t.segs.filter((_, idx) => !slaveSet?.has(idx));
-        
-        // Si no quedan segmentos, no dibujamos el tramo
-        if (filteredSegs.length === 0 && t.segs.length > 0) return;
-
-        // Para el relleno (fill), si el tramo está incompleto por el filtrado, 
-        // igual intentamos dibujarlo o usamos la geometría original si no solapa
-        // Pero para la fusión perfecta, dibujamos el polígono original y solo omitimos las líneas
         const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
         const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
         const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
         
-        // El relleno del muro: lo dibujamos siempre (al solapar con el principal no se nota)
-        walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
-        
-        // Líneas de contorno: Usamos la geometría completa del tramo para mantener los ingletes (miters)
-        // pero solo dibujamos los trazos que NO son esclavos.
-        for (let i = 0; i < t.segs.length; i++) {
-          if (slaveSet?.has(i)) continue; // Omitir si es pared compartida esclava
-
-          // Los puntos gExt[i] y gExt[i+1] corresponden al segmento t.segs[i]
-          walls.push(line(gExt[i], gExt[i+1], C.EXT, C.EXT_W));
-          walls.push(line(gInt[i], gInt[i+1], C.INT, C.INT_W));
-          
-          // Tapas laterales si el tramo es abierto y estamos en un extremo
-          if (!t.cerrado) {
-            if (i === 0) walls.push(line(gExt[0], gInt[0], C.EXT, C.EXT_W));
-            if (i === t.segs.length - 1) walls.push(line(gExt[i+1], gInt[i+1], C.EXT, C.EXT_W));
-          }
+        // Convertimos el polígono exterior en segmentos
+        for (let i = 0; i < gExt.length - 1; i++) {
+          facePool.push({ inicio: gExt[i], fin: gExt[i+1], isExterior: true });
+        }
+        // Convertimos el polígono interior en segmentos (siempre finos)
+        for (let i = 0; i < gInt.length - 1; i++) {
+          facePool.push({ inicio: gInt[i], fin: gInt[i+1], isExterior: false });
         }
       });
+    });
 
+    // Deduplicación y clasificación de las caras
+    const allWallLines: string[] = [];
+    const processedFaces: {inicio: Point, fin: Point}[] = [];
+
+    facePool.forEach(face => {
+      // Evitamos dibujar la misma cara dos veces (paredes compartidas)
+      const isDup = processedFaces.some(p => 
+        (GEO.dist(p.inicio, face.inicio) < 1.0 && GEO.dist(p.fin, face.fin) < 1.0) ||
+        (GEO.dist(p.inicio, face.fin) < 1.0 && GEO.dist(p.fin, face.inicio) < 1.0)
+      );
+      if (isDup) return;
+      processedFaces.push({ inicio: face.inicio, fin: face.fin });
+
+      let width: number = C.INT_W;
+      if (face.isExterior) {
+        // Para caras exteriores, chequeamos si "dan al vacío"
+        const mid = GEO.scale(GEO.add(face.inicio, face.fin), 0.5);
+        const isInsideOther = allRoomPolys.some(p => GEO.isPointInPolygon(mid, p));
+        
+        // Si está "dentro" de otro ambiente, es un tabique divisorio (fino). 
+        // Si está fuera, es envolvente (grueso).
+        width = isInsideOther ? C.INT_W : C.EXT_W;
+      }
+
+      allWallLines.push(line(face.inicio, face.fin, C.MASTER_LINE, width));
+    });
+
+    // 3. CAPA DE HUECOS (Limpieza total antes de líneas)
+    const huecos: string[] = [];
+    globalData.forEach(({ amb, tramos, rot }) => {
       amb.aberturas.forEach(ab => {
-        if (sharedOpenings.has(ab.id)) return;
         const dx = GEO.mToPx(amb.posX!, escala);
         const dy = GEO.mToPx(amb.posY!, escala);
+        const huecoOut: string[] = [];
+        _renderAbertura(huecoOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0, true);
+        huecos.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${huecoOut.join('\n')}</g>`);
+      });
+    });
+
+    // 4. ELEMENTOS Y ABERTURAS (CAPAS SUPERIORES)
+    globalData.forEach(({ amb, tramos, rot }) => {
+      const dx = GEO.mToPx(amb.posX!, escala);
+      const dy = GEO.mToPx(amb.posY!, escala);
+
+      amb.aberturas.forEach(ab => {
+        if (ab.esPrincipal === false) return;
         const abOut: string[] = [];
-        _renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0);
-        openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${abOut.join('\n')}</g>`);
+        _renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0, false);
+        const cleanOut = abOut.filter(s => !s.includes('fill="white"'));
+        openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${cleanOut.join('\n')}</g>`);
       });
 
       amb.elementos?.forEach(el => {
-        const dx = GEO.mToPx(amb.posX!, escala);
-        const dy = GEO.mToPx(amb.posY!, escala);
         const symOut: string[] = [];
         _renderElemento(symOut, el, tramos.flatMap(t => t.segs), escala, 0, 0, false, symbolsLib);
         symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
       });
 
-      const { allSegs: localSegs } = this.buildSegs(amb, meta);
+      const { allSegs: localSegs } = GEO.buildSegs(amb, meta);
       const [bX1, bY1, bX2, bY2] = GEO.bbox(localSegs, []);
       const gMid = GEO.transformPoint([(bX1 + bX2) / 2, (bY1 + bY2) / 2], amb.posX!, amb.posY!, rot, escala);
       labels.push(txt(gMid, amb.nombre.toUpperCase(), 0, '#666', 8));
     });
 
-    // 3. Conexiones (Netlist)
+    // 5. Conexiones (Netlist)
     if (project.conexiones) {
       project.conexiones.forEach(con => {
         const p1 = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala, ambs);
@@ -940,7 +870,9 @@ export const RENDERER = {
     return [
       ...floors,
       ...walls,
-      ...openings,
+      ...allWallLines,
+      ...huecos,     // Huecos (blancos) que limpian muros y líneas
+      ...openings,   // Carpintería encima de los huecos
       ...symbols,
       ...connections,
       ...labels
