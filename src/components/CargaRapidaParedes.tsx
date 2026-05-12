@@ -26,7 +26,7 @@ export function CargaRapidaParedes({
   
   // Refs para manejar el foco de los inputs de largo
   const largoRefs = useRef<(HTMLInputElement | null)[]>([]);
-
+  const anguloRefs = useRef<(HTMLInputElement | null)[]>([]); // NUEVO
   // Efecto UX: Si se añade una nueva pared, hacemos foco en el campo 'Largo' de la misma.
   useEffect(() => {
     if (wallsCount > 0) {
