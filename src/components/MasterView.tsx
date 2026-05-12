@@ -80,8 +80,10 @@ export function MasterView({
                   const angV = Math.atan2(segV.fin[1] - segV.inicio[1], segV.fin[0] - segV.inicio[0]) * 180 / Math.PI;
                   const nextRot = (angA + rot + 180) - angV;
                   
-                  const pLocalA = getOpeningPosM(amb, ab, rot);
-                  const pLocalV = getOpeningPosM(vecino, abVecina, nextRot);
+                  // El vecino se apoya en la cara EXTERIOR del ambiente actual
+                  const pLocalA = getOpeningPosM(amb, ab, rot, true); 
+                  // Y el vecino usa su propia cara INTERIOR para el enlace
+                  const pLocalV = getOpeningPosM(vecino, abVecina, nextRot, false);
                   
                   queue.push({ 
                     id: vecino.id, 
@@ -100,11 +102,21 @@ export function MasterView({
     return results;
   }, [project.ambientes, project.meta, escala]);
 
-  function getOpeningPosM(amb: Ambiente, ab: Abertura, rotationDeg: number) {
+  function getOpeningPosM(amb: Ambiente, ab: Abertura, rotationDeg: number, useExterior: boolean) {
     const { allSegs } = RENDERER.buildSegs(amb, project.meta);
     const s = allSegs[ab.pared];
     if (!s) return { x: 0, y: 0 };
-    const pPx = GEO.posEnPared(s, GEO.mToPx(ab.posicion + ab.ancho / 2, escala));
+    
+    // Punto base en la cara interior (eje del dibujo)
+    let pPx = GEO.posEnPared(s, GEO.mToPx(ab.posicion + ab.ancho / 2, escala));
+    
+    // Si pedimos la cara exterior, sumamos el grosor en la dirección de la normal exterior
+    if (useExterior) {
+      const normalExt = s.v_ext; // Ya es unitaria
+      const grosorPx = s.grosorPx;
+      pPx = GEO.add(pPx, GEO.scale(normalExt, grosorPx));
+    }
+
     const localM = { x: GEO.pxToM(pPx[0], escala), y: GEO.pxToM(pPx[1], escala) };
     const rad = (rotationDeg || 0) * Math.PI / 180;
     return {
@@ -131,7 +143,6 @@ export function MasterView({
     return results;
   }, [clusters, project.ambientes]);
 
-  const placed = useMemo(() => finalAmbientes.filter(a => a.posX !== undefined), [finalAmbientes]);
   const unplaced = useMemo(() => finalAmbientes.filter(a => a.posX === undefined), [finalAmbientes]);
 
   const handlePointerDown = (e: React.PointerEvent, amb: Ambiente) => {
@@ -306,42 +317,70 @@ export function MasterView({
           <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
             <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#grid)" />
             
-            {project.ambientes.flatMap(amb => 
-              amb.aberturas.filter(ab => ab.esPrincipal !== false && ab.ambienteVecinoId).map(ab => {
-                const vecino = project.ambientes.find(a => a.id === ab.ambienteVecinoId);
-                const abVecina = vecino?.aberturas.find(av => av.ambienteVecinoId === amb.id && av.esPrincipal === false);
-                if (!vecino || !abVecina || amb.posX === undefined || vecino.posX === undefined) return null;
-                const { allSegs: s1s } = RENDERER.buildSegs(amb, project.meta);
-                const { allSegs: s2s } = RENDERER.buildSegs(vecino, project.meta);
-                const s1 = s1s[ab.pared];
-                const s2 = s2s[abVecina.pared];
-                if (!s1 || !s2) return null;
-                const p1 = GEO.add(GEO.posEnPared(s1, GEO.mToPx(ab.posicion + ab.ancho/2, escala)), [GEO.mToPx(amb.posX!, escala), GEO.mToPx(amb.posY!, escala)]);
-                const p2 = GEO.add(GEO.posEnPared(s2, GEO.mToPx(abVecina.posicion + abVecina.ancho/2, escala)), [GEO.mToPx(vecino.posX!, escala), GEO.mToPx(vecino.posY!, escala)]);
-                return <line key={`${ab.id}-${abVecina.id}`} x1={p1[0]} y1={p1[1]} x2={p2[0]} y2={p2[1]} stroke="#E67E22" strokeWidth="1" strokeDasharray="4,4" />;
-              })
-            )}
+            {/* RENDERIZADO UNIFICADO POR CLUSTERS */}
+            {clusters.map(cluster => {
+              const rootAmb = project.ambientes.find(a => a.id === cluster.rootId);
+              if (!rootAmb || rootAmb.posX === undefined) return null;
 
-            <g dangerouslySetInnerHTML={{ __html: RENDERER.renderMasterConnections(project) }} />
+              const isDragging = cluster.rootId === draggingId;
+              const displayX = isDragging ? GEO.mToPx(tempPos.x, escala) : GEO.mToPx(rootAmb.posX!, escala);
+              const displayY = isDragging ? GEO.mToPx(tempPos.y, escala) : GEO.mToPx(rootAmb.posY!, escala);
+              const displayRot = rootAmb.rotation || 0;
 
-            {placed.map(amb => {
-              const isDragging = amb.id === draggingId;
-              const displayX = isDragging ? GEO.mToPx(tempPos.x, escala) : GEO.mToPx(amb.posX!, escala);
-              const displayY = isDragging ? GEO.mToPx(tempPos.y, escala) : GEO.mToPx(amb.posY!, escala);
+              // Ambitos del cluster (para el renderizador unificado)
+              const ambsInCluster = Array.from(cluster.ambs.keys()).map(id => {
+                const amb = project.ambientes.find(a => a.id === id)!;
+                const offset = cluster.ambs.get(id)!;
+                return {
+                  ...amb,
+                  // Las posiciones en renderMasterContent deben ser relativas al root del cluster
+                  // porque el <g> ya tiene el translate del root.
+                  posX: offset.x,
+                  posY: offset.y,
+                  rotation: offset.rot
+                };
+              });
+
               return (
                 <g 
-                  key={amb.id} 
-                  transform={`translate(${displayX}, ${displayY}) rotate(${amb.rotation || 0})`}
-                  onPointerDown={(e) => handlePointerDown(e, amb)}
-                  onPointerUp={handlePointerUp}
+                  key={cluster.rootId} 
+                  transform={`translate(${displayX}, ${displayY}) rotate(${displayRot})`}
                 >
-                  <rect x="-100" y="-100" width="200" height="200" fill="transparent" style={{ cursor: isDragging ? 'grabbing' : 'grab' }} />
-                  <g dangerouslySetInnerHTML={{ __html: RENDERER.renderHoja({ ...amb, aberturas: (amb.aberturas || []).filter(o => o.esPrincipal !== false) }, project.meta, symbolsLib) }} />
-                  <g transform="translate(0, -30)" onPointerDown={(e) => handleRotateDown(e, amb)} style={{ cursor: 'alias' }}>
-                    <circle r="6" fill="white" stroke="var(--acc)" strokeWidth="1" />
-                    <text textAnchor="middle" dominantBaseline="middle" fontSize="8" fill="var(--acc)" fontWeight="bold">⟳</text>
-                  </g>
-                  <text y="-10" textAnchor="middle" fontSize="8" fill="#333" fontWeight="bold" transform={`rotate(${-(amb.rotation || 0)})`} style={{ pointerEvents: 'none' }}>{amb.nombre}</text>
+                  {/* El "Dibujo" fusionado del cluster */}
+                  <g dangerouslySetInnerHTML={{ 
+                    __html: RENDERER.renderMasterContent(project, symbolsLib, ambsInCluster) 
+                  }} />
+
+                  {/* Capa de Interacción: Handles para cada ambiente del cluster */}
+                  {ambsInCluster.map(amb => {
+                    // Posición local del ambiente dentro del grupo del cluster
+                    const lx = GEO.mToPx(amb.posX!, escala);
+                    const ly = GEO.mToPx(amb.posY!, escala);
+                    const lr = amb.rotation || 0;
+
+                    return (
+                      <g key={amb.id} transform={`translate(${lx}, ${ly}) rotate(${lr})`}>
+                        {/* Rect de arrastre (toda la hoja) */}
+                        <rect 
+                          x="-150" y="-150" width="300" height="300" 
+                          fill="transparent" 
+                          onPointerDown={(e) => handlePointerDown(e, amb)}
+                          onPointerUp={handlePointerUp}
+                          style={{ cursor: isDragging ? 'grabbing' : 'grab', pointerEvents: 'all' }} 
+                        />
+                        
+                        {/* Handle de rotación */}
+                        <g 
+                          transform="translate(0, -30)" 
+                          onPointerDown={(e) => handleRotateDown(e, amb)} 
+                          style={{ cursor: 'alias', pointerEvents: 'all' }}
+                        >
+                          <circle r="8" fill="white" stroke="var(--acc)" strokeWidth="1.5" />
+                          <text textAnchor="middle" dominantBaseline="middle" fontSize="10" fill="var(--acc)" fontWeight="bold">⟳</text>
+                        </g>
+                      </g>
+                    );
+                  })}
                 </g>
               );
             })}

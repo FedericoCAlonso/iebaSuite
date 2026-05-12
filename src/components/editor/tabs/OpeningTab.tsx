@@ -40,6 +40,30 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
           onRemove={() => updateOpenings(ps => ps.filter((_, j) => j !== i))}
         />
       ))}
+
+      <button 
+        className="btn btn-acc" 
+        style={{ width: '100%', marginTop: '16px' }}
+        onClick={() => {
+          const { allSegs } = RENDERER.buildSegs(activeAmbiente, project.meta);
+          if (allSegs.length === 0) {
+            alert("Primero definí las paredes del ambiente.");
+            return;
+          }
+          updateOpenings(os => [...os, {
+            id: Date.now().toString(),
+            pared: 0,
+            tipo: 'puerta',
+            posicion: 0.5,
+            ancho: 0.9,
+            hojas: 1,
+            lado: 'interior',
+            sentido: 'derecha'
+          }]);
+        }}
+      >
+        + Nueva Abertura
+      </button>
     </>
   );
 });

@@ -19,6 +19,11 @@ interface ElectricalCardProps {
   onRemove: () => void;
   onEdit: () => void;
   columnas?: import('../types').ElementoEstructural[];
+  activeAmbienteId?: string;
+  pendingConnection?: { ambienteId: string, elementoId: string } | null;
+  onStartConnecting?: (elId: string) => void;
+  onFinishConnecting?: (ambId: string, elId: string) => void;
+  onCancelConnecting?: () => void;
 }
 
 export function ElectricalCard({ 
@@ -30,7 +35,12 @@ export function ElectricalCard({
   onChange, 
   onRemove, 
   onEdit,
-  columnas
+  columnas,
+  activeAmbienteId,
+  pendingConnection,
+  onStartConnecting,
+  onFinishConnecting,
+  onCancelConnecting
 }: ElectricalCardProps) {
   
   const symDef = symbolsLib.find(s => s.id === el.tipo);
@@ -54,6 +64,23 @@ export function ElectricalCard({
       badge={el.referencia || '—'}
       onRemove={onRemove}
       onEdit={onEdit}
+      customHeader={
+        pendingConnection ? (
+          pendingConnection.elementoId === el.id && pendingConnection.ambienteId === activeAmbienteId ? (
+            <button className="btn btn-warning btn-sm" onClick={onCancelConnecting}>
+              🚫 Cancelar Conexión
+            </button>
+          ) : (
+            <button className="btn btn-acc btn-sm" onClick={() => onFinishConnecting?.(activeAmbienteId!, el.id)}>
+              🔗 Finalizar Aquí
+            </button>
+          )
+        ) : (
+          <button className="btn btn-ghost btn-sm" onClick={() => onStartConnecting?.(el.id)}>
+            🔗 Conectar
+          </button>
+        )
+      }
     >
       <div className="field-row">
         <F label="Ref. Plano">

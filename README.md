@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# 📐 Croquizador PWA
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Croquizador** es una herramienta profesional para el relevamiento arquitectónico y diseño de instalaciones eléctricas. Diseñada como una Progressive Web App (PWA), permite a los técnicos trabajar en campo de forma ágil y precisa.
 
-Currently, two official plugins are available:
+## ✨ Características Principales
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Levantamiento Arquitectónico**: Dibujo de ambientes mediante rumbos y longitudes con cálculo automático de polígonos y muros.
+- **Instalación Eléctrica**: Catálogo de símbolos eléctricos normalizados (AEA) con anclaje inteligente a muros.
+- **Smart Fusion (Master Plan)**: Algoritmo de unión recursiva que fusiona múltiples hojas de relevamiento en un único plano maestro, deduplicando muros compartidos y aberturas vinculadas.
+- **Netlist Inter-Ambiente**: Conexión de bocas eléctricas a través de diferentes habitaciones.
+- **Renderizado de Alta Fidelidad**: Motor SVG estratificado que garantiza planos nítidos y profesionales.
+- **Modo Offline**: Funcionamiento completo sin conexión a internet gracias a Service Workers.
 
-## React Compiler
+## 🚀 Tecnologías
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Core**: React 18 + TypeScript.
+- **Build Tool**: Vite.
+- **Geometría**: Motor propio basado en trigonometría vectorial.
+- **Render**: SVG nativo manipulado por capas.
+- **Estilos**: CSS Modules (Vanilla CSS).
+- **PWA**: Vite PWA Plugin.
 
-## Expanding the ESLint configuration
+## 🛠️ Instalación y Uso
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1.  **Clonar el repositorio**
+2.  **Instalar dependencias**: `npm install`
+3.  **Iniciar desarrollo**: `npm run dev`
+4.  **Generar versión de producción**: `npm run build`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 📂 Estructura del Proyecto
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- `/src/lib/geometry.ts`: Motor de cálculos geométricos y transformaciones.
+- `/src/lib/renderer.ts`: Motor de renderizado SVG estratificado.
+- `/src/hooks/useEditorState.ts`: Lógica de negocio y estado del editor.
+- `/src/components/MasterView.tsx`: Orquestador de la fusión de planos.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 📄 Licencia
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Propiedad de **ieBA — Ingeniería Eléctrica**. Todos los derechos reservados.

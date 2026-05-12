@@ -244,20 +244,19 @@ function _getElementPos(el: ElementoElectrico, segs: any[], escala: number, dx: 
 }
 
 /** 
- * Calcula la posición global [x,y] de un elemento en el canvas maestro (mm papel sin offsets de layout)
+ * Calcula la posición global [x,y] de un elemento en el canvas maestro
  */
-function _getGlobalElementPos(project: Project, ambienteId: string, elementoId: string, escala: number): Point | null {
-  const amb = project.ambientes.find(a => a.id === ambienteId);
-  if (!amb) return null;
+function _getGlobalElementPos(project: Project, ambienteId: string, elementoId: string, escala: number, ambientesCalculados?: Ambiente[]): Point | null {
+  const ambs = ambientesCalculados || project.ambientes;
+  const amb = ambs.find(a => a.id === ambienteId);
+  if (!amb || amb.posX === undefined || amb.posY === undefined) return null;
   const el = amb.elementos?.find(e => e.id === elementoId);
   if (!el) return null;
   
   const { allSegs: segs } = RENDERER.buildSegs(amb, project.meta);
   const localPos = _getElementPos(el, segs, escala, 0, 0);
   
-  const gX = GEO.mToPx(amb.posX || 0, escala) + localPos[0];
-  const gY = GEO.mToPx(amb.posY || 0, escala) + localPos[1];
-  return [gX, gY];
+  return GEO.transformPoint(localPos, amb.posX, amb.posY, amb.rotation || 0, escala);
 }
 
 /**
@@ -651,97 +650,301 @@ export const RENDERER = {
   },
 
   /**
-   * Renderiza el Plano Maestro: Agrega todos los ambientes del proyecto en una sola vista.
+   * Renderizado INTEGRADO para el Plano Maestro.
+   * Aplica Smart Fusion: Deduplica muros compartidos y unifica capas (suelos, muros, aberturas).
+   * 
+   * @param project El proyecto completo.
+   * @param symbolsLib Librería de símbolos eléctricos.
+   * @param ambientesCalculados (Opcional) Ambientes con posiciones globales precalculadas.
    */
-  renderMaster(project: Project, symbolsLib: DefinicionSimbolo[]): string {
-    const margin = 20;
-    const out: string[] = [];
+  renderMaster(project: Project, symbolsLib: DefinicionSimbolo[], ambientesCalculados?: Ambiente[]): string {
+    const margin = 50;
     const meta = project.meta;
     const escala = meta.escala;
+    const ambs = ambientesCalculados || project.ambientes;
+    
+    // Solo procesamos ambientes con posición definida
+    const placed = ambs.filter(a => a.posX !== undefined);
+    if (!placed.length) return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="white"/></svg>`;
+    
+    // Capas de renderizado para asegurar correcta superposición
+    const floors: string[] = [];
+    const walls: string[] = [];
+    const openings: string[] = [];
+    const symbols: string[] = [];
+    const connections: string[] = [];
+    const labels: string[] = [];
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-    project.ambientes.forEach((amb: Ambiente) => {
-      const { tramos, allSegs: segs } = this.buildSegs(amb, meta);
-      if (!segs.length) return;
+    // 1. Recopilar y Globalizar Geometría
+    const globalData = placed.map(amb => {
+      const { tramos, allSegs } = this.buildSegs(amb, meta);
+      const rot = amb.rotation || 0;
+      const gSegs = allSegs.map(s => GEO.transformSegment(s, amb.posX!, amb.posY!, rot, escala));
       
-      const gX = GEO.mToPx(amb.posX || 0, escala);
-      const gY = GEO.mToPx(amb.posY || 0, escala);
-      
-      const pts = segs.map(s => GEO.add(s.inicio, [gX, gY]));
-      pts.forEach(p => {
-        if (p[0] < minX) minX = p[0];
-        if (p[1] < minY) minY = p[1];
-        if (p[0] > maxX) maxX = p[0];
-        if (p[1] > maxY) maxY = p[1];
-      });
+      return { amb, tramos, gSegs, rot };
+    });
 
-      // Dibujar polígono de fondo (solo si todos los tramos están cerrados)
-      if (tramos.every(t => t.cerrado)) {
+    // 2. Renderizar Suelos (Floors)
+    globalData.forEach(({ amb, tramos, rot }) => {
+      const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
+      if (allClosed) {
         tramos.forEach(t => {
-          const pts = t.segs.map(s => GEO.add(s.inicio, [gX, gY]));
-          out.push(`<polygon points="${pts.map(p => `${f(p[0])},${f(p[1])}`).join(' ')}" fill="${C.INT_FILL}" stroke="none"/>`);
+          const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
+          const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+          floors.push(`<polygon points="${ptsAttr(gInt)}" fill="${C.INT_FILL}" stroke="none"/>`);
         });
       }
-      
-      // Dibujar muros
-      tramos.forEach(t => {
-        const { ext } = GEO.poligonoMuro(t.segs, t.cerrado);
-        const extT = ext.map(p => GEO.add(p as Point, [gX, gY]));
-        out.push(`<polygon points="${ptsAttr(extT)}" fill="${C.PARED_FILL}" stroke="black" stroke-width="0.5"/>`);
-      });
-      
-      // Nombre del ambiente
-      const [bX1, bY1, bX2, bY2] = GEO.bbox(segs, []);
-      const mid: Point = [gX + (bX1+bX2)/2, gY + (bY1+bY2)/2];
-      out.push(txt(mid, amb.nombre.toUpperCase(), 0, '#666', 8));
+    });
 
-      // Elementos Eléctricos
-      amb.elementos?.forEach((el: ElementoElectrico) => {
-        _renderElemento(out, el, segs, escala, gX, gY, false, symbolsLib);
+    // 3. Renderizar Muros y Aberturas con Fusión
+    // Identificamos aberturas compartidas para no dibujarlas doble y para "unificar" la pared
+    const sharedOpenings = new Set<string>();
+    placed.forEach(amb => {
+      amb.aberturas.forEach(ab => {
+        if (ab.ambienteVecinoId && ab.aberturaVecinaId && ab.esPrincipal === false) {
+          sharedOpenings.add(ab.id);
+        }
       });
     });
 
-    // Conexiones globales
+    globalData.forEach(({ amb, tramos, rot }) => {
+      // Dibujar Muros
+      tramos.forEach(t => {
+        const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+        const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        
+        // El relleno del muro solo se dibuja si no es una pared compartida "esclava"
+        // Para simplificar, dibujamos todos los rellenos pero las líneas finales serán unificadas
+        walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
+        
+        // Líneas de contorno (solo dibujamos si no es la cara compartida de un vínculo? 
+        // Por ahora dibujamos todo, el alineamiento perfecto debería hacer que parezca una sola)
+        for (let i = 0; i < gExt.length - 1; i++) {
+          walls.push(line(gExt[i], gExt[i+1], C.EXT, C.EXT_W));
+        }
+        for (let i = 0; i < gInt.length - 1; i++) {
+          walls.push(line(gInt[i], gInt[i+1], C.INT, C.INT_W));
+        }
+      });
+
+      // Dibujar Aberturas
+      amb.aberturas.forEach(ab => {
+        if (sharedOpenings.has(ab.id)) return; // No dibujar abertura esclava
+        
+        const dx = GEO.mToPx(amb.posX!, escala);
+        const dy = GEO.mToPx(amb.posY!, escala);
+        
+        // Para aberturas, necesitamos aplicar la rotación dentro de _renderAbertura o globalizar segs
+        // Hack: Temporalmente usamos un <g transform> para las aberturas dentro del master
+        const abOut: string[] = [];
+        _renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0);
+        openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${abOut.join('\n')}</g>`);
+      });
+
+      // Símbolos Eléctricos
+      amb.elementos?.forEach(el => {
+        const dx = GEO.mToPx(amb.posX!, escala);
+        const dy = GEO.mToPx(amb.posY!, escala);
+        const symOut: string[] = [];
+        _renderElemento(symOut, el, tramos.flatMap(t => t.segs), escala, 0, 0, false, symbolsLib);
+        symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
+      });
+
+      // Etiquetas
+      const { allSegs: localSegs } = this.buildSegs(amb, meta);
+      const [bX1, bY1, bX2, bY2] = GEO.bbox(localSegs, []);
+      const localMid: Point = [(bX1 + bX2) / 2, (bY1 + bY2) / 2];
+      const gMid = GEO.transformPoint(localMid, amb.posX!, amb.posY!, rot, escala);
+      labels.push(txt(gMid, amb.nombre.toUpperCase(), 0, '#666', 8));
+    });
+
+    // 4. Conexiones (Netlist)
     if (project.conexiones) {
       project.conexiones.forEach(con => {
-        const p1Global = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala);
-        const p2Global = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala);
-        if (p1Global && p2Global) {
-          const midX = (p1Global[0] + p2Global[0]) / 2;
-          const midY = (p1Global[1] + p2Global[1]) / 2;
-          const dxDir = p2Global[0] - p1Global[0];
-          const dyDir = p2Global[1] - p1Global[1];
+        const p1 = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala, ambs);
+        const p2 = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala, ambs);
+        if (p1 && p2) {
+          const dxDir = p2[0] - p1[0];
+          const dyDir = p2[1] - p1[1];
           const len = Math.hypot(dxDir, dyDir);
-          const nx = len > 0 ? -dyDir / len : 0;
-          const ny = len > 0 ? dxDir / len : 0;
-          const curveOffset = Math.min(len * 0.15, 20);
-          const cx = midX + nx * curveOffset;
-          const cy = midY + ny * curveOffset;
-
+          const midX = (p1[0] + p2[0]) / 2 + (-dyDir/len || 0) * Math.min(len * 0.15, 20);
+          const midY = (p1[1] + p2[1]) / 2 + (dxDir/len || 0) * Math.min(len * 0.15, 20);
+          
           let color = '#3498DB';
           if (con.circuitoId) {
             const circ = project.circuitos?.find(c => c.id === con.circuitoId);
-            if (circ && circ.color) color = circ.color;
+            if (circ?.color) color = circ.color;
           }
-          out.push(`<path d="M ${f(p1Global[0])} ${f(p1Global[1])} Q ${f(cx)} ${f(cy)}, ${f(p2Global[0])} ${f(p2Global[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+          connections.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(midX)} ${f(midY)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
         }
       });
     }
 
-    if (minX === Infinity) {
-      return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 420 297"><rect width="100%" height="100%" fill="white"/></svg>`;
-    }
-
+    // 5. Ensamblaje Final y BBox
+    const allGlobalPts = globalData.flatMap(d => d.gSegs.flatMap(s => [s.inicio, s.fin]));
+    const [minX, minY, maxX, maxY] = GEO.bbox([], allGlobalPts);
+    
     const w = maxX - minX + 2 * margin;
     const h = maxY - minY + 2 * margin;
     const vx = minX - margin;
     const vy = minY - margin;
 
     return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="${f(vx)} ${f(vy)} ${f(w)} ${f(h)}">
+      <defs>
+        <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
+        </pattern>
+        <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
+          <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>
+        </pattern>
+      </defs>
       <rect x="${f(vx)}" y="${f(vy)}" width="${f(w)}" height="${f(h)}" fill="white"/>
-      ${out.join('\n')}
+      ${this.renderMasterContent(project, symbolsLib, ambs)}
     </svg>`;
+  },
+
+  /**
+   * Genera solo el contenido interno del plano maestro (sin el tag <svg>).
+   */
+  renderMasterContent(project: Project, symbolsLib: DefinicionSimbolo[], ambientesCalculados?: Ambiente[]): string {
+    const meta = project.meta;
+    const escala = meta.escala;
+    const ambs = ambientesCalculados || project.ambientes;
+    const placed = ambs.filter(a => a.posX !== undefined && a.posY !== undefined);
+    
+    const floors: string[] = [];
+    const walls: string[] = [];
+    const openings: string[] = [];
+    const symbols: string[] = [];
+    const connections: string[] = [];
+    const labels: string[] = [];
+
+    const globalData = placed.map(amb => {
+      const { tramos } = this.buildSegs(amb, meta);
+      const rot = amb.rotation || 0;
+      return { amb, tramos, rot };
+    });
+
+    // 1. Suelos
+    globalData.forEach(({ amb, tramos, rot }) => {
+      const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
+      if (allClosed) {
+        tramos.forEach(t => {
+          const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
+          const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+          floors.push(`<polygon points="${ptsAttr(gInt)}" fill="${C.INT_FILL}" stroke="none"/>`);
+        });
+      }
+    });
+
+    // 2. Muros y Aberturas con Fusión
+    const sharedOpenings = new Set<string>();
+    const slaveSegments = new Map<string, Set<number>>(); // ambienteId -> set of segIdx
+    
+    placed.forEach(amb => {
+      amb.aberturas.forEach(ab => {
+        if (ab.ambienteVecinoId && ab.aberturaVecinaId) {
+          if (ab.esPrincipal === false) {
+            sharedOpenings.add(ab.id);
+            // Marcar este segmento como "esclavo" para no dibujarlo
+            if (!slaveSegments.has(amb.id)) slaveSegments.set(amb.id, new Set());
+            slaveSegments.get(amb.id)!.add(ab.pared);
+          }
+        }
+      });
+    });
+
+    globalData.forEach(({ amb, tramos, rot }) => {
+      const slaveSet = slaveSegments.get(amb.id);
+      
+      tramos.forEach(t => {
+        // Filtramos segmentos que son esclavos para no duplicar paredes
+        const filteredSegs = t.segs.filter((_, idx) => !slaveSet?.has(idx));
+        
+        // Si no quedan segmentos, no dibujamos el tramo
+        if (filteredSegs.length === 0 && t.segs.length > 0) return;
+
+        // Para el relleno (fill), si el tramo está incompleto por el filtrado, 
+        // igual intentamos dibujarlo o usamos la geometría original si no solapa
+        // Pero para la fusión perfecta, dibujamos el polígono original y solo omitimos las líneas
+        const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+        const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
+        
+        // El relleno del muro: lo dibujamos siempre (al solapar con el principal no se nota)
+        walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
+        
+        // Líneas de contorno: Usamos la geometría completa del tramo para mantener los ingletes (miters)
+        // pero solo dibujamos los trazos que NO son esclavos.
+        for (let i = 0; i < t.segs.length; i++) {
+          if (slaveSet?.has(i)) continue; // Omitir si es pared compartida esclava
+
+          // Los puntos gExt[i] y gExt[i+1] corresponden al segmento t.segs[i]
+          walls.push(line(gExt[i], gExt[i+1], C.EXT, C.EXT_W));
+          walls.push(line(gInt[i], gInt[i+1], C.INT, C.INT_W));
+          
+          // Tapas laterales si el tramo es abierto y estamos en un extremo
+          if (!t.cerrado) {
+            if (i === 0) walls.push(line(gExt[0], gInt[0], C.EXT, C.EXT_W));
+            if (i === t.segs.length - 1) walls.push(line(gExt[i+1], gInt[i+1], C.EXT, C.EXT_W));
+          }
+        }
+      });
+
+      amb.aberturas.forEach(ab => {
+        if (sharedOpenings.has(ab.id)) return;
+        const dx = GEO.mToPx(amb.posX!, escala);
+        const dy = GEO.mToPx(amb.posY!, escala);
+        const abOut: string[] = [];
+        _renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0);
+        openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${abOut.join('\n')}</g>`);
+      });
+
+      amb.elementos?.forEach(el => {
+        const dx = GEO.mToPx(amb.posX!, escala);
+        const dy = GEO.mToPx(amb.posY!, escala);
+        const symOut: string[] = [];
+        _renderElemento(symOut, el, tramos.flatMap(t => t.segs), escala, 0, 0, false, symbolsLib);
+        symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
+      });
+
+      const { allSegs: localSegs } = this.buildSegs(amb, meta);
+      const [bX1, bY1, bX2, bY2] = GEO.bbox(localSegs, []);
+      const gMid = GEO.transformPoint([(bX1 + bX2) / 2, (bY1 + bY2) / 2], amb.posX!, amb.posY!, rot, escala);
+      labels.push(txt(gMid, amb.nombre.toUpperCase(), 0, '#666', 8));
+    });
+
+    // 3. Conexiones (Netlist)
+    if (project.conexiones) {
+      project.conexiones.forEach(con => {
+        const p1 = _getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala, ambs);
+        const p2 = _getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala, ambs);
+        if (p1 && p2) {
+          const dxDir = p2[0] - p1[0];
+          const dyDir = p2[1] - p1[1];
+          const len = Math.hypot(dxDir, dyDir);
+          const midX = (p1[0] + p2[0]) / 2 + (-dyDir/len || 0) * Math.min(len * 0.15, 20);
+          const midY = (p1[1] + p2[1]) / 2 + (dxDir/len || 0) * Math.min(len * 0.15, 20);
+          
+          let color = '#3498DB';
+          if (con.circuitoId) {
+            const circ = project.circuitos?.find(c => c.id === con.circuitoId);
+            if (circ?.color) color = circ.color;
+          }
+          connections.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(midX)} ${f(midY)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+        }
+      });
+    }
+
+    return [
+      ...floors,
+      ...walls,
+      ...openings,
+      ...symbols,
+      ...connections,
+      ...labels
+    ].join('\n');
   },
 
   renderMasterConnections(project: Project): string {

@@ -34,6 +34,31 @@ export const ConnectionsTab: React.FC<ConnectionsTabProps> = React.memo(({
           onRemove={() => updateConexiones(ps => ps.filter(x => x.id !== c.id))}
         />
       ))}
+      <button 
+        className="btn btn-acc" 
+        style={{ width: '100%', marginTop: '16px' }}
+        onClick={() => {
+          if (project.ambientes.length === 0 || project.ambientes[0].elementos.length === 0) {
+            alert("Necesitás al menos un ambiente con bocas para crear conexiones.");
+            return;
+          }
+          const firstAmb = project.ambientes[0];
+          const firstEl = firstAmb.elementos[0];
+          updateConexiones(ps => [...ps, {
+            id: Date.now().toString(),
+            from: { ambienteId: firstAmb.id, elementoId: firstEl.id },
+            to: { ambienteId: firstAmb.id, elementoId: firstEl.id },
+            cables: [
+              { tipo: 'fase', seccion: 2.5, color: 'negro' },
+              { tipo: 'neutro', seccion: 2.5, color: 'celeste' },
+              { tipo: 'pe', seccion: 2.5, color: 'verde-amarillo' },
+            ],
+            conducto: 'PVC 20mm'
+          }]);
+        }}
+      >
+        + Nueva Conexión
+      </button>
       {conexiones.length === 0 && (
         <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
           No hay conexiones en el netlist. Agregá una para unir dos bocas.

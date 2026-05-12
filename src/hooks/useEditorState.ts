@@ -28,6 +28,12 @@ export function useEditorState(
     offsetX: number;
     offsetY: number;
   }>({ active: false, type: 'tramo', step: 'A', anchor: null, offsetX: 0, offsetY: 0 });
+  
+  // Estado para conexiones entre bocas (inter-ambiente)
+  const [pendingConnection, setPendingConnection] = useState<{
+    ambienteId: string;
+    elementoId: string;
+  } | null>(null);
 
   // --- Geometría: Cálculo de todos los vértices anclables ---
   const allVertices = useMemo(() => {
@@ -261,6 +267,34 @@ export function useEditorState(
     cancelCreation();
   };
 
+  // --- Handlers de Netlist Inter-Ambiente ---
+  const startConnecting = (elementoId: string) => {
+    setPendingConnection({ ambienteId: activeAmbiente.id, elementoId });
+  };
+
+  const finishConnecting = (toAmbId: string, toElId: string) => {
+    if (!pendingConnection) return;
+    
+    onUpdateProject(p => ({
+      ...p,
+      conexiones: [...(p.conexiones || []), {
+        id: Date.now().toString(),
+        from: { ambienteId: pendingConnection.ambienteId, elementoId: pendingConnection.elementoId },
+        to: { ambienteId: toAmbId, elementoId: toElId },
+        cables: [
+          { tipo: 'fase', seccion: 2.5, color: 'negro' } as any,
+          { tipo: 'neutro', seccion: 2.5, color: 'celeste' } as any,
+          { tipo: 'pe', seccion: 2.5, color: 'verde-amarillo' } as any,
+        ],
+        conducto: 'PVC 20mm'
+      }]
+    }));
+    
+    setPendingConnection(null);
+  };
+
+  const cancelConnecting = () => setPendingConnection(null);
+
   return {
     // Estado
     activeTramoIdx, setActiveTramoIdx,
@@ -275,6 +309,12 @@ export function useEditorState(
     // Helpers de actualización
     updateOpenings, updateElectrical, updateStructural, updateCircuitos, updateConexiones,
     linkOpening,
+    
+    // Netlist
+    pendingConnection,
+    startConnecting,
+    finishConnecting,
+    cancelConnecting,
     
     // Atajos de datos
     circuitos: project.circuitos || [],

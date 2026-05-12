@@ -29,6 +29,22 @@ export const CircuitsTab: React.FC<CircuitsTabProps> = React.memo(({
           onRemove={() => updateCircuitos(cs => cs.filter((_, j) => j !== i))}
         />
       ))}
+      <button 
+        className="btn btn-acc" 
+        style={{ width: '100%', marginTop: '16px' }}
+        onClick={() => updateCircuitos(cs => [...cs, {
+          id: Date.now().toString(),
+          nombre: `C${cs.length + 1}`,
+          tipo: 'TUG',
+          seccion: 2.5,
+          proteccion: '16A TM',
+          cantConductores: 2,
+          conducto: 'PVC 20mm',
+          color: '#' + Math.floor(Math.random()*16777215).toString(16)
+        }])}
+      >
+        + Nuevo Circuito
+      </button>
       {circuitos.length === 0 && (
         <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
           No hay circuitos definidos. Agregá el primero.

@@ -19,6 +19,10 @@ interface ElectricalTabProps {
   updateStructural: (fn: (elementos: any[]) => any[]) => void;
   onSymbolDialog: (data: SymbolDialogData) => void;
   onShowNetlist: () => void;
+  pendingConnection?: { ambienteId: string, elementoId: string } | null;
+  onStartConnecting?: (elId: string) => void;
+  onFinishConnecting?: (ambId: string, elId: string) => void;
+  onCancelConnecting?: () => void;
 }
 
 /**
@@ -32,7 +36,11 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
   updateElectrical, 
   updateStructural, 
   onSymbolDialog, 
-  onShowNetlist 
+  onShowNetlist,
+  pendingConnection,
+  onStartConnecting,
+  onFinishConnecting,
+  onCancelConnecting
 }) => {
   return (
     <>
@@ -113,6 +121,11 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
           onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
           onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
           onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}
+          activeAmbienteId={activeAmbiente.id}
+          pendingConnection={pendingConnection}
+          onStartConnecting={onStartConnecting}
+          onFinishConnecting={onFinishConnecting}
+          onCancelConnecting={onCancelConnecting}
         />
       ))}
     </>

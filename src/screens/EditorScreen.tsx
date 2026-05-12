@@ -188,6 +188,10 @@ export function EditorScreen(props: EditorScreenProps) {
           updateStructural={state.updateStructural}
           onSymbolDialog={onSymbolDialog}
           onShowNetlist={onShowNetlist}
+          pendingConnection={state.pendingConnection}
+          onStartConnecting={state.startConnecting}
+          onFinishConnecting={state.finishConnecting}
+          onCancelConnecting={state.cancelConnecting}
         />
       )}
 

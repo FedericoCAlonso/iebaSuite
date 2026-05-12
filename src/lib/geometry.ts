@@ -27,13 +27,17 @@ export interface Segmento {
 
 // ─── UTILIDADES VECTORIALES ───
 
-/** Convierte metros a píxeles según la escala (1:escala) */
-export const mToPx = (m: number, esc: number): number => m * 1000.0 / esc;
+/**
+ * Convierte una medida en metros a píxeles según la escala del proyecto.
+ * @param metros Valor en metros.
+ * @param escala Escala (ej: 50 para 1:50).
+ */
+export const mToPx = (metros: number, escala: number): number => (metros * 1000) / escala;
 
-
-/** 
- * Convierte una medida de píxeles en el plano a metros reales.
- * Fórmula: (píxeles * escala) / 1000
+/**
+ * Convierte una medida en píxeles a metros según la escala del proyecto.
+ * @param px Valor en píxeles.
+ * @param escala Escala.
  */
 export const pxToM = (px: number, escala: number): number => (px * escala) / 1000;
 
@@ -200,6 +204,15 @@ export function puntoCara(segRef: Segmento, segVec: Segmento | null, lado: 'ext'
 }
 
 /** Genera los arrays de puntos necesarios para dibujar el polígono del muro */
+/**
+ * Genera la geometría de los polígonos de un muro (interior y exterior).
+ * Implementa el algoritmo de "Ingletes" (miter joints) para asegurar que las esquinas 
+ * coincidan perfectamente sin importar el ángulo.
+ * 
+ * @param segs Lista de segmentos que forman el tramo.
+ * @param cerrado Si el tramo es un bucle cerrado (loop).
+ * @returns Un objeto con los puntos de la cara exterior (ext) y la interior (int).
+ */
 export function poligonoMuro(segs: Segmento[], cerrado: boolean) {
   const n = segs.length;
   const ext: Point[] = [];
@@ -296,4 +309,28 @@ export function findSnapPoint(
 
 function dist(p1: Point, p2: Point): number {
   return Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
+}
+
+/** 
+ * Transforma un punto local a coordenadas globales del proyecto 
+ */
+export function transformPoint(p: Point, posX: number, posY: number, rotation: number, escala: number): Point {
+  const gX = mToPx(posX, escala);
+  const gY = mToPx(posY, escala);
+  const rotated = rot(p, rotation);
+  return [rotated[0] + gX, rotated[1] + gY];
+}
+
+/** 
+ * Transforma un segmento local a coordenadas globales 
+ */
+export function transformSegment(s: Segmento, posX: number, posY: number, rotation: number, escala: number): Segmento {
+  return {
+    ...s,
+    inicio: transformPoint(s.inicio, posX, posY, rotation, escala),
+    fin: transformPoint(s.fin, posX, posY, rotation, escala),
+    dir: rot(s.dir, rotation),
+    v_ext: rot(s.v_ext, rotation),
+    v_int: rot(s.v_int, rotation)
+  };
 }
