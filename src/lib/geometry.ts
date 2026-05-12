@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import type { Pared, Ambiente, Abertura } from '../types';
+import type { Pared, Project, Ambiente, Abertura } from '../types';
 
 /** Punto o Vector en el plano 2D */
 export type Point = [number, number];
@@ -16,26 +16,29 @@ export type Point = [number, number];
 export interface Segmento {
   inicio: Point;
   fin: Point;
-  dir: Point;         // Vector unitario de dirección
-  grosorPx: number;   // Grosor de la pared convertido a píxeles
-  pared: Pared;       // Referencia a la entidad original
-  v_ext: Point;       // Normal unitaria hacia el exterior
-  v_int: Point;       // Normal unitaria hacia el interior
+  dir: Point;
+  v_ext: Point;
+  v_int: Point;
+  grosorPx: number;
+  pared?: Pared;
+}
+
+/** Estructura unificada para la malla global (Master Mesh) */
+export interface MasterSegment {
+  inicio: Point;
+  fin: Point;
+  dir: Point;
+  v_ext: Point;
+  grosorPx: number;
+  esEnvolvente: boolean;
+  roomIds: string[];
 }
 
 // ─── UTILIDADES VECTORIALES ───
 
-/** Convierte metros a píxeles según la escala (1:escala) */
-export const mToPx = (m: number, esc: number): number => m * 1000.0 / esc;
-
-
-/** 
- * Convierte una medida de píxeles en el plano a metros reales.
- * Fórmula: (píxeles * escala) / 1000
- */
+export const mToPx = (metros: number, escala: number): number => (metros * 1000) / escala;
 export const pxToM = (px: number, escala: number): number => (px * escala) / 1000;
 
-/** Rota un vector una cantidad de grados determinada */
 export const rot = ([x, y]: Point, deg: number): Point => {
   const r = deg * Math.PI / 180;
   return [
@@ -47,28 +50,15 @@ export const rot = ([x, y]: Point, deg: number): Point => {
 export const add = ([ax, ay]: Point, [bx, by]: Point): Point => [ax + bx, ay + by];
 export const sub = ([ax, ay]: Point, [bx, by]: Point): Point => [ax - bx, ay - by];
 export const scale = ([x, y]: Point, s: number): Point => [x * s, y * s];
-
-
-
-// Asegúrate de exportarlas en el retorno si usas el patrón de objeto, 
-// o simplemente déjalas como export const si usas módulos.
-
-/** Normaliza un vector para que tenga longitud 1 */
 export const norm = ([x, y]: Point): Point => {
   const l = Math.hypot(x, y);
   return l > 1e-10 ? [x / l, y / l] : [0, 0];
 };
-
-/** Devuelve el vector perpendicular izquierdo (Normal) en sistema Y-down */
 export const perpIzq = ([x, y]: Point): Point => [y, -x];
-
-/** Producto punto entre dos vectores */
 export const dot = ([ax, ay]: Point, [bx, by]: Point): number => ax * bx + ay * by;
-
-/** Longitud o norma de un vector */
 export const len = ([x, y]: Point): number => Math.hypot(x, y);
+export const dist = (p1: Point, p2: Point): number => Math.hypot(p1[0] - p2[0], p1[1] - p2[1]);
 
-/** Calcula la intersección entre dos rectas definidas por punto y dirección */
 export const lineIntersect = (
   [p1x, p1y]: Point, [d1x, d1y]: Point,
   [p2x, p2y]: Point, [d2x, d2y]: Point
@@ -79,58 +69,42 @@ export const lineIntersect = (
   return [p1x + d1x * t, p1y + d1y * t];
 };
 
-/** Limita el efecto de "pico" en las esquinas (uniones en inglete) muy agudas */
 const ingleteLimitado = (pBase: Point, pCand: Point | null, g: number, limit = 4.0): Point => {
   if (!pCand) return pBase;
   return Math.hypot(pCand[0] - pBase[0], pCand[1] - pBase[1]) > limit * g ? pBase : pCand;
 };
 
-// ─── LÓGICA DE NEGOCIO GEOMÉTRICA ───
+// ─── LÓGICA DE NEGOCIO ───
 
-/**
- * Genera la secuencia de ejes (Segmentos) a partir de la definición de paredes.
- * Maneja el cálculo de rumbos basándose en ángulos relativos.
- */
-export function construirEjes(paredes: Pared[], escala: number, sentido: number): Segmento[] {
+export function construirEjes(paredes: Pared[], escala: number, sentido: number, origenX = 0, origenY = 0): Segmento[] {
   const segs: Segmento[] = [];
-  let pos: Point = [0, 0];
-  let dir: Point = [1, 0]; // Dirección inicial (Este)
+  let pos: Point = [mToPx(origenX, escala), mToPx(origenY, escala)];
+  const startPos: Point = [...pos];
+  let dir: Point = [1, 0];
 
   paredes.forEach((pared, i) => {
     const grosor = (pared.grosor !== null && pared.grosor !== 0) ? pared.grosor : 0.15;
     const grosorPx = mToPx(grosor, escala);
-
-    // Aplicar rotación acumulada (excepto en la primera pared que define el origen)
     if (i > 0) dir = rot(dir, sentido * (pared.angulo || 0));
-
-    // Caso de cierre automático (mínimo 3 paredes para formar un polígono, es decir, index >= 2)
     const esAutoCierre = pared.largo === 'auto' || (pared.largo === 0 && i >= 2);
     
     if (esAutoCierre) {
-      if (i !== paredes.length - 1) return; // Solo la última puede ser auto-cierre
-      const cierre: Point = [-pos[0], -pos[1]];
-      const dist = len(cierre);
-      if (dist < 1e-6) return;
+      if (i !== paredes.length - 1) return;
+      const cierre: Point = [startPos[0] - pos[0], startPos[1] - pos[1]];
+      const d = len(cierre);
+      if (d < 1e-6) return;
       segs.push({
-        inicio: pos,
-        fin: [0, 0],
-        dir: norm(cierre),
-        grosorPx,
-        pared,
-        v_ext: [0, 0], v_int: [0, 0]
+        inicio: pos, fin: [...startPos], dir: norm(cierre), grosorPx,
+        pared, v_ext: [0, 0], v_int: [0, 0]
       });
-      pos = [0, 0];
+      pos = [...startPos];
     } else {
       const largoNum = typeof pared.largo === 'number' ? pared.largo : 0;
       const largoPx = mToPx(largoNum, escala);
       const fin = add(pos, scale(dir, largoPx));
       segs.push({
-        inicio: pos,
-        fin,
-        dir,
-        grosorPx,
-        pared,
-        v_ext: [0, 0], v_int: [0, 0]
+        inicio: pos, fin, dir, grosorPx,
+        pared, v_ext: [0, 0], v_int: [0, 0]
       });
       pos = fin;
     }
@@ -138,76 +112,78 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number)
   return segs;
 }
 
-/**
- * Calcula los vectores normales (v_ext y v_int) para cada segmento.
- * Utiliza el área signada para determinar la orientación (CW o CCW) del polígono.
- */
 export function calcularVectores(segs: Segmento[]): void {
   let area = 0;
   segs.forEach(s => { area += s.inicio[0] * s.fin[1] - s.fin[0] * s.inicio[1]; });
   const cw = area >= 0;
-
   segs.forEach(s => {
-    const p = perpIzq(s.dir); // p es NORMAL IZQUIERDA
+    const p = perpIzq(s.dir);
     if (cw) {
-      // En sentido horario, el interior queda a la DERECHA
-      s.v_int = [-p[0], -p[1]] as Point; // Derecha = Interior
-      s.v_ext = p;                       // Izquierda = Exterior
+      s.v_int = [-p[0], -p[1]] as Point;
+      s.v_ext = p;
     } else {
-      // En sentido antihorario, el interior queda a la IZQUIERDA
-      s.v_int = p;                       // Izquierda = Interior
-      s.v_ext = [-p[0], -p[1]] as Point; // Derecha = Exterior
+      s.v_int = p;
+      s.v_ext = [-p[0], -p[1]] as Point;
     }
   });
 }
 
-/** Determina si el conjunto de segmentos forma un polígono cerrado */
-export function esCerrado(segs: Segmento[]): boolean {
-  if (segs.length < 3) return false;
-  const i = segs[0].inicio;
-  const f = segs[segs.length - 1].fin;
-  return Math.hypot(f[0] - i[0], f[1] - i[1]) < 1.0;
+export function snapAPared(cx: number, cy: number, segs: Segmento[]) {
+  let bestDist = Infinity;
+  let result = { segIdx: -1, seg: null as Segmento | null, pos: 0, dist: Infinity, lado: 'interior' as 'interior' | 'exterior' };
+  segs.forEach((s, i) => {
+    const v = sub(s.fin, s.inicio);
+    const vLen = len(v);
+    if (vLen < 1e-6) return;
+    const vN = scale(v, 1 / vLen);
+    const w = sub([cx, cy], s.inicio);
+    let t = dot(w, vN);
+    t = Math.max(0, Math.min(vLen, t));
+    const proj = add(s.inicio, scale(vN, t));
+    const distToAxis = dist([cx, cy], proj);
+    const distToExt = dist([cx, cy], add(proj, scale(s.v_ext, s.grosorPx)));
+    const lado: 'interior' | 'exterior' = distToAxis < distToExt ? 'interior' : 'exterior';
+    const distAlLado = Math.min(distToAxis, distToExt);
+    if (distAlLado < bestDist) {
+      bestDist = distAlLado;
+      result = { segIdx: i, seg: s, pos: t, dist: distAlLado, lado };
+    }
+  });
+  return result;
 }
 
-/** Calcula el punto de intersección en las caras (internas o externas) de un muro */
+export function esCerrado(segs: Segmento[]): boolean {
+  if (segs.length < 3) return false;
+  return dist(segs[segs.length - 1].fin, segs[0].inicio) < 1.0;
+}
+
 export function puntoCara(segRef: Segmento, segVec: Segmento | null, lado: 'ext' | 'int', esFin: boolean): Point {
   const g = segRef.grosorPx;
   const offset: Point = lado === 'ext' ? scale(segRef.v_ext, g) : [0, 0];
   const basePt = esFin ? segRef.fin : segRef.inicio;
-
   if (!segVec) return add(basePt, offset);
-
   const offV: Point = lado === 'ext' ? scale(segVec.v_ext, segVec.grosorPx) : [0, 0];
-  const cand = lineIntersect(
-    add(segRef.inicio, offset), segRef.dir,
-    add(segVec.inicio, offV), segVec.dir
-  );
-
+  const cand = lineIntersect(add(segRef.inicio, offset), segRef.dir, add(segVec.inicio, offV), segVec.dir);
   return ingleteLimitado(add(basePt, offset), cand, g);
 }
 
-/** Genera los arrays de puntos necesarios para dibujar el polígono del muro */
 export function poligonoMuro(segs: Segmento[], cerrado: boolean) {
   const n = segs.length;
   const ext: Point[] = [];
   const int: Point[] = [];
-
   for (let i = 0; i < n; i++) {
     const ant = (i > 0 || cerrado) ? segs[i > 0 ? i - 1 : n - 1] : null;
     const sig = (i < n - 1 || cerrado) ? segs[(i + 1) % n] : null;
-
     const iE = puntoCara(segs[i], ant, 'ext', false);
     const fE = puntoCara(segs[i], sig, 'ext', true);
     const iI = puntoCara(segs[i], ant, 'int', false);
     const fI = puntoCara(segs[i], sig, 'int', true);
-
     if (i === 0) { ext.push(iE); int.push(iI); }
     ext.push(fE); int.push(fI);
   }
   return { ext, int };
 }
 
-/** Calcula el rectángulo delimitador (BBox) de todo el conjunto */
 export function bbox(segs: Segmento[], extra: Point[] = []): [number, number, number, number] {
   const pts: Point[] = [];
   segs.forEach(s => {
@@ -216,55 +192,85 @@ export function bbox(segs: Segmento[], extra: Point[] = []): [number, number, nu
     pts.push(add(s.fin, scale(s.v_ext, s.grosorPx)));
   });
   pts.push(...extra);
-
   if (!pts.length) return [0, 0, 200, 200];
   const xs = pts.map(p => p[0]);
   const ys = pts.map(p => p[1]);
   return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
 }
 
-/** Dada una coordenada, encuentra el punto más cercano sobre los ejes de los muros */
-export function snapAPared(cx: number, cy: number, segs: Segmento[]) {
-  let bestDist = Infinity;
-  let result = { segIdx: -1, seg: null as Segmento | null, pos: 0, dist: Infinity };
+export function isPointInPolygon(p: Point, poly: Point[]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    const intersect = ((yi > p[1]) !== (yj > p[1])) && (p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
 
-  segs.forEach((s, i) => {
-    const v = sub(s.fin, s.inicio);
-    const vLen = len(v);
-    if (vLen < 1e-6) return;
+export function isPointOnSegment(p: Point, s1: Point, s2: Point, tolerance = 0.5): boolean {
+  const d = dist(s1, s2);
+  if (d < 1e-6) return dist(p, s1) < tolerance;
+  const t = dot(sub(p, s1), sub(s2, s1)) / (d * d);
+  if (t < 0 || t > 1) return false;
+  const proj = add(s1, scale(sub(s2, s1), t));
+  return dist(p, proj) < tolerance;
+}
 
-    const vN = scale(v, 1 / vLen);
-    const w = sub([cx, cy], s.inicio);
-    let t = dot(w, vN);
-    t = Math.max(0, Math.min(vLen, t));
-
-    const proj = add(s.inicio, scale(vN, t));
-    const dist = Math.hypot(cx - proj[0], cy - proj[1]);
-
-    if (dist < bestDist) {
-      bestDist = dist;
-      result = { segIdx: i, seg: s, pos: t, dist };
+export function fragmentarSegmento(seg: Segmento, puntos: Point[], tolerance = 1.0): Segmento[] {
+  const lTotal = dist(seg.inicio, seg.fin);
+  const cuts: number[] = [0, lTotal];
+  puntos.forEach(p => {
+    if (isPointOnSegment(p, seg.inicio, seg.fin, tolerance)) {
+      const d = dist(p, seg.inicio);
+      if (d > tolerance && d < lTotal - tolerance) cuts.push(d);
     }
   });
+  cuts.sort((a, b) => a - b);
+  const result: Segmento[] = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    if (cuts[i+1] - cuts[i] < tolerance) continue;
+    const inicio = add(seg.inicio, scale(seg.dir, cuts[i]));
+    const fin = add(seg.inicio, scale(seg.dir, cuts[i+1]));
+    result.push({ ...seg, inicio, fin });
+  }
   return result;
 }
 
-/** Devuelve la coordenada XY centrada en el grosor del muro para una posición dada */
-export function posEnPared(seg: Segmento, pos: number): Point {
-  const v = norm(sub(seg.fin, seg.inicio));
-  return add(seg.inicio, scale(v, pos));
+export function transformPoint(p: Point, posX: number, posY: number, rotation: number, escala: number): Point {
+  const rotated = rot(p, rotation);
+  return [rotated[0] + mToPx(posX, escala), rotated[1] + mToPx(posY, escala)];
 }
 
-/** Calcula el ángulo de rotación de un símbolo para que su normal mire al interior */
-export function anguloSimboloPared(seg: Segmento): number {
-  const [nx, ny] = seg.v_int;
-  return Math.atan2(nx, -ny) * 180 / Math.PI;
+export function transformSegment(s: Segmento, posX: number, posY: number, rotation: number, escala: number): Segmento {
+  return {
+    ...s,
+    inicio: transformPoint(s.inicio, posX, posY, rotation, escala),
+    fin: transformPoint(s.fin, posX, posY, rotation, escala),
+    dir: rot(s.dir, rotation),
+    v_ext: rot(s.v_ext, rotation),
+    v_int: rot(s.v_int, rotation)
+  };
+}
+
+export function posEnPared(seg: Segmento, pos: number): Point {
+  return add(seg.inicio, scale(seg.dir, pos));
+}
+
+export function buildSegs(amb: Ambiente, meta: any) {
+  const tramos = (amb.tramos || []).map((t: any) => {
+    const s = construirEjes(t.paredes, meta.escala, t.sentido || 1);
+    calcularVectores(s);
+    return { segs: s, cerrado: esCerrado(s) };
+  });
+  const allSegs = tramos.flatMap((t: any) => t.segs);
+  return { tramos, allSegs };
 }
 
 /**
  * PASO 1: Lógica Matemática para el acople de ambientes.
- * Calcula la transformación (posición y rotación) necesaria para que el Ambiente B
- * se alinee perfectamente con el Ambiente A a través de un portal (Abertura).
+ * Calcula la transformación necesaria para alinear el Ambiente B con el Ambiente A.
  */
 export function calcularTransformacionEnlace(
   ambA: Ambiente, abA: Abertura, 
@@ -272,74 +278,50 @@ export function calcularTransformacionEnlace(
   escala: number
 ): { posX: number, posY: number, rotation: number } {
   
-  // Helper para construir ejes locales sin depender del renderer
-  const buildLocal = (amb: Ambiente) => {
-    const pds = (amb.paredes || []).map(p => ({
-      ...p,
-      grosor: p.grosor ?? 0.15
-    }));
-    return construirEjes(pds, escala, amb.sentido === 'horario' ? 1 : -1);
-  };
-
-  const segsA = buildLocal(ambA);
-  const segsB = buildLocal(ambB);
+  const { allSegs: segsA } = buildSegs(ambA, { escala });
+  const { allSegs: segsB } = buildSegs(ambB, { escala });
 
   const sA = segsA[abA.pared];
   const sB = segsB[abB.pared];
 
   if (!sA || !sB) return { posX: 0, posY: 0, rotation: 0 };
 
-  // 1. Calcular el centro de la abertura en espacio local (píxeles)
-  // Usamos posEnPared con (posicion + ancho/2) para obtener el punto medio del portal
   const centroA_px = posEnPared(sA, mToPx(abA.posicion + abA.ancho / 2, escala));
   const centroB_px = posEnPared(sB, mToPx(abB.posicion + abB.ancho / 2, escala));
 
-  // 2. Calcular ángulos de los vectores directores de las paredes
-  // Math.atan2 devuelve el ángulo del vector en radianes
   const angA_local = Math.atan2(sA.dir[1], sA.dir[0]) * 180 / Math.PI;
   const angB_local = Math.atan2(sB.dir[1], sB.dir[0]) * 180 / Math.PI;
 
-  // 3. Determinar rotación necesaria para Ambiente B
-  // Para que las paredes se acoplen, la de B debe estar opuesta (180°) a la de A global
   const angA_global = angA_local + (ambA.rotation || 0);
   const rotationB = (angA_global + 180) - angB_local;
 
-  // 4. Calcular posición global del centro de la abertura de A
-  const centroA_global = add(rot(centroA_px, ambA.rotation || 0), [ambA.posX || 0, ambA.posY || 0]);
-
-  // 5. Calcular donde quedaría el centro de B tras aplicar la rotación calculada
+  const centroA_global = add(rot(centroA_px, ambA.rotation || 0), [mToPx(ambA.posX || 0, escala), mToPx(ambA.posY || 0, escala)]);
   const centroB_rotado = rot(centroB_px, rotationB);
 
-  // 6. El origen de B (posX, posY) se despeja para que centroB coincida con centroA
-  // GlobalA = PosB + RotadaB  =>  PosB = GlobalA - RotadaB
-  const posB = sub(centroA_global, centroB_rotado);
+  const posB_px = sub(centroA_global, centroB_rotado);
 
   return {
-    posX: posB[0],
-    posY: posB[1],
+    posX: pxToM(posB_px[0], escala),
+    posY: pxToM(posB_px[1], escala),
     rotation: rotationB
   };
 }
 
 /**
  * PASO 3: Corrección del Renderizado del Plano Maestro.
- * Genera el conjunto de segmentos global evitando la duplicidad de paredes enlazadas.
+ * Genera la malla global utilizando la REGLA ESTRICTA de portales para evitar paredes duplicadas.
  */
-export function buildMasterMesh(ambientes: Ambiente[], escala: number, grosorParedDefault: number) {
-  const pool: Segmento[] = [];
+export function buildMasterMesh(project: Project): MasterSegment[] {
+  const escala = project.meta.escala;
+  const pool: MasterSegment[] = [];
 
-  ambientes.forEach(amb => {
-    // Generar geometría base del ambiente
-    const paredes = (amb.paredes || []).map(p => ({
-      ...p,
-      grosor: p.grosor ?? grosorParedDefault
-    }));
-    const segs = construirEjes(paredes, escala, amb.sentido === 'horario' ? 1 : -1);
-    calcularVectores(segs);
+  project.ambientes.forEach(amb => {
+    if (amb.posX === undefined || amb.posY === undefined) return;
 
-    segs.forEach((seg, indexPared) => {
-      // REGLA ESTRICTA: Si la pared tiene una abertura enlazada y NO es el ambiente principal,
-      // se omite para evitar el error visual de la "doble pared".
+    const { allSegs } = buildSegs(amb, project.meta);
+
+    allSegs.forEach((seg, indexPared) => {
+      // REGLA ESTRICTA: Si la pared tiene un enlace y es secundaria, se omite.
       const esParedDuplicada = amb.aberturas?.some(ab => 
         ab.pared === indexPared && 
         ab.ambienteVecinoId !== undefined && 
@@ -348,22 +330,20 @@ export function buildMasterMesh(ambientes: Ambiente[], escala: number, grosorPar
 
       if (esParedDuplicada) return;
 
-      // Transformar segmento local a coordenadas globales del Plano Maestro
-      const r = amb.rotation || 0;
-      const off: Point = [amb.posX || 0, amb.posY || 0];
+      const gs = transformSegment(seg, amb.posX!, amb.posY!, amb.rotation || 0, escala);
       
-      const globalSeg: Segmento = {
-        ...seg,
-        inicio: add(rot(seg.inicio, r), off),
-        fin: add(rot(seg.fin, r), off),
-        dir: rot(seg.dir, r),
-        v_ext: rot(seg.v_ext, r),
-        v_int: rot(seg.v_int, r)
-      };
-
-      pool.push(globalSeg);
+      pool.push({
+        inicio: gs.inicio,
+        fin: gs.fin,
+        dir: gs.dir,
+        v_ext: gs.v_ext,
+        grosorPx: gs.grosorPx,
+        esEnvolvente: false, // Se puede recalcular después si es necesario
+        roomIds: [amb.id]
+      });
     });
   });
 
+  // Nota: Se eliminó la lógica de fusión por distancia (dist < 2.0) según requerimiento.
   return pool;
-}
+}

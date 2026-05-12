@@ -12,18 +12,24 @@ interface CardProps {
   badge?: string;
   onRemove?: () => void;
   onEdit?: () => void;
+  onSelect?: () => void;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  customHeader?: React.ReactNode;
 }
 
-export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, onEdit, children, defaultOpen=true }: CardProps) {
+export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, onEdit, onSelect, children, defaultOpen=true, customHeader }: CardProps) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
     <div className="card">
-      <div className={`card-hdr ${open?'open':''}`} onClick={()=>setOpen(o=>!o)}>
+      <div className={`card-hdr ${open?'open':''}`} onClick={()=>{
+        if (onSelect) onSelect();
+        setOpen(o=>!o);
+      }}>
         <span className="card-idx" style={{color:idxColor}}>{idx}</span>
         <span className="card-title-main">{title}</span>
         {badge && <span className="card-badge">{badge}</span>}
+        {customHeader && <div style={{ marginRight: 8 }}>{customHeader}</div>}
         <div style={{ display: 'flex', gap: '4px' }}>
           {onEdit && (
             <button className="btn btn-ghost btn-xs btn-icon"

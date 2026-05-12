@@ -112,24 +112,37 @@ main.main-content {
   flex-shrink: 0;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
 }
 .panel-tab {
-  flex: 1;
-  padding: 12px 4px;
+  flex: 1 1 calc(25% - 4px); /* Hasta 4 por fila aprox */
+  min-width: 65px;
+  padding: 8px 4px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text3);
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
   cursor: pointer;
   transition: all .2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
-.panel-tab:hover  { color: var(--text); background: var(--bg2); }
-.panel-tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+.panel-tab:hover  { color: var(--text); background: var(--bg3); }
+.panel-tab.active { 
+  color: var(--acc); 
+  background: var(--accent-bg); 
+  border-color: var(--acc); 
+}
 
 /* Feed de tarjetas */
 .panel-feed {
@@ -218,11 +231,12 @@ main.main-content {
 }
 .zoom-controls {
   position: absolute;
-  bottom: 10px;
-  left: 12px;
+  bottom: 15px;
+  right: 15px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  z-index: 100; /* Asegurar que esté sobre el plano */
 }
 .zoom-btn {
   width: 28px;

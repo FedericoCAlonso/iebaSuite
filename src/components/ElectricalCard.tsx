@@ -2,7 +2,7 @@
 // MODULE: components/ElectricalCard.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { ElementoElectrico } from '../types';
+import type { ElementoElectrico, Circuito } from '../types';
 import type { DefinicionSimbolo } from '../lib/symbols';
 
 import { NumInput } from './NumImput';
@@ -14,9 +14,16 @@ interface ElectricalCardProps {
   index: number;
   wallCount: number;
   symbolsLib: DefinicionSimbolo[];
+  circuitos: Circuito[];
   onChange: (el: ElementoElectrico) => void;
   onRemove: () => void;
   onEdit: () => void;
+  columnas?: import('../types').ElementoEstructural[];
+  activeAmbienteId?: string;
+  pendingConnection?: { ambienteId: string, elementoId: string } | null;
+  onStartConnecting?: (elId: string) => void;
+  onFinishConnecting?: (ambId: string, elId: string) => void;
+  onCancelConnecting?: () => void;
 }
 
 export function ElectricalCard({ 
@@ -24,13 +31,30 @@ export function ElectricalCard({
   index, 
   wallCount, 
   symbolsLib,
+  circuitos,
   onChange, 
   onRemove, 
-  onEdit 
+  onEdit,
+  columnas,
+  activeAmbienteId,
+  pendingConnection,
+  onStartConnecting,
+  onFinishConnecting,
+  onCancelConnecting
 }: ElectricalCardProps) {
   
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   const label = symDef ? symDef.label : el.tipo;
+
+  const circuito = circuitos.find(c => c.id === el.circuitoId);
+
+  // Dot de color del circuito asignado
+  const circuitoDot = circuito ? (
+    <span style={{
+      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+      background: circuito.color || '#999', marginRight: 4, verticalAlign: 'middle'
+    }} />
+  ) : null;
 
   return (
     <Card
@@ -40,6 +64,23 @@ export function ElectricalCard({
       badge={el.referencia || '—'}
       onRemove={onRemove}
       onEdit={onEdit}
+      customHeader={
+        pendingConnection ? (
+          pendingConnection.elementoId === el.id && pendingConnection.ambienteId === activeAmbienteId ? (
+            <button className="btn btn-warning btn-sm" onClick={onCancelConnecting}>
+              🚫 Cancelar Conexión
+            </button>
+          ) : (
+            <button className="btn btn-acc btn-sm" onClick={() => onFinishConnecting?.(activeAmbienteId!, el.id)}>
+              🔗 Finalizar Aquí
+            </button>
+          )
+        ) : (
+          <button className="btn btn-ghost btn-sm" onClick={() => onStartConnecting?.(el.id)}>
+            🔗 Conectar
+          </button>
+        )
+      }
     >
       <div className="field-row">
         <F label="Ref. Plano">
@@ -49,6 +90,28 @@ export function ElectricalCard({
             onChange={(e) => onChange({ ...el, referencia: e.target.value })} 
             placeholder="L1"
           />
+        </F>
+        <F label="Altura montaje (m)">
+          <NumInput 
+            value={el.altura ?? 0} 
+            onChange={(v) => onChange({ ...el, altura: v })}
+          />
+        </F>
+      </div>
+
+      <div className="field-row">
+        <F label="Circuito">
+          <select
+            value={el.circuitoId || ''}
+            onChange={e => onChange({ ...el, circuitoId: e.target.value || undefined })}
+          >
+            <option value="">— Sin circuito —</option>
+            {circuitos.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.nombre} ({c.tipo})
+              </option>
+            ))}
+          </select>
         </F>
         <F label="Mostrar dato en SVG">
           <select 
@@ -60,6 +123,52 @@ export function ElectricalCard({
           </select>
         </F>
       </div>
+
+      {/* Datos técnicos libres */}
+      {el.datos.length > 0 && (
+        <div style={{ marginTop: 4, marginBottom: 4 }}>
+          {el.datos.map((d, di) => (
+            <div key={di} className="field-row" style={{ alignItems: 'flex-end', marginBottom: 4 }}>
+              <div style={{ flex: 1 }}>
+                <F label="Clave">
+                  <input
+                    type="text"
+                    value={d.clave}
+                    onChange={e => {
+                      const datos = el.datos.map((x, j) => j === di ? { ...x, clave: e.target.value } : x);
+                      onChange({ ...el, datos });
+                    }}
+                    placeholder="ej: tensión"
+                  />
+                </F>
+              </div>
+              <div style={{ flex: 1 }}>
+                <F label="Valor">
+                  <input
+                    type="text"
+                    value={d.valor}
+                    onChange={e => {
+                      const datos = el.datos.map((x, j) => j === di ? { ...x, valor: e.target.value } : x);
+                      onChange({ ...el, datos });
+                    }}
+                    placeholder="ej: 220V"
+                  />
+                </F>
+              </div>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => onChange({ ...el, datos: el.datos.filter((_, j) => j !== di) })}
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        className="btn btn-ghost btn-sm"
+        onClick={() => onChange({ ...el, datos: [...el.datos, { clave: '', valor: '' }] })}
+      >
+        + Dato técnico
+      </button>
 
       {el.paredIdx != null ? (
         <div className="field-row">
@@ -93,6 +202,28 @@ export function ElectricalCard({
               onChange={(v) => onChange({ ...el, y: v })}
             />
           </F>
+          {columnas && columnas.length > 0 && (
+            <F label="Anclado a Columna">
+              <select
+                value={el.columnaId || ''}
+                onChange={e => onChange({ ...el, columnaId: e.target.value || undefined })}
+              >
+                <option value="">— Ninguna —</option>
+                {columnas.map(c => (
+                  <option key={c.id} value={c.id}>
+                    {c.descripcion || c.tipo}
+                  </option>
+                ))}
+              </select>
+            </F>
+          )}
+        </div>
+      )}
+
+      {circuito && (
+        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, display: 'flex', alignItems: 'center' }}>
+          {circuitoDot}
+          {circuito.nombre} — {circuito.tipo} — {circuito.seccion}mm² — {circuito.proteccion}
         </div>
       )}
     </Card>

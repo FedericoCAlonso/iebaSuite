@@ -12,21 +12,17 @@ import { useZoomPan } from '../hooks/useZoomPan';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 
-import type { Ambiente } from '../types';
-import type { EditorTab } from '../App';
+import type { Ambiente, Project, Meta, EditorTab } from '../types';
+import type { DefinicionSimbolo } from '../lib/symbols';
 
 interface PreviewProps {
+  project: Project;
   ambiente: Ambiente;
-  meta: { nombre: string; escala: number; grosor_pared_default: number };
-  symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
+  meta: Meta;
   activeTab: EditorTab;
-  onCanvasClick: (
-    rawX: number,
-    rawY: number,
-    snapSegIdx: number | undefined,
-    snapPos: number | undefined,
-    clickedElecId: string | undefined
-  ) => void;
+  symbolsLib: DefinicionSimbolo[];
+  onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string) => void;
+  creationFlow?: { active: boolean; step: string; anchor: any; offsetX: number; offsetY: number };
 }
 
 /** Cursor del área del plano según el tab activo */
@@ -35,6 +31,10 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
   paredes:    'default',
   aberturas:  'crosshair',
   electrico:  'crosshair',
+  circuitos:  'default',
+  conexiones: 'default',
+  maestro:    'default',
+  cobertura:  'default',
 };
 
 /** Texto de ayuda en el toolbar según el tab activo */
@@ -43,9 +43,13 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   paredes:   '— Solo lectura —',
   aberturas: 'Tocá una pared para agregar abertura',
   electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
+  circuitos: '— Solo lectura —',
+  conexiones:'— Solo lectura —',
+  maestro:   '— Plano Maestro —',
+  cobertura: '— Solo lectura —',
 };
 
-export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }: PreviewProps) {
+export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanvasClick, creationFlow }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
 
@@ -53,9 +57,28 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
    * Genera el string SVG. Memorizado para evitar re-renderizados pesados.
    */
   const svgContent = useMemo(() => {
-    if (!ambiente || !meta) return null;
-    return RENDERER.render(ambiente, meta, symbolsLib, false);
-  }, [ambiente, meta, symbolsLib]);
+    try {
+      if (!ambiente || !meta) return '';
+      if (activeTab === 'maestro') {
+        return RENDERER.renderMaster(project, symbolsLib);
+      }
+      return RENDERER.render(ambiente, meta, symbolsLib, false, project);
+    } catch (err) {
+      console.error("Error en el renderizado SVG:", err);
+      return '__ERROR__';
+    }
+  }, [ambiente, meta, symbolsLib, activeTab, project]);
+
+  if (svgContent === '__ERROR__') {
+    return (
+      <div className="preview-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', background: '#fff' }}>
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <strong>⚠️ Error en el motor de dibujo</strong><br/>
+          <small>Los datos de geometría contienen valores inválidos.</small>
+        </div>
+      </div>
+    );
+  }
 
   /**
    * Maneja el clic en el área del plano.
@@ -89,7 +112,7 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
     const clickedElecId = elecEl?.getAttribute('data-elec-id') ?? undefined;
 
     // Snap a la pared más cercana (útil tanto para eléctrico como aberturas)
-    const segs = RENDERER.buildSegs(ambiente, meta);
+    const { allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
     const snap = GEO.snapAPared(px, py, segs);
 
     onCanvasClick(
@@ -104,10 +127,11 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
   /** Información técnica de la geometría actual */
   const status = useMemo(() => {
     if (!ambiente) return null;
-    const segs = RENDERER.buildSegs(ambiente, meta);
+    const { tramos, allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
+    const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
     return { 
       paredes: segs.length, 
-      cerrado: GEO.esCerrado(segs) 
+      cerrado: allClosed 
     };
   }, [ambiente, meta]);
 
@@ -159,8 +183,27 @@ export function Preview({ ambiente, meta, symbolsLib, activeTab, onCanvasClick }
           <div className="empty-overlay">
             <div className="empty-msg">
               Seleccioná un proyecto<br/>
-              para visualizar el croquis
+              para visualizar la hoja
             </div>
+          </div>
+        )}
+
+        {/* CORRECCIÓN 1: Marcador Paso B */}
+        {creationFlow?.active && creationFlow.step === 'B' && creationFlow.anchor && (
+          <div 
+            style={{
+              position: 'absolute',
+              left: pan.x + (RENDERER.getBboxOffset(ambiente, meta).dx + GEO.mToPx(creationFlow.anchor.x + creationFlow.offsetX, meta.escala)) * zoom,
+              top: pan.y + (RENDERER.getBboxOffset(ambiente, meta).dy + GEO.mToPx(creationFlow.anchor.y + creationFlow.offsetY, meta.escala)) * zoom,
+              pointerEvents: 'none',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20">
+              <circle cx="10" cy="10" r="4" fill="none" stroke="var(--acc)" strokeWidth="1" strokeDasharray="2,2" />
+              <line x1="0" y1="10" x2="20" y2="10" stroke="var(--acc)" strokeWidth="1" />
+              <line x1="10" y1="0" x2="10" y2="20" stroke="var(--acc)" strokeWidth="1" />
+            </svg>
           </div>
         )}
 

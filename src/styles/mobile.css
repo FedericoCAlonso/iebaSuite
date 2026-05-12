@@ -5,6 +5,8 @@
 
 /* El botón flotante: oculto en desktop por defecto */
 .mobile-view-toggle { display: none; }
+.mobile-only { display: none; }
+.mobile-back-icon { display: none; }
 
 @media (max-width: 768px) {
 
@@ -23,7 +25,41 @@
   }
 
   /* Textos pequeños que resultan ilegibles */
-  .topbar-logo { font-size: 16px; }
+  /* Ajustes de Topbar para Mobile */
+  .topbar {
+    padding: 0 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .topbar-logo { 
+    font-size: 16px; 
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .topbar-crumb { display: none; } /* Ocultar nombre proyecto para ganar espacio */
+  .topbar-actions { gap: 4px; }
+  
+  .mobile-back-icon { display: inline; font-weight: bold; font-size: 18px; color: var(--acc); }
+  .mobile-only { display: inline !important; }
+  
+  /* Compactar botones en la barra superior */
+  .topbar-actions .btn-text { display: none; }
+  .topbar-actions .btn {
+    padding: 8px 10px;
+    font-size: 16px;
+    min-width: 40px;
+  }
+  .header-actions {
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .topbar-crumb, .topbar-status, .statusbar { font-size: 12px; }
   .panel-tab { font-size: 13px; padding: 12px 4px; }
   .card-title-main { font-size: 16px; }
@@ -105,6 +141,20 @@
   }
   .mobile-view-toggle:active {
     transform: scale(0.93);
+  }
+
+  /* Ajustes para diálogos en mobile */
+  .dialog {
+    padding: 16px;
+    gap: 12px;
+  }
+  .dialog-actions {
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  .dialog-actions .btn {
+    width: 100%;
+    margin: 0;
   }
 }
 

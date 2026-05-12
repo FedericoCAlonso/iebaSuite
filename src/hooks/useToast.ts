@@ -7,6 +7,7 @@ export function useToast() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const show = useCallback((msg: string) => {
+    if (!msg) return; // Evitar mensajes vacíos
     // 1. Si ya había un timer corriendo, lo matamos
     if (timerRef.current) {
       clearTimeout(timerRef.current);
