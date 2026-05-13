@@ -11,6 +11,8 @@ interface ProjectListProps {
   onSelect: (id: string) => void;
   /** Callback para eliminar un proyecto */
   onDelete: (id: string) => void;
+  /** Callback para configurar un proyecto */
+  onConfig: (id: string) => void;
 }
 
 /**
@@ -20,7 +22,8 @@ export const ProjectList: React.FC<ProjectListProps> = ({
   projects, 
   activeId, 
   onSelect, 
-  onDelete 
+  onDelete,
+  onConfig
 }) => {
   if (projects.length === 0) {
     return (
@@ -42,6 +45,7 @@ export const ProjectList: React.FC<ProjectListProps> = ({
           isActive={p.id === activeId} 
           onSelect={onSelect} 
           onDelete={onDelete} 
+          onConfig={onConfig}
         />
       ))}
     </div>

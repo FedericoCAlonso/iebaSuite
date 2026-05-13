@@ -10,6 +10,8 @@ interface ProjectItemProps {
   onSelect: (id: string) => void;
   /** Callback para eliminar el proyecto */
   onDelete: (id: string) => void;
+  /** Callback para configurar el proyecto */
+  onConfig: (id: string) => void;
 }
 
 /**
@@ -19,7 +21,8 @@ export const ProjectItem: React.FC<ProjectItemProps> = React.memo(({
   project, 
   isActive, 
   onSelect, 
-  onDelete 
+  onDelete,
+  onConfig
 }) => {
   return (
     <div 
@@ -38,18 +41,30 @@ export const ProjectItem: React.FC<ProjectItemProps> = React.memo(({
         </div>
       </div>
 
-      <button 
-        className="btn btn-danger btn-sm" 
-        title="Eliminar proyecto"
-        onClick={(e) => {
-          e.stopPropagation(); // Evitamos que se dispare el onSelect al borrar
-          if (window.confirm(`¿Eliminar "${project.meta.nombre}"?`)) {
-            onDelete(project.id);
-          }
-        }}
-      >
-        ✕
-      </button>
+      <div className="project-item__actions" style={{ display: 'flex', gap: '0.5rem' }}>
+        <button 
+          className="btn btn-ghost btn-sm" 
+          title="Configurar proyecto"
+          onClick={(e) => {
+            e.stopPropagation();
+            onConfig(project.id);
+          }}
+        >
+          ⚙️
+        </button>
+        <button 
+          className="btn btn-danger btn-sm" 
+          title="Eliminar proyecto"
+          onClick={(e) => {
+            e.stopPropagation(); // Evitamos que se dispare el onSelect al borrar
+            if (window.confirm(`¿Eliminar "${project.meta.nombre}"?`)) {
+              onDelete(project.id);
+            }
+          }}
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 });

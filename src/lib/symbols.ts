@@ -5,6 +5,11 @@
 
 import type { SymbolId } from '../types/index';
 
+export interface SymbolCategory {
+  id: string;
+  name: string;
+}
+
 export interface DefinicionSimbolo {
   id: SymbolId;
   label: string;
@@ -18,6 +23,15 @@ export interface DefinicionSimbolo {
   escalaBase: number;
   /** Punto de anclaje (por defecto 0,0) */
   anclaje: { x: number; y: number };
+  /** Uso del símbolo: 'planta' (croquis), 'unifilar' (diagrama), etc. */
+  uso?: 'planta' | 'unifilar';
+  /** Categoría para filtrado */
+  categoria?: string;
+}
+
+export interface SymbolsFile {
+  categories: SymbolCategory[];
+  symbols: DefinicionSimbolo[];
 }
 
 // ─── GESTIÓN EN STORAGE ───
@@ -25,18 +39,30 @@ export interface DefinicionSimbolo {
 const SYMBOLS_KEY = 'ieba_custom_symbols_v1';
 
 /**
- * Carga los símbolos base estáticos desde el archivo externo JSON.
+ * Carga el archivo completo de símbolos (categorías y definiciones).
  */
-export const fetchDefaultSymbols = async (): Promise<DefinicionSimbolo[]> => {
+export const fetchSymbolsFile = async (): Promise<SymbolsFile> => {
   try {
     const basePath = import.meta.env.BASE_URL || '/';
     const res = await fetch(`${basePath}symbols.json`);
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    return await res.json();
+    const data = await res.json();
+    return {
+      categories: data.categories || [],
+      symbols: data.symbols || []
+    };
   } catch (err) {
     console.error("Error al cargar symbols.json estático:", err);
-    return [];
+    return { categories: [], symbols: [] };
   }
+};
+
+/**
+ * Carga solo los símbolos base estáticos (para compatibilidad).
+ */
+export const fetchDefaultSymbols = async (): Promise<DefinicionSimbolo[]> => {
+  const file = await fetchSymbolsFile();
+  return file.symbols;
 };
 
 /**

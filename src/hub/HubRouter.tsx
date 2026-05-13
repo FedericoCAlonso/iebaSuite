@@ -6,6 +6,7 @@ import { DummyTool } from './DummyTool'
 import { LoginScreen } from './LoginScreen'
 import { HubProjects } from './HubProjects'
 import { RelevadorTool } from '../tools/RelevadorTool'
+import { UnifilarTool } from '../tools/UnifilarTool'
 import { ProjectProvider } from './ProjectContext'
 
 function HubRoutes() {
@@ -35,6 +36,7 @@ function HubRoutes() {
         {/* Rutas anidadas bajo el Contexto del Proyecto */}
         <Route path="proyecto/:projectId" element={<ProjectProvider><Outlet /></ProjectProvider>}>
           <Route path="relevador" element={<RelevadorTool />} />
+          <Route path="unifilar" element={<UnifilarTool />} />
           <Route path="srt" element={<DummyTool nombre="SRT 900/15" icono="🔌" descripcion="Relevamiento boca a boca según SRT 900/15" />} />
           <Route path="tierra" element={<DummyTool nombre="Puestas a tierra" icono="⚡" descripcion="Medición de resistencia de puesta a tierra" />} />
         </Route>

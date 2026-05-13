@@ -8,52 +8,22 @@ import { type Project, type Ambiente } from '../../../types/index';
 interface ProjectTabProps {
   project: Project;
   activeAmbiente: Ambiente;
-  onUpdateMeta: (meta: Project['meta']) => void;
   onUpdateAmbiente: (fn: (a: Ambiente) => Ambiente) => void;
   onDeleteAmbiente: (id: string) => void;
 }
 
 /**
- * Pestaña de configuración general del proyecto y la hoja activa.
+ * Pestaña de configuración de la hoja activa.
+ * La configuración general del proyecto se ha movido al Hub de Proyectos.
  */
 export const ProjectTab: React.FC<ProjectTabProps> = ({ 
   project, 
   activeAmbiente, 
-  onUpdateMeta, 
   onUpdateAmbiente, 
   onDeleteAmbiente 
 }) => {
   return (
     <>
-      <Card idx="📋" title="Datos del proyecto" defaultOpen={true}>
-        <F label="Nombre del proyecto">
-          <input
-            value={project.meta.nombre}
-            onChange={e => onUpdateMeta({ ...project.meta, nombre: e.target.value })}
-          />
-        </F>
-        <div className="field-row">
-          <F label="Escala 1:">
-            <NumInput
-              value={project.meta.escala}
-              onChange={v => onUpdateMeta({ ...project.meta, escala: Math.round(v) || 50 })}
-            />
-          </F>
-          <F label="Grosor pared (m)">
-            <NumInput
-              value={project.meta.grosor_pared_default}
-              onChange={v => onUpdateMeta({ ...project.meta, grosor_pared_default: v })}
-            />
-          </F>
-          <F label="Altura techo def. (m)">
-            <NumInput
-              value={project.meta.alturaDefault ?? 2.6}
-              onChange={v => onUpdateMeta({ ...project.meta, alturaDefault: v })}
-            />
-          </F>
-        </div>
-      </Card>
-
       <Card idx="🏠" title={`Hoja de relevamiento: ${activeAmbiente.nombre}`} defaultOpen={true}>
         <F label="Nombre de la hoja">
           <input

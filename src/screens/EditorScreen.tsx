@@ -1,5 +1,4 @@
 
-
 // Layout y Composición
 import { EditorLayout } from '../components/editor/EditorLayout';
 import { CreationFlowOverlay } from '../components/editor/CreationFlowOverlay';
@@ -53,7 +52,6 @@ export function EditorScreen(props: EditorScreenProps) {
     activeTab, 
     symbolsLib, 
     onTabChange, 
-    onUpdateMeta, 
     onUpdateAmbiente, 
     onUpdateProject, 
     onAddAmbiente, 
@@ -153,7 +151,6 @@ export function EditorScreen(props: EditorScreenProps) {
         <ProjectTab 
           project={project}
           activeAmbiente={activeAmbiente}
-          onUpdateMeta={onUpdateMeta}
           onUpdateAmbiente={onUpdateAmbiente}
           onDeleteAmbiente={onDeleteAmbiente}
         />

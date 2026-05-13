@@ -2,20 +2,30 @@ import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import './HubShell.css'
 
-const tools = [
+const mainTools = [
   { path: '/',            label: 'Inicio',          icon: '⊞' },
   { path: '/proyectos',   label: 'Proyectos',       icon: '📐' },
-  { path: '/srt',         label: 'SRT 900/15',       icon: '🔌' },
-  { path: '/tierra',      label: 'Puestas a tierra', icon: '⚡' },
-  { path: '/diferencial', label: 'Diferenciales',    icon: '⏱' },
+]
+
+const projectTools = (id: string) => [
+  { path: `/proyecto/${id}/resumen`,    label: 'Resumen',    icon: '📊' },
+  { path: `/proyecto/${id}/relevador`,  label: 'Relevador',  icon: '🗺️' },
+  { path: `/proyecto/${id}/unifilar`,   label: 'Unifilar',   icon: '🔌' },
+  { path: `/proyecto/${id}/srt`,        label: 'SRT 900',    icon: '📋' },
 ]
 
 export function HubShell() {
   const location = useLocation()
   const { user, logout } = useAuth()
 
-  // En el relevador, ocultar la nav para no interferir con su UI
-  const hideNav = location.pathname.includes('/relevador')
+  // Detectar si estamos en un proyecto
+  const projectMatch = location.pathname.match(/\/proyecto\/([^/]+)/)
+  const projectId = projectMatch ? projectMatch[1] : null
+  
+  const currentTools = projectId ? projectTools(projectId) : mainTools
+
+  // En herramientas de pantalla completa, ocultar la nav para no interferir con su UI
+  const hideNav = location.pathname.includes('/relevador') || location.pathname.includes('/unifilar')
 
 
   return (
@@ -27,11 +37,11 @@ export function HubShell() {
             <span className="hub-nav__title">ieBA Suite</span>
           </div>
           <div className="hub-nav__tools">
-            {tools.map(t => (
+            {currentTools.map(t => (
               <NavLink
                 key={t.path}
                 to={t.path}
-                end={t.path === '/'}
+                end={t.path === '/' || t.path.endsWith('/resumen')}
                 className={({ isActive }) =>
                   'hub-nav__item' + (isActive ? ' hub-nav__item--active' : '')
                 }

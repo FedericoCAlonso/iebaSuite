@@ -5,7 +5,7 @@ import {
   createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
-import { loadSymbolsAsync, saveSymbols, fetchDefaultSymbols } from '../lib/symbols';
+import { loadSymbolsAsync, saveSymbols, fetchSymbolsFile, type SymbolCategory } from '../lib/symbols';
 import { loadLayoutAsync } from '../lib/layout';
 import { calcularTransformacionEnlace } from '../lib/geometry';
 import { saveProjectRemote, listProjectsRemote, deleteProjectRemote } from '../firebase/projectService';
@@ -29,10 +29,12 @@ export function useProjects() {
 
   // Librería de símbolos
   const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>([]);
+  const [categoriesLib, setCategoriesLib] = useState<SymbolCategory[]>([]);
 
   // Cargar símbolos y layout asíncronamente al iniciar
   useEffect(() => {
     loadSymbolsAsync().then(setSymbolsLib);
+    fetchSymbolsFile().then(file => setCategoriesLib(file.categories));
     loadLayoutAsync().then(layout => {
       (window as any).layoutConfig = layout;
     });
@@ -50,11 +52,14 @@ export function useProjects() {
     async function syncPull() {
       try {
         // Cargar proyectos y símbolos en paralelo
-        const [cloudProjects, customSymbols, defaultSymbols] = await Promise.all([
+        const [cloudProjects, customSymbols, symbolsFileData] = await Promise.all([
           listProjectsRemote(user!.uid),
           loadCustomSymbolsRemote(user!.uid),
-          fetchDefaultSymbols()
+          fetchSymbolsFile()
         ]);
+
+        const defaultSymbols = symbolsFileData.symbols;
+        setCategoriesLib(symbolsFileData.categories);
 
         // 1. Setear proyectos
         if (cloudProjects.length > 0) {
@@ -336,6 +341,7 @@ export function useProjects() {
     undoAmbiente,
     canUndo: ambienteHistory.length > 0,
     symbolsLib,
+    categoriesLib,
     setSymbolsLib: updateSymbols,
     addProject,
     enlazarAberturas

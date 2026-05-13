@@ -67,6 +67,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       canUndo: projectState.canUndo,
       enlazarAberturas: projectState.enlazarAberturas,
       setSymbolsLib: projectState.setSymbolsLib,
+      categoriesLib: projectState.categoriesLib,
       ui,
       actions,
       toast,
