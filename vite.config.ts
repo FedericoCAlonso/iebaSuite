@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/',
+  base: '/iebaSuite/',
   plugins: [
     react(),
     VitePWA({
@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'ieBA Suite',
         short_name: 'ieBA',
         description: 'Herramientas para instalaciones eléctricas. Croquizador, SRT y más.',
-        start_url: '/',
-        scope: '/',
+        start_url: './',
+        scope: './',
         display: 'standalone',
         orientation: 'any',
         background_color: '#ffffff',

@@ -41,7 +41,7 @@ function HubRoutes() {
 
 export function HubRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/iebaSuite">
       <AuthProvider>
         <HubRoutes />
       </AuthProvider>
