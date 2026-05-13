@@ -1,10 +1,12 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthContext'
 import { HubShell } from './HubShell'
 import { HubHome } from './HubHome'
 import { DummyTool } from './DummyTool'
 import { LoginScreen } from './LoginScreen'
-import { CroquizadorApp } from '../CroquizadorApp'
+import { HubProjects } from './HubProjects'
+import { RelevadorTool } from '../tools/RelevadorTool'
+import { ProjectProvider } from './ProjectContext'
 
 function HubRoutes() {
   const { user, loading } = useAuth()
@@ -28,14 +30,21 @@ function HubRoutes() {
     <Routes>
       <Route path="/" element={<HubShell />}>
         <Route index element={<HubHome />} />
-        <Route path="croquizador" element={<CroquizadorApp />} />
-        <Route path="croquizador/:projectId" element={<CroquizadorApp />} />
-        <Route path="srt" element={<DummyTool nombre="SRT 900/15" icono="🔌" descripcion="Relevamiento boca a boca según SRT 900/15" />} />
-        <Route path="tierra" element={<DummyTool nombre="Puestas a tierra" icono="⚡" descripcion="Medición de resistencia de puesta a tierra" />} />
+        <Route path="proyectos" element={<HubProjects />} />
+        
+        {/* Rutas anidadas bajo el Contexto del Proyecto */}
+        <Route path="proyecto/:projectId" element={<ProjectProvider><Outlet /></ProjectProvider>}>
+          <Route path="relevador" element={<RelevadorTool />} />
+          <Route path="srt" element={<DummyTool nombre="SRT 900/15" icono="🔌" descripcion="Relevamiento boca a boca según SRT 900/15" />} />
+          <Route path="tierra" element={<DummyTool nombre="Puestas a tierra" icono="⚡" descripcion="Medición de resistencia de puesta a tierra" />} />
+        </Route>
+        
         <Route path="diferencial" element={<DummyTool nombre="Diferenciales" icono="⏱" descripcion="Tiempos de respuesta de interruptores diferenciales" />} />
+        
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+
   )
 }
 

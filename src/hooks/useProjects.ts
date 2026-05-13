@@ -5,10 +5,11 @@ import {
   createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
-import { loadSymbolsAsync } from '../lib/symbols';
+import { loadSymbolsAsync, saveSymbols, fetchDefaultSymbols } from '../lib/symbols';
 import { loadLayoutAsync } from '../lib/layout';
 import { calcularTransformacionEnlace } from '../lib/geometry';
-import { saveProjectRemote, listProjectsRemote } from '../firebase/projectService';
+import { saveProjectRemote, listProjectsRemote, deleteProjectRemote } from '../firebase/projectService';
+import { saveCustomSymbolsRemote, loadCustomSymbolsRemote } from '../firebase/symbolService';
 import { useAuth } from '../hub/AuthContext';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import type { Project, Ambiente } from '../types/index';
@@ -39,27 +40,46 @@ export function useProjects() {
 
   // Sync: Pull from Cloud on Login
   useEffect(() => {
-    if (!user) return;
+    // Si no hay usuario, cargamos desde localStorage (modo offline/fallback)
+    if (!user) {
+      setProjects(loadProjects());
+      loadSymbolsAsync().then(setSymbolsLib);
+      return;
+    }
 
     async function syncPull() {
       try {
-        const cloudProjects = await listProjectsRemote(user!.uid);
-        if (cloudProjects.length === 0) return;
+        // Cargar proyectos y símbolos en paralelo
+        const [cloudProjects, customSymbols, defaultSymbols] = await Promise.all([
+          listProjectsRemote(user!.uid),
+          loadCustomSymbolsRemote(user!.uid),
+          fetchDefaultSymbols()
+        ]);
 
-        setProjects(prev => {
-          const merged = [...prev];
-          cloudProjects.forEach(cp => {
-            const idx = merged.findIndex(p => p.id === cp.id);
-            if (idx === -1) {
-              merged.push(cp);
-            } else if (cp.updatedAt > merged[idx].updatedAt) {
-              merged[idx] = cp;
-            }
+        // 1. Setear proyectos
+        if (cloudProjects.length > 0) {
+          setProjects(prev => {
+            const merged = [...prev];
+            cloudProjects.forEach(cp => {
+              const idx = merged.findIndex(p => p.id === cp.id);
+              if (idx === -1) {
+                merged.push(cp);
+              } else if (cp.updatedAt > (merged[idx].updatedAt || 0)) {
+                merged[idx] = cp;
+              }
+            });
+            return merged.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
           });
-          return merged.sort((a, b) => b.updatedAt - a.updatedAt);
-        });
+        }
+
+        // 2. Mezclar símbolos por defecto con los personalizados de la nube
+        const mergedSymbols = [...defaultSymbols, ...customSymbols];
+        setSymbolsLib(mergedSymbols);
+        // Guardar en localStorage como backup
+        saveSymbols(mergedSymbols);
+
       } catch (e) {
-        console.error("Error pulling projects from cloud:", e);
+        console.error("Error pulling data from cloud:", e);
       }
     }
     syncPull();
@@ -72,20 +92,22 @@ export function useProjects() {
     if (!user) return;
 
     projects.forEach(p => {
-      // Solo sincronizar si el usuario es el dueño
-      if (p.ownerId === user.uid) {
+      // Solo sincronizar si el usuario es el dueño o si no tiene dueño aún (y lo tomamos)
+      if (p.ownerId === user.uid || !p.ownerId) {
         // Debounce por proyecto
         if (syncTimeoutRef.current[p.id]) {
           window.clearTimeout(syncTimeoutRef.current[p.id]);
         }
         syncTimeoutRef.current[p.id] = window.setTimeout(async () => {
           try {
-            await saveProjectRemote(p);
+            // Aseguramos que el proyecto tenga el ownerId antes de subirlo si no lo tenía
+            const projectToSave = { ...p, ownerId: user.uid };
+            await saveProjectRemote(projectToSave);
             delete syncTimeoutRef.current[p.id];
           } catch (e) {
             console.error(`Error saving project ${p.id} to cloud:`, e);
           }
-        }, 2000); // 2 segundos de calma antes de subir
+        }, 2000); 
       }
     });
 
@@ -93,6 +115,7 @@ export function useProjects() {
       Object.values(syncTimeoutRef.current).forEach(t => window.clearTimeout(t));
     };
   }, [projects, user]);
+
 
   // Limpiar el historial cuando se cambia de ambiente activo
   useEffect(() => {
@@ -166,6 +189,8 @@ export function useProjects() {
     const p = createNewProject();
     if (user) {
       p.ownerId = user.uid;
+      // Guardado inmediato en la nube para creación
+      saveProjectRemote(p).catch(err => console.error("Error saving new project to cloud:", err));
     }
     setProjects(prev => [...prev, p]);
     setActiveProjectId(p.id);
@@ -175,11 +200,14 @@ export function useProjects() {
 
   const deleteProject = useCallback((id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
+    if (user) {
+      deleteProjectRemote(id).catch(err => console.error("Error deleting project from cloud:", err));
+    }
     if (activeProjectId === id) {
       setActiveProjectId(null);
       setActiveAmbienteId(null);
     }
-  }, [activeProjectId]);
+  }, [activeProjectId, user]);
 
   // --- Operaciones de Ambiente ---
 
@@ -281,6 +309,16 @@ export function useProjects() {
     });
   }, [updateProject]);
 
+  const updateSymbols = useCallback((newLibrary: DefinicionSimbolo[]) => {
+    setSymbolsLib(newLibrary);
+    saveSymbols(newLibrary);
+
+    if (user) {
+      const customOnly = newLibrary.filter(s => s.id.startsWith('sym-custom-'));
+      saveCustomSymbolsRemote(user.uid, customOnly).catch(console.error);
+    }
+  }, [user]);
+
   return {
     projects,
     activeProject,
@@ -298,7 +336,7 @@ export function useProjects() {
     undoAmbiente,
     canUndo: ambienteHistory.length > 0,
     symbolsLib,
-    setSymbolsLib,
+    setSymbolsLib: updateSymbols,
     addProject,
     enlazarAberturas
   };

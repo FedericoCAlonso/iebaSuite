@@ -3,12 +3,14 @@ import './HubHome.css'
 
 const tools = [
   {
-    path: '/croquizador',
-    label: 'Croquizador',
+    path: '/proyectos',
+    label: 'Relevador de Planta',
+
     icon: '📐',
     descripcion: 'Planos paramétricos de instalaciones eléctricas',
     disponible: true,
   },
+
   {
     path: '/srt',
     label: 'SRT 900/15',

@@ -4,7 +4,7 @@ import './HubShell.css'
 
 const tools = [
   { path: '/',            label: 'Inicio',          icon: '⊞' },
-  { path: '/croquizador', label: 'Croquizador',      icon: '📐' },
+  { path: '/proyectos',   label: 'Proyectos',       icon: '📐' },
   { path: '/srt',         label: 'SRT 900/15',       icon: '🔌' },
   { path: '/tierra',      label: 'Puestas a tierra', icon: '⚡' },
   { path: '/diferencial', label: 'Diferenciales',    icon: '⏱' },
@@ -14,8 +14,9 @@ export function HubShell() {
   const location = useLocation()
   const { user, logout } = useAuth()
 
-  // En el croquizador, ocultar la nav para no interferir con su UI
-  const hideNav = location.pathname.startsWith('/croquizador')
+  // En el relevador, ocultar la nav para no interferir con su UI
+  const hideNav = location.pathname.includes('/relevador')
+
 
   return (
     <div className="hub-shell">

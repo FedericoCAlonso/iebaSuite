@@ -19,8 +19,8 @@
 @import './dialogs.css';
 
 /* 5. Pantallas específicas */
-@import './projects.css';
 @import './ambientes.css';
+
 @import './carga-rapida.css';
 
 /* 6. Responsive (siempre al final para poder sobreescribir) */

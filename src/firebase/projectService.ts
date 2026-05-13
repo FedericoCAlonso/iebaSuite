@@ -2,7 +2,7 @@
 // El croquizador sigue usando src/lib/storage.ts (localStorage) por ahora
 import {
   collection, doc, setDoc, getDoc, getDocs,
-  query, where, orderBy
+  query, where, orderBy, deleteDoc
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Project } from '../types/index'
@@ -14,6 +14,7 @@ export async function saveProjectRemote(project: Project): Promise<void> {
   const ref = doc(db, COL, project.id)
   await setDoc(ref, { ...project, updatedAt: Date.now() })
 }
+
 
 export async function loadProjectRemote(id: string): Promise<Project | null> {
   if (!db) throw new Error('Firebase no configurado')
@@ -31,3 +32,11 @@ export async function listProjectsRemote(ownerId: string): Promise<Project[]> {
   const snap = await getDocs(q)
   return snap.docs.map(d => d.data() as Project)
 }
+
+export async function deleteProjectRemote(id: string): Promise<void> {
+  if (!db) throw new Error('Firebase no configurado')
+  const ref = doc(db, COL, id)
+  await deleteDoc(ref)
+}
+
+
