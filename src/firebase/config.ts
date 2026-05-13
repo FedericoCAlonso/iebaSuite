@@ -41,5 +41,10 @@ if (isConfigured) {
   auth = getAuth(app)
   analytics = getAnalytics(app)
 }
-
+// Agrega esto temporalmente en src/firebase/config.ts antes del export
+console.log("Firebase Config Check:", {
+  hasApiKey: !!firebaseConfig.apiKey,
+  keyLength: firebaseConfig.apiKey.length,
+  projectId: firebaseConfig.projectId
+});
 export { isConfigured }
