@@ -9,14 +9,20 @@ import type { Auth } from 'firebase/auth'
 import { getAnalytics } from 'firebase/analytics'
 import type { Analytics } from 'firebase/analytics'
 
+const sanitize = (val: string | undefined) => {
+  if (!val) return ''
+  // Elimina comillas dobles, simples y espacios en los extremos
+  return val.replace(/['"]+/g, '').trim()
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? '',
+  apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY),
+  authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+  projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+  storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+  appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID),
+  measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
 }
 
 // Solo inicializar si hay configuración real
