@@ -1,13 +1,10 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles/index.css';
-import { App } from './App';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { HubRouter } from './hub/HubRouter'
+import '../style.css'
 
-const rootElement = document.getElementById('root');
-if (!rootElement) throw new Error('Root element #root not found');
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <HubRouter />
+  </React.StrictMode>
+)

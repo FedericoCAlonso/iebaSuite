@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { SymbolDialogData, ScreenView, EditorTab } from '../types';
+import type { SymbolDialogData, ScreenView, EditorTab } from '../types/index';
 
 export function useUIState() {
   const [screen, setScreen] = useState<ScreenView>('projects');

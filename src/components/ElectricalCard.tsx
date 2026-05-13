@@ -2,7 +2,7 @@
 // MODULE: components/ElectricalCard.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { ElementoElectrico, Circuito } from '../types';
+import type { ElementoElectrico, Circuito } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
 
 import { NumInput } from './NumImput';

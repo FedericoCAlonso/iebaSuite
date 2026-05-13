@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Card } from './Card';
 import { F } from './Field';
 import { NumInput } from './NumImput';
-import type { Pared, Irregularidad } from '../types';
+import type { Pared, Irregularidad } from '../types/index';
 
 interface WallCardProps {
   pared: Pared;

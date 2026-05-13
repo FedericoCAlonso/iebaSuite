@@ -19,7 +19,7 @@ import type {
   Meta,
   ZonaCobertura,
   ElementoEstructural
-} from '../types';
+} from '../types/index';
 import type { DefinicionSimbolo } from './symbols';
 import type { LayoutConfig } from './layout';
 

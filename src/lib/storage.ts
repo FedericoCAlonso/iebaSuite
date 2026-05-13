@@ -24,7 +24,7 @@ import type {
   Tramo,
   ZonaCobertura,
   ElementoEstructural
-} from '../types';
+} from '../types/index';
 
 const KEY = 'ieba_croquis_v2';
 

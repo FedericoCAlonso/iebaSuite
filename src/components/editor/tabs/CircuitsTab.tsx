@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircuitoCard } from '../../CircuitoCard';
-import { type Circuito } from '../../../types';
+import { type Circuito } from '../../../types/index';
 
 interface CircuitsTabProps {
   circuitos: Circuito[];

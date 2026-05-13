@@ -1,7 +1,7 @@
 import React from 'react';
 import { RENDERER } from '../../../lib/renderer';
 import { OpeningCard } from '../../OpeningCard';
-import { type Project, type Ambiente, type Abertura } from '../../../types';
+import { type Project, type Ambiente, type Abertura } from '../../../types/index';
 
 interface OpeningTabProps {
   project: Project;

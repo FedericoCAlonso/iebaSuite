@@ -1,8 +1,3 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// MODULE: types.ts
-// Definiciones de tipos/estructuras de datos.
-// ═══════════════════════════════════════════════════════════════════════════
-
 export interface Meta {
   nombre: string
   escala: number
@@ -20,6 +15,8 @@ export interface Project {
   /** Lista de hojas maestras para composición de ambientes */
   hojasMaestras?: HojaMaestra[]
   updatedAt: number
+  ownerId?: string        // uid Firebase, opcional hasta que haya auth
+  sharedWith?: string[]   // para compartir proyectos en el futuro
 }
 
 /**
@@ -56,8 +53,6 @@ export interface Circuito {
   color?: string;              // Color para visualización en plano
   descripcion?: string;        // Descripción libre del circuito
 }
-
-
 
 // ─── TABLERO ───
 
@@ -265,10 +260,6 @@ export interface ElementoElectrico {
   lado?: 'interior' | 'exterior'; // Lado de la pared donde se monta (default 'interior')
 }
 
-// ─── TIPOS UI ───
-
-export type SymbolId = string;
-
 export interface TextoPlano {
   id: string;
   texto: string;
@@ -276,11 +267,3 @@ export interface TextoPlano {
   y: number;               // metros
   tamano: number;          // mm en papel
 }
-
-export type EditorTab = 'proyecto' | 'paredes' | 'aberturas' | 'electrico' | 'circuitos' | 'conexiones' | 'maestro' | 'cobertura';
-
-export type ScreenView = 'projects' | 'editor';
-
-export type SymbolDialogData = 
-  | { mode: 'create'; x: number; y: number; snapSegIdx?: number; snapPos?: number }
-  | { mode: 'edit'; existing: ElementoElectrico };

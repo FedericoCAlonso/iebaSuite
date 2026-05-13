@@ -8,7 +8,7 @@ import { RENDERER } from '../../../lib/renderer';
 import { 
   type Project, type Ambiente, type ElementoElectrico, 
   type Circuito, type SymbolDialogData 
-} from '../../../types';
+} from '../../../types/index';
 
 interface ElectricalTabProps {
   project: Project;

@@ -1,9 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// HOOK: useProjects.ts
-// Gestión integral del estado de proyectos, ambientes y persistencia.
-// ═══════════════════════════════════════════════════════════════════════════
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   loadProjects, 
   saveProjects, 
@@ -13,10 +8,14 @@ import {
 import { loadSymbolsAsync } from '../lib/symbols';
 import { loadLayoutAsync } from '../lib/layout';
 import { calcularTransformacionEnlace } from '../lib/geometry';
+import { saveProjectRemote, listProjectsRemote } from '../firebase/projectService';
+import { useAuth } from '../hub/AuthContext';
 import type { DefinicionSimbolo } from '../lib/symbols';
-import type { Project, Ambiente } from '../types';
+import type { Project, Ambiente } from '../types/index';
 
 export function useProjects() {
+  const { user } = useAuth();
+  
   // Estado principal: lista de proyectos cargada desde localStorage
   const [projects, setProjects] = useState<Project[]>(() => loadProjects());
   
@@ -38,6 +37,63 @@ export function useProjects() {
     });
   }, []);
 
+  // Sync: Pull from Cloud on Login
+  useEffect(() => {
+    if (!user) return;
+
+    async function syncPull() {
+      try {
+        const cloudProjects = await listProjectsRemote(user!.uid);
+        if (cloudProjects.length === 0) return;
+
+        setProjects(prev => {
+          const merged = [...prev];
+          cloudProjects.forEach(cp => {
+            const idx = merged.findIndex(p => p.id === cp.id);
+            if (idx === -1) {
+              merged.push(cp);
+            } else if (cp.updatedAt > merged[idx].updatedAt) {
+              merged[idx] = cp;
+            }
+          });
+          return merged.sort((a, b) => b.updatedAt - a.updatedAt);
+        });
+      } catch (e) {
+        console.error("Error pulling projects from cloud:", e);
+      }
+    }
+    syncPull();
+  }, [user]);
+
+  // Sync: Push to Cloud on change (Debounced)
+  const syncTimeoutRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!user) return;
+
+    projects.forEach(p => {
+      // Solo sincronizar si el usuario es el dueño
+      if (p.ownerId === user.uid) {
+        // Debounce por proyecto
+        if (syncTimeoutRef.current[p.id]) {
+          window.clearTimeout(syncTimeoutRef.current[p.id]);
+        }
+        syncTimeoutRef.current[p.id] = window.setTimeout(async () => {
+          try {
+            await saveProjectRemote(p);
+            delete syncTimeoutRef.current[p.id];
+          } catch (e) {
+            console.error(`Error saving project ${p.id} to cloud:`, e);
+          }
+        }, 2000); // 2 segundos de calma antes de subir
+      }
+    });
+
+    return () => {
+      Object.values(syncTimeoutRef.current).forEach(t => window.clearTimeout(t));
+    };
+  }, [projects, user]);
+
   // Limpiar el historial cuando se cambia de ambiente activo
   useEffect(() => {
     setAmbienteHistory([]);
@@ -46,14 +102,9 @@ export function useProjects() {
   // Efecto de persistencia y Migración
   useEffect(() => { 
     // MIGRACIÓN: De Pixels a Metros para posiciones de elementos y textos
-    // Si detectamos que los elementos están en el sistema viejo (px), los convertimos.
     const migratedProjects = projects.map(p => {
       const newAmbientes = p.ambientes.map(amb => {
-        
-        // Si hay elementos con paredPos > 50 o x > 50, es casi seguro que son píxeles
-        // (ya que un ambiente de > 50 metros es raro en este contexto de croquis)
         const needsMigration = amb.elementos.some(el => (el.paredPos || 0) > 40 || Math.abs(el.x) > 100);
-        
         if (needsMigration) {
           const esc = p.meta.escala;
           const elementos = amb.elementos.map(el => ({
@@ -80,51 +131,48 @@ export function useProjects() {
 
     if (migratedProjects.some((p, i) => p !== projects[i])) {
       setProjects(migratedProjects);
-      return; // El próximo ciclo de efecto guardará
+      return; 
     }
 
     saveProjects(projects); 
   }, [projects]);
 
-  // --- Selectores (Estado derivado) ---
+  // --- Selectores ---
   
   const activeProject = projects.find(p => p.id === activeProjectId) || null;
-  
   const activeAmbiente = activeProject?.ambientes.find(a => a.id === activeAmbienteId) 
     || activeProject?.ambientes[0] 
     || null;
 
   // --- Operaciones de Proyecto ---
 
-  /** Actualiza un proyecto por ID y refresca su timestamp */
   const updateProject = useCallback((id: string, fn: (p: Project) => Project) => {
     setProjects(prev => prev.map(p => 
       p.id === id ? { ...fn(p), updatedAt: Date.now() } : p
     ));
   }, []);
 
-  /** Agrega un proyecto completo (útil para importaciones) */
   const addProject = useCallback((project: Project) => {
     setProjects(prev => [...prev, project]);
   }, []);
 
-  /** Selecciona un proyecto y pone el foco en su primer ambiente */
   const selectProject = useCallback((id: string) => {
     setActiveProjectId(id);
     const p = projects.find(x => x.id === id);
     setActiveAmbienteId(p?.ambientes[0]?.id || null);
   }, [projects]);
 
-  /** Crea un proyecto nuevo con la estructura base */
   const handleCreateProject = useCallback(() => {
     const p = createNewProject();
+    if (user) {
+      p.ownerId = user.uid;
+    }
     setProjects(prev => [...prev, p]);
     setActiveProjectId(p.id);
     setActiveAmbienteId(p.ambientes[0].id);
     return p;
-  }, []);
+  }, [user]);
 
-  /** Elimina un proyecto y limpia el estado activo si coincide */
   const deleteProject = useCallback((id: string) => {
     setProjects(prev => prev.filter(p => p.id !== id));
     if (activeProjectId === id) {
@@ -135,7 +183,6 @@ export function useProjects() {
 
   // --- Operaciones de Ambiente ---
 
-  /** Actualiza el ambiente activo preservando la inmutabilidad del árbol de datos */
   const updateAmbiente = useCallback((fn: (a: Ambiente) => Ambiente) => {
     if (!activeProjectId || !activeAmbienteId) return;
 
@@ -144,7 +191,6 @@ export function useProjects() {
       ambientes: project.ambientes.map(a => {
         if (a.id === activeAmbienteId) {
             const next = fn(a);
-            // Guardar estado actual en el historial antes de aplicar el cambio (max 20 estados)
             setAmbienteHistory(h => [...h, a].slice(-20));
             return next;
         }
@@ -153,7 +199,6 @@ export function useProjects() {
     }));
   }, [activeProjectId, activeAmbienteId, updateProject]);
 
-  /** Deshace el último cambio en el ambiente activo */
   const undoAmbiente = useCallback(() => {
     if (ambienteHistory.length === 0 || !activeProjectId || !activeAmbienteId) return;
     
@@ -166,7 +211,6 @@ export function useProjects() {
     }));
   }, [ambienteHistory, activeProjectId, activeAmbienteId, updateProject]);
 
-  /** Agrega un ambiente nuevo al proyecto activo */
   const addAmbiente = useCallback(() => {
     if (!activeProjectId || !activeProject) return;
     const nuevoAmbiente = createNewAmbiente(`Ambiente ${activeProject.ambientes.length + 1}`);
@@ -178,7 +222,6 @@ export function useProjects() {
     setActiveAmbienteId(nuevoAmbiente.id);
   }, [activeProjectId, activeProject, updateProject]);
 
-  /** Elimina un ambiente y garantiza que el proyecto mantenga al menos uno */
   const deleteAmbiente = useCallback((ambId: string) => {
     if (!activeProjectId || !activeProject) return;
 
@@ -196,10 +239,6 @@ export function useProjects() {
     }
   }, [activeProjectId, activeProject, activeAmbienteId, updateProject]);
 
-  /**
-   * PASO 2: Enlace Topológico por Portales.
-   * Conecta dos aberturas de distintos ambientes y calcula la posición relativa del ambiente B.
-   */
   const enlazarAberturas = useCallback((proyectoId: string, ambA_id: string, abA_id: string, ambB_id: string, abB_id: string) => {
     updateProject(proyectoId, (project) => {
       const ambA = project.ambientes.find(a => a.id === ambA_id);
@@ -208,15 +247,12 @@ export function useProjects() {
       const abB = ambB?.aberturas.find(ab => ab.id === abB_id);
 
       if (!ambA || !ambB || !abA || !abB) return project;
-
-      // Calcular transformación necesaria para el acople
       const transform = calcularTransformacionEnlace(ambA, abA, ambB, abB, project.meta.escala);
 
       return {
         ...project,
         ambientes: project.ambientes.map(a => {
           if (a.id === ambA_id) {
-            // Ambiente A: Setear como principal y vincular a B
             return {
               ...a,
               aberturas: a.aberturas.map(ab => 
@@ -227,7 +263,6 @@ export function useProjects() {
             };
           }
           if (a.id === ambB_id) {
-            // Ambiente B: Aplicar transformación calculada y vincular a A como secundario
             return {
               ...a,
               posX: transform.posX,
@@ -246,7 +281,6 @@ export function useProjects() {
     });
   }, [updateProject]);
 
-  // Retornamos la API completa del hook
   return {
     projects,
     activeProject,

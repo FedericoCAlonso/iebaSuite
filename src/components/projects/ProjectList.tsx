@@ -1,6 +1,6 @@
 import React from 'react';
 import { ProjectItem } from './ProjectItem';
-import { type Project } from '../../types';
+import { type Project } from '../../types/index';
 
 interface ProjectListProps {
   /** Lista completa de proyectos */

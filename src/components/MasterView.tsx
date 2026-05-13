@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 import { useZoomPan } from '../hooks/useZoomPan';
-import type { Project, Ambiente, HojaMaestra, Abertura } from '../types';
+import type { Project, Ambiente, HojaMaestra, Abertura } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
 
 interface MasterViewProps {

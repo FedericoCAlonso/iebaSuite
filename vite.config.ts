@@ -4,22 +4,22 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/pwaCroquizador/',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'ieBA Croquis',
+        name: 'ieBA Suite',
         short_name: 'ieBA',
-        description: 'Editor de croquis eléctricos para inspectores IEBA. Trabaja offline.',
-        start_url: '/pwaCroquizador/',
-        scope: '/pwaCroquizador/',
+        description: 'Herramientas para instalaciones eléctricas. Croquizador, SRT y más.',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         orientation: 'any',
         background_color: '#ffffff',
-        theme_color: '#aa3bff',
+        theme_color: '#1a56db',
         lang: 'es',
         icons: [
           {
@@ -43,11 +43,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Cachea todos los assets estáticos (JS, CSS, fuentes, imágenes)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        // Estrategia para navegación: siempre sirve el index.html en offline
         navigateFallback: 'index.html',
-        // Cache de Google Fonts con estrategia CacheFirst (válido 1 año)
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -69,11 +66,17 @@ export default defineConfig({
           },
         ],
       },
-      // Modo desarrollo: muestra el SW en dev para testing
       devOptions: {
         enabled: true,
         type: 'module',
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      input: {
+        main: './index.html',
+      },
+    },
+  },
 });

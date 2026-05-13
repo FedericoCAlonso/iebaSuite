@@ -1,6 +1,6 @@
 import React from 'react';
 import { ConexionCard } from '../../ConexionCard';
-import { type Project, type Circuito, type Conexion } from '../../../types';
+import { type Project, type Circuito, type Conexion } from '../../../types/index';
 
 interface ConnectionsTabProps {
   project: Project;

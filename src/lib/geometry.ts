@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-import type { Pared, Project, Ambiente, Abertura } from '../types';
+import type { Pared, Project, Ambiente, Abertura } from '../types/index';
 
 /** Punto o Vector en el plano 2D */
 export type Point = [number, number];

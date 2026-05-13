@@ -3,7 +3,7 @@ import { Card } from '../../Card';
 import { F } from '../../Field';
 import { NumInput } from '../../NumImput';
 import { createTexto } from '../../../lib/storage';
-import { type Project, type Ambiente } from '../../../types';
+import { type Project, type Ambiente } from '../../../types/index';
 
 interface ProjectTabProps {
   project: Project;

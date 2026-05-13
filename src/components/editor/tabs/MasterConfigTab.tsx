@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../../Card';
 import { F } from '../../Field';
 import { NumInput } from '../../NumImput';
-import { type Ambiente } from '../../../types';
+import { type Ambiente } from '../../../types/index';
 
 interface MasterConfigTabProps {
   activeAmbiente: Ambiente;

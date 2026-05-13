@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import * as STORAGE from '../lib/storage';
 import { RENDERER } from '../lib/renderer';
-import type { Project, Ambiente, ElementoElectrico, SymbolDialogData, EditorTab } from '../types';
+import type { Project, Ambiente, ElementoElectrico, SymbolDialogData, EditorTab } from '../types/index';
 
 interface UseAppActionsProps {
   activeProject: Project | null;

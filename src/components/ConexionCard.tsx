@@ -5,7 +5,7 @@
 
 import { Card } from './Card';
 import { F } from './Field';
-import type { Conexion, Ambiente, Circuito } from '../types';
+import type { Conexion, Ambiente, Circuito } from '../types/index';
 
 interface ConexionCardProps {
   conexion: Conexion;

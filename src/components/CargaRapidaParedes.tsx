@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import type { Ambiente, Pared } from '../types';
+import type { Ambiente, Pared } from '../types/index';
 import { createPared } from '../lib/storage';
 
 interface CargaRapidaParedesProps {

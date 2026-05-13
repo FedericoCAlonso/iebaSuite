@@ -6,7 +6,7 @@
 import { ProjectHeader } from '../components/projects/ProjectHeader';
 import { ProjectList } from '../components/projects/ProjectList';
 import { useProjectsScreen } from '../hooks/useProjectsScreen';
-import type { Project } from '../types';
+import type { Project } from '../types/index';
 
 interface ProjectsScreenProps {
   projects: Project[];

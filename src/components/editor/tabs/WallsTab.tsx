@@ -3,7 +3,7 @@ import { F } from '../../Field';
 import { WallCard } from '../../WallCard';
 import { CargaRapidaParedes } from '../../CargaRapidaParedes';
 import { createPared } from '../../../lib/storage';
-import { type Ambiente } from '../../../types';
+import { type Ambiente } from '../../../types/index';
 
 interface WallsTabProps {
   activeAmbiente: Ambiente;

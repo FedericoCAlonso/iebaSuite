@@ -6,7 +6,7 @@
 import { Card } from './Card';
 import { F } from './Field';
 import { NumInput } from './NumImput';
-import type { Circuito, TipoCircuito } from '../types';
+import type { Circuito, TipoCircuito } from '../types/index';
 
 interface CircuitoCardProps {
   circuito: Circuito;

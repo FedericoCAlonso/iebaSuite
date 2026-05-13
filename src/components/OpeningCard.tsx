@@ -5,7 +5,7 @@ import React from 'react';
 import { NumInput } from './NumImput';
 import { Card } from './Card';
 import { F } from './Field';
-import { type Abertura, type Ambiente, type SubtipoPuerta, type SubtipoVentana } from '../types';
+import { type Abertura, type Ambiente, type SubtipoPuerta, type SubtipoVentana } from '../types/index';
 
 interface OpeningCardProps {
   ab: Abertura;

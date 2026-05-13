@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react';
-import type { ElementoElectrico, SymbolDialogData } from '../types';
+import type { ElementoElectrico, SymbolDialogData } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import { F } from './Field';   
 import { createElemento } from '../lib/storage';

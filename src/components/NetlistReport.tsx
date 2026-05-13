@@ -2,7 +2,7 @@
 // MODULE: components/NetlistReport.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { Ambiente, ElementoElectrico, Project } from '../types';
+import type { Ambiente, ElementoElectrico, Project } from '../types/index';
 
 export function NetlistReport({ project, ambiente, onClose }: { project: Project, ambiente: Ambiente, onClose: () => void }) {
   

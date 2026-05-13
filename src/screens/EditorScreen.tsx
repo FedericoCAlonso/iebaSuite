@@ -21,7 +21,7 @@ import { useEditorState } from '../hooks/useEditorState';
 import {
   type Project, type Ambiente, type SymbolDialogData,
   type EditorTab
-} from '../types';
+} from '../types/index';
 
 interface EditorScreenProps {
   project: Project;

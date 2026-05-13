@@ -2,7 +2,7 @@ import { SymbolDialog } from './SymbolDialog';
 import { ExportDialog } from './ExportDialog';
 import { SymbolManagerDialog } from './SymbolManagerDialog';
 import { NetlistReport } from './NetlistReport';
-import type { Project, Ambiente, ElementoElectrico, SymbolDialogData } from '../types';
+import type { Project, Ambiente, ElementoElectrico, SymbolDialogData } from '../types/index';
 
 interface AppModalsProps {
   activeProject: Project | null;

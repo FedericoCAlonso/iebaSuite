@@ -5,7 +5,7 @@ import { createPared, createZonaCobertura } from '../lib/storage';
 import { 
   type Project, type Ambiente, type Abertura, 
   type ElementoElectrico, type Circuito, type Conexion 
-} from '../types';
+} from '../types/index';
 
 /**
  * Custom Hook que encapsula toda la lógica de estado y cálculos del editor.

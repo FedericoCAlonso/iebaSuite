@@ -12,7 +12,7 @@ import { useZoomPan } from '../hooks/useZoomPan';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
 
-import type { Ambiente, Project, Meta, EditorTab } from '../types';
+import type { Ambiente, Project, Meta, EditorTab } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
 
 interface PreviewProps {

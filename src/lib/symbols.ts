@@ -3,7 +3,7 @@
 // Librería dinámica de símbolos eléctricos. Reemplaza los símbolos hardcodeados.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { SymbolId } from '../types';
+import type { SymbolId } from '../types/index';
 
 export interface DefinicionSimbolo {
   id: SymbolId;
