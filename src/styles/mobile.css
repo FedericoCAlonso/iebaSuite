@@ -43,10 +43,10 @@
   }
   .topbar-crumb { display: none; } /* Ocultar nombre proyecto para ganar espacio */
   .topbar-actions { gap: 4px; }
-  
+
   .mobile-back-icon { display: inline; font-weight: bold; font-size: 18px; color: var(--acc); }
   .mobile-only { display: inline !important; }
-  
+
   /* Compactar botones en la barra superior */
   .topbar-actions .btn-text { display: none; }
   .topbar-actions .btn {
@@ -74,29 +74,28 @@
     display: block;
     height: 100%;
     width: 100%;
+    overflow: hidden; /* Evita scrolls fantasma al cambiar de pantalla */
   }
 
-  /* Panel izquierdo (Bottom Sheet): Desliza desde abajo */
+  /* Panel izquierdo (Datos/Editor): Ocupa toda la ventana y desliza desde el costado */
   .panel-left {
     position: absolute;
+    top: 0;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 70vh; /* Un poco más alto */
+    height: 100%; /* Cambiado a 100% para ocupar toda la pantalla */
     z-index: 50;
     width: 100%;
     background: var(--bg);
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--border);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
-    transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.1, 0.9, 0.2, 1);
+    /* Efecto de transición lateral para pantalla completa */
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
   }
   .panel-left.mobile-visible {
-    transform: translateY(0);
+    transform: translateX(0);
   }
 
   /* Padding extra al final del feed */
@@ -157,4 +156,3 @@
     margin: 0;
   }
 }
-
