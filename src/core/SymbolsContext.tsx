@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
-  loadSymbolsAsync, 
-  saveSymbols, 
-  fetchSymbolsFile, 
-  type SymbolCategory, 
-  type DefinicionSimbolo 
+import {
+  loadSymbolsAsync,
+  saveSymbols,
+  fetchSymbolsFile,
+  type SymbolCategory,
+  type DefinicionSimbolo
 } from '../lib/symbols';
 import { saveCustomSymbolsRemote, loadCustomSymbolsRemote } from '../firebase/symbolService';
 import { useAuth } from './AuthContext';
@@ -51,7 +51,7 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoadingSymbols(true);
       try {
         const [customSymbols, symbolsFileData] = await Promise.all([
-          loadCustomSymbolsRemote(user.uid),
+          loadCustomSymbolsRemote(user?.uid ?? ''),
           fetchSymbolsFile()
         ]);
 
@@ -61,7 +61,7 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // Mezclar símbolos por defecto con los personalizados de la nube
         const mergedSymbols = [...defaultSymbols, ...customSymbols];
         setSymbolsLibState(mergedSymbols);
-        
+
         // Backup local
         saveSymbols(mergedSymbols);
       } catch (error) {
@@ -85,11 +85,11 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [user]);
 
   return (
-    <SymbolsContext.Provider value={{ 
-      symbolsLib, 
-      categoriesLib, 
-      isLoadingSymbols, 
-      setSymbolsLib: updateSymbols 
+    <SymbolsContext.Provider value={{
+      symbolsLib,
+      categoriesLib,
+      isLoadingSymbols,
+      setSymbolsLib: updateSymbols
     }}>
       {children}
     </SymbolsContext.Provider>

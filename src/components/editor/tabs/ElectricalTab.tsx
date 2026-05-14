@@ -1,9 +1,5 @@
 import React from 'react';
-import { Card } from '../../Card';
-import { F } from '../../Field';
-import { NumInput } from '../../NumImput';
 import { ElectricalCard } from '../../ElectricalCard';
-import { createElementoEstructural } from '../../../lib/storage';
 import { RENDERER } from '../../../lib/renderer';
 import {
   type Project, type Ambiente, type ElementoElectrico,
