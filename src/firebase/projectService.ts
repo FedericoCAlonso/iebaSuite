@@ -12,7 +12,8 @@ const COL = 'projects'
 export async function saveProjectRemote(project: Project): Promise<void> {
   if (!db) throw new Error('Firebase no configurado')
   const ref = doc(db, COL, project.id)
-  await setDoc(ref, { ...project, updatedAt: Date.now() })
+  const cleaned = limpiarUndefined(project);
+  await setDoc(ref, { ...cleaned, updatedAt: Date.now() })
 }
 
 
@@ -39,4 +40,9 @@ export async function deleteProjectRemote(id: string): Promise<void> {
   await deleteDoc(ref)
 }
 
+const limpiarUndefined = (obj: any) => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== undefined)
+  );
+};
 

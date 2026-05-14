@@ -18,7 +18,7 @@ interface ElectricalCardProps {
   onChange: (el: ElementoElectrico) => void;
   onRemove: () => void;
   onEdit: () => void;
-  columnas?: import('../types').ElementoEstructural[];
+  //columnas?: import('../types').ElementoEstructural[];
   activeAmbienteId?: string;
   pendingConnection?: { ambienteId: string, elementoId: string } | null;
   onStartConnecting?: (elId: string) => void;
@@ -26,23 +26,23 @@ interface ElectricalCardProps {
   onCancelConnecting?: () => void;
 }
 
-export function ElectricalCard({ 
-  el, 
-  index, 
-  wallCount, 
+export function ElectricalCard({
+  el,
+  index,
+  wallCount,
   symbolsLib,
   circuitos,
-  onChange, 
-  onRemove, 
+  onChange,
+  onRemove,
   onEdit,
-  columnas,
+  //columnas,
   activeAmbienteId,
   pendingConnection,
   onStartConnecting,
   onFinishConnecting,
   onCancelConnecting
 }: ElectricalCardProps) {
-  
+
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   const label = symDef ? symDef.label : el.tipo;
 
@@ -58,7 +58,7 @@ export function ElectricalCard({
 
   return (
     <Card
-      idx={`E${index}`} 
+      idx={`E${index}`}
       idxColor="var(--red)"
       title={label}
       badge={el.referencia || '—'}
@@ -84,16 +84,16 @@ export function ElectricalCard({
     >
       <div className="field-row">
         <F label="Ref. Plano">
-          <input 
-            type="text" 
-            value={el.referencia} 
-            onChange={(e) => onChange({ ...el, referencia: e.target.value })} 
+          <input
+            type="text"
+            value={el.referencia}
+            onChange={(e) => onChange({ ...el, referencia: e.target.value })}
             placeholder="L1"
           />
         </F>
         <F label="Altura montaje (m)">
-          <NumInput 
-            value={el.altura ?? 0} 
+          <NumInput
+            value={el.altura ?? 0}
             onChange={(v) => onChange({ ...el, altura: v })}
           />
         </F>
@@ -114,8 +114,8 @@ export function ElectricalCard({
           </select>
         </F>
         <F label="Mostrar dato en SVG">
-          <select 
-            value={el.mostrarDato ? 'si' : 'no'} 
+          <select
+            value={el.mostrarDato ? 'si' : 'no'}
             onChange={(e) => onChange({ ...el, mostrarDato: e.target.value === 'si' })}
           >
             <option value="no">No</option>
@@ -173,8 +173,8 @@ export function ElectricalCard({
       {el.paredIdx != null ? (
         <div className="field-row">
           <F label="Pared #">
-            <NumInput 
-              value={el.paredIdx ?? 0} 
+            <NumInput
+              value={el.paredIdx ?? 0}
               onChange={(v) => onChange({
                 ...el,
                 paredIdx: Math.max(0, Math.min(wallCount - 1, Math.round(v)))
@@ -182,8 +182,8 @@ export function ElectricalCard({
             />
           </F>
           <F label="Pos. en pared (m)">
-            <NumInput 
-              value={el.paredPos ?? 0} 
+            <NumInput
+              value={el.paredPos ?? 0}
               onChange={(v) => onChange({ ...el, paredPos: v })}
             />
           </F>
@@ -191,18 +191,18 @@ export function ElectricalCard({
       ) : (
         <div className="field-row">
           <F label="X (m)">
-            <NumInput 
-              value={el.x || 0} 
+            <NumInput
+              value={el.x || 0}
               onChange={(v) => onChange({ ...el, x: v })}
             />
           </F>
           <F label="Y (m)">
-            <NumInput 
-              value={el.y || 0} 
+            <NumInput
+              value={el.y || 0}
               onChange={(v) => onChange({ ...el, y: v })}
             />
           </F>
-          {columnas && columnas.length > 0 && (
+          {/*columnas && columnas.length > 0 && (
             <F label="Anclado a Columna">
               <select
                 value={el.columnaId || ''}
@@ -216,7 +216,7 @@ export function ElectricalCard({
                 ))}
               </select>
             </F>
-          )}
+          )*/}
         </div>
       )}
 
