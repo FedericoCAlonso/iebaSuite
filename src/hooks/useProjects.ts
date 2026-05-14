@@ -5,13 +5,10 @@ import {
   createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
-import { loadSymbolsAsync, saveSymbols, fetchSymbolsFile, type SymbolCategory } from '../lib/symbols';
 import { loadLayoutAsync } from '../lib/layout';
 import { calcularTransformacionEnlace } from '../lib/geometry';
 import { saveProjectRemote, listProjectsRemote, deleteProjectRemote } from '../firebase/projectService';
-import { saveCustomSymbolsRemote, loadCustomSymbolsRemote } from '../firebase/symbolService';
-import { useAuth } from '../hub/AuthContext';
-import type { DefinicionSimbolo } from '../lib/symbols';
+import { useAuth } from '../core/AuthContext';
 import type { Project, Ambiente } from '../types/index';
 
 export function useProjects() {
@@ -27,14 +24,8 @@ export function useProjects() {
   // Historial de deshacer (Undo) local a la sesión del ambiente actual
   const [ambienteHistory, setAmbienteHistory] = useState<Ambiente[]>([]);
 
-  // Librería de símbolos
-  const [symbolsLib, setSymbolsLib] = useState<DefinicionSimbolo[]>([]);
-  const [categoriesLib, setCategoriesLib] = useState<SymbolCategory[]>([]);
-
-  // Cargar símbolos y layout asíncronamente al iniciar
+  // Cargar layout asíncronamente al iniciar
   useEffect(() => {
-    loadSymbolsAsync().then(setSymbolsLib);
-    fetchSymbolsFile().then(file => setCategoriesLib(file.categories));
     loadLayoutAsync().then(layout => {
       (window as any).layoutConfig = layout;
     });
@@ -45,21 +36,13 @@ export function useProjects() {
     // Si no hay usuario, cargamos desde localStorage (modo offline/fallback)
     if (!user) {
       setProjects(loadProjects());
-      loadSymbolsAsync().then(setSymbolsLib);
       return;
     }
 
     async function syncPull() {
       try {
-        // Cargar proyectos y símbolos en paralelo
-        const [cloudProjects, customSymbols, symbolsFileData] = await Promise.all([
-          listProjectsRemote(user!.uid),
-          loadCustomSymbolsRemote(user!.uid),
-          fetchSymbolsFile()
-        ]);
-
-        const defaultSymbols = symbolsFileData.symbols;
-        setCategoriesLib(symbolsFileData.categories);
+        // Cargar proyectos desde Firestore
+        const cloudProjects = await listProjectsRemote(user!.uid);
 
         // 1. Setear proyectos
         if (cloudProjects.length > 0) {
@@ -76,12 +59,6 @@ export function useProjects() {
             return merged.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
           });
         }
-
-        // 2. Mezclar símbolos por defecto con los personalizados de la nube
-        const mergedSymbols = [...defaultSymbols, ...customSymbols];
-        setSymbolsLib(mergedSymbols);
-        // Guardar en localStorage como backup
-        saveSymbols(mergedSymbols);
 
       } catch (e) {
         console.error("Error pulling data from cloud:", e);
@@ -314,16 +291,6 @@ export function useProjects() {
     });
   }, [updateProject]);
 
-  const updateSymbols = useCallback((newLibrary: DefinicionSimbolo[]) => {
-    setSymbolsLib(newLibrary);
-    saveSymbols(newLibrary);
-
-    if (user) {
-      const customOnly = newLibrary.filter(s => s.id.startsWith('sym-custom-'));
-      saveCustomSymbolsRemote(user.uid, customOnly).catch(console.error);
-    }
-  }, [user]);
-
   return {
     projects,
     activeProject,
@@ -340,10 +307,7 @@ export function useProjects() {
     updateAmbiente,
     undoAmbiente,
     canUndo: ambienteHistory.length > 0,
-    symbolsLib,
-    categoriesLib,
-    setSymbolsLib: updateSymbols,
     addProject,
     enlazarAberturas
   };
-}
+}

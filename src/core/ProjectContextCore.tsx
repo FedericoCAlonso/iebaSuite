@@ -1,6 +1,5 @@
 import { createContext, useContext } from 'react'
 import type { Project, Ambiente } from '../types/index'
-import type { DefinicionSimbolo, SymbolCategory } from '../lib/symbols'
 import { useUIState } from '../hooks/useUIState'
 import { useAppActions } from '../hooks/useAppActions'
 
@@ -9,7 +8,6 @@ export interface ProjectContextValue {
   activeAmbiente: Ambiente | null;
   activeAmbienteId: string | null;
   setActiveAmbienteId: (id: string | null) => void;
-  symbolsLib: DefinicionSimbolo[];
   updateProject: (id: string, fn: (p: Project) => Project) => void;
   updateAmbiente: (fn: (a: Ambiente) => Ambiente) => void;
   addAmbiente: () => void;
@@ -17,8 +15,6 @@ export interface ProjectContextValue {
   undoAmbiente: () => void;
   canUndo: boolean;
   enlazarAberturas: (proyectoId: string, ambA_id: string, abA_id: string, ambB_id: string, abB_id: string) => void;
-  setSymbolsLib: (lib: DefinicionSimbolo[]) => void;
-  categoriesLib: SymbolCategory[];
   // UI State & Actions
   ui: ReturnType<typeof useUIState>;
   actions: ReturnType<typeof useAppActions>;

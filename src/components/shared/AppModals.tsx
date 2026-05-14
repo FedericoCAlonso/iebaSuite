@@ -2,17 +2,17 @@ import { SymbolDialog } from '../SymbolDialog';
 import { ExportDialog } from '../ExportDialog';
 import { SymbolManagerDialog } from '../SymbolManagerDialog';
 import { NetlistReport } from '../NetlistReport';
-import { useCurrentProject } from '../../hub/ProjectContextCore';
+import { useCurrentProject } from '../../core/ProjectContextCore';
+import { useSymbols } from '../../core/SymbolsContext';
 
 export function AppModals() {
+  const { symbolsLib, setSymbolsLib } = useSymbols();
   const { 
     activeProject, 
     activeAmbiente, 
-    symbolsLib, 
     ui, 
     actions, 
     showToast,
-    setSymbolsLib
   } = useCurrentProject();
 
   const { 

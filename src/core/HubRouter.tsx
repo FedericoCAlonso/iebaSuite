@@ -1,16 +1,18 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthContext'
+import { SymbolsProvider, useSymbols } from './SymbolsContext'
 import { HubShell } from './HubShell'
 import { HubHome } from './HubHome'
 import { DummyTool } from './DummyTool'
 import { LoginScreen } from './LoginScreen'
 import { HubProjects } from './HubProjects'
-import { RelevadorTool } from '../tools/RelevadorTool'
-import { UnifilarTool } from '../tools/UnifilarTool'
+import { RelevadorTool } from '../features/relevador/RelevadorTool'
+import { UnifilarTool } from '../features/relevador/UnifilarTool'
 import { ProjectProvider } from './ProjectContext'
 
 function HubRoutes() {
   const { user, loading } = useAuth()
+  const { isLoadingSymbols } = useSymbols()
 
   if (loading) {
     return (
@@ -20,12 +22,25 @@ function HubRoutes() {
         background: 'var(--bg)', color: 'var(--text3)',
         fontFamily: 'var(--sans)', fontSize: 14
       }}>
-        Cargando...
+        Cargando autenticación...
       </div>
     )
   }
 
   if (!user) return <LoginScreen />
+
+  if (isLoadingSymbols) {
+    return (
+      <div style={{
+        minHeight: '100dvh', display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        background: 'var(--bg)', color: 'var(--text3)',
+        fontFamily: 'var(--sans)', fontSize: 14
+      }}>
+        Cargando librerías de símbolos...
+      </div>
+    )
+  }
 
   return (
     <Routes>
@@ -54,7 +69,9 @@ export function HubRouter() {
   return (
     <BrowserRouter basename="/iebaSuite">
       <AuthProvider>
-        <HubRoutes />
+        <SymbolsProvider>
+          <HubRoutes />
+        </SymbolsProvider>
       </AuthProvider>
     </BrowserRouter>
   )

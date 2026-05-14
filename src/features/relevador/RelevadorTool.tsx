@@ -1,18 +1,19 @@
 import { useNavigate } from 'react-router-dom'
-import { useCurrentProject } from '../hub/ProjectContext'
-import { AppHeader } from '../components/AppHeader'
-import { EditorScreen } from '../screens/EditorScreen'
-import { Preview } from '../components/Preview'
-import { MasterView } from '../components/MasterView'
+import { useCurrentProject } from '../../core/ProjectContext'
+import { useSymbols } from '../../core/SymbolsContext'
+import { AppHeader } from '../../components/AppHeader'
+import { EditorScreen } from '../../screens/EditorScreen'
+import { Preview } from '../../components/Preview'
+import { MasterView } from '../../components/MasterView'
 
 export function RelevadorTool() {
   const navigate = useNavigate()
+  const { symbolsLib } = useSymbols()
   const { 
     activeProject,
     activeAmbiente,
     activeAmbienteId,
     setActiveAmbienteId,
-    symbolsLib,
     updateProject,
     updateAmbiente,
     addAmbiente,

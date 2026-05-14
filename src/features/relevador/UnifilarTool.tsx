@@ -1,6 +1,6 @@
-import { useCurrentProject } from '../hub/ProjectContext'
+import { useCurrentProject } from '../../core/ProjectContext'
 import { useNavigate } from 'react-router-dom'
-import { AppHeader } from '../components/AppHeader'
+import { AppHeader } from '../../components/AppHeader'
 
 export function UnifilarTool() {
   const { activeProject, undoAmbiente, canUndo, ui } = useCurrentProject()

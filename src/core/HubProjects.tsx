@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProjects } from '../hooks/useProjects';
+import { useSymbols } from './SymbolsContext';
 import { useProjectsScreen } from '../hooks/useProjectsScreen';
 import { ProjectHeader } from '../components/projects/ProjectHeader';
 import { ProjectList } from '../components/projects/ProjectList';
@@ -10,6 +11,7 @@ import './HubProjects.css';
 
 export function HubProjects() {
   const navigate = useNavigate();
+  const { symbolsLib, setSymbolsLib } = useSymbols();
   const projectState = useProjects();
   const { 
     projects, 
@@ -17,8 +19,6 @@ export function HubProjects() {
     createProject, 
     deleteProject, 
     addProject,
-    symbolsLib,
-    setSymbolsLib,
     updateProject
   } = projectState;
 
