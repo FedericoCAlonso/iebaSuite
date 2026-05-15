@@ -110,9 +110,26 @@ export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
 
 /**
  * Crea una nueva instancia de Proyecto.
+ * Ahora incluye los campos obligatorios del modelo relacional.
  */
 export const createProject = (nombre = 'Nuevo Proyecto'): Project => ({
   id: Date.now().toString(),
+  clienteId: '',
+  electricistaId: '',
+  nombre,
+  estado: 'relevamiento',
+  inmueble: {
+    direccion: '',
+    partido: '',
+    provincia: '',
+    uso: 'residencial'
+  },
+  suministro: {
+    tension: 220,
+    fases: 1
+  },
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
   meta: { 
     nombre, 
     escala: 50, 
@@ -123,7 +140,6 @@ export const createProject = (nombre = 'Nuevo Proyecto'): Project => ({
   circuitos: [],
   tableros: [],
   conexiones: [],
-  updatedAt: Date.now(),
 });
 
 /**
@@ -184,6 +200,7 @@ export const createCircuito = (overide: Partial<Circuito> = {}): Circuito => ({
   id: generateId(),
   nombre: 'TS1.C1',
   tipo: 'TUG' as TipoCircuito,
+  tableroId: '',
   seccion: 2.5,
   proteccion: '16A TM',
   cantConductores: 2,

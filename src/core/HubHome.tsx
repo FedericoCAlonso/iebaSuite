@@ -1,3 +1,4 @@
+// HubHome.tsx
 import { useNavigate } from 'react-router-dom'
 import './HubHome.css'
 
@@ -64,3 +65,4 @@ export function HubHome() {
     </div>
   )
 }
+

@@ -5,6 +5,7 @@ import './HubShell.css'
 const mainTools = [
   { path: '/',            label: 'Inicio',          icon: '⊞' },
   { path: '/proyectos',   label: 'Proyectos',       icon: '📐' },
+  { path: '/clientes',    label: 'Clientes',        icon: '🤝' },
 ]
 
 const projectTools = (id: string) => [

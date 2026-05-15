@@ -1,4 +1,3 @@
-
 // Layout y Composición
 import { EditorLayout } from '../components/editor/EditorLayout';
 import { CreationFlowOverlay } from '../components/editor/CreationFlowOverlay';
@@ -193,10 +192,7 @@ export function EditorScreen(props: EditorScreenProps) {
       )}
 
       {activeTab === 'circuitos' && (
-        <CircuitsTab 
-          circuitos={state.circuitos}
-          updateCircuitos={state.updateCircuitos}
-        />
+        <CircuitsTab />
       )}
 
       {activeTab === 'conexiones' && (

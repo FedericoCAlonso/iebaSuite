@@ -1,55 +1,266 @@
-import React from 'react';
-import { CircuitoCard } from '../../CircuitoCard';
-import { type Circuito } from '../../../types/index';
+import { useState } from 'react'
+import { useProjectInstallation } from '../../../hooks/useProjectInstallation'
+import { FormularioCircuito } from '../../shared/FormularioCircuito'
+import { CircuitoCard } from '../../CircuitoCard'
+import type { Circuito, Tablero } from '../../../types/index'
 
-interface CircuitsTabProps {
-  circuitos: Circuito[];
-  updateCircuitos: (fn: (circuitos: Circuito[]) => Circuito[]) => void;
-}
+export function CircuitsTab() {
+  const {
+    tableros,
+    circuitos,
+    addTablero,
+    addCircuito,
+    updateCircuito,
+    deleteCircuito,
+    deleteTablero,
+  } = useProjectInstallation()
 
-/**
- * Pestaña para la gestión de circuitos eléctricos.
- */
-export const CircuitsTab: React.FC<CircuitsTabProps> = React.memo(({ 
-  circuitos, 
-  updateCircuitos 
-}) => {
+  const [formularioAbierto, setFormularioAbierto] = useState(false)
+  const [circuitoEdit, setCircuitoEdit] = useState<Circuito | null>(null)
+
+  // Inline form para nuevo tablero
+  const [nuevoTablero, setNuevoTablero] = useState(false)
+  const [formTablero, setFormTablero] = useState({
+    nombre: '',
+    tipo: 'seccional' as Tablero['tipo'],
+    ubicacion: ''
+  })
+
+  const handleGuardarCircuito = (data: Omit<Circuito, 'id'>) => {
+    if (circuitoEdit) {
+      updateCircuito(circuitoEdit.id, data)
+    } else {
+      addCircuito(data)
+    }
+    setFormularioAbierto(false)
+    setCircuitoEdit(null)
+  }
+
+    const handleNuevoCircuito = () => {
+    setCircuitoEdit(null)
+    setFormularioAbierto(true)
+  }
+
+  const handleEditarCircuito = (c: Circuito) => {
+    setCircuitoEdit(c)
+    setFormularioAbierto(true)
+  }
+
+  const handleAgregarTablero = () => {
+    if (!formTablero.nombre.trim()) return
+    addTablero({
+      nombre: formTablero.nombre.trim(),
+      tipo: formTablero.tipo,
+      ubicacion: formTablero.ubicacion.trim() || undefined
+    })
+    setFormTablero({ nombre: '', tipo: 'seccional', ubicacion: '' })
+    setNuevoTablero(false)
+  }
+
+  const circuitosDeTablero = (tableroId: string) =>
+    circuitos.filter(c => c.tableroId === tableroId)
+
+  const circuitosSinTablero = circuitos.filter(c => !c.tableroId)
+
   return (
-    <>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div className="info-helper">
-        ⚡ Definí los circuitos del proyecto. Luego asigná cada boca a un circuito.<br />
+        Definí los <strong>tableros</strong> del proyecto y luego los <strong>circuitos</strong> asociados a cada uno.<br />
         Nomenclatura AEA: <strong>TS1.C1</strong> = Circuito C1 del Tablero Seccional 1.
       </div>
-      {circuitos.map((c, i) => (
-        <CircuitoCard
-          key={c.id}
-          circuito={c}
-          index={i}
-          onChange={(nc) => updateCircuitos(cs => cs.map((x, j) => j === i ? nc : x))}
-          onRemove={() => updateCircuitos(cs => cs.filter((_, j) => j !== i))}
-        />
-      ))}
-      <button 
-        className="btn btn-acc" 
-        style={{ width: '100%', marginTop: '16px' }}
-        onClick={() => updateCircuitos(cs => [...cs, {
-          id: Date.now().toString(),
-          nombre: `C${cs.length + 1}`,
-          tipo: 'TUG',
-          seccion: 2.5,
-          proteccion: '16A TM',
-          cantConductores: 2,
-          conducto: 'PVC 20mm',
-          color: '#' + Math.floor(Math.random()*16777215).toString(16)
-        }])}
-      >
-        + Nuevo Circuito
-      </button>
-      {circuitos.length === 0 && (
-        <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-          No hay circuitos definidos. Agregá el primero.
+
+      {/* Tableros */}
+      {tableros.length === 0 && (
+        <div style={{
+          padding: 24, textAlign: 'center', color: 'var(--text-dim)', fontSize: 13,
+          border: '1px dashed var(--border)', borderRadius: 'var(--r)'
+        }}>
+          No hay tableros definidos. Creá el primero para poder agregar circuitos.
         </div>
       )}
-    </>
-  );
-});
+
+      {tableros.map(t => (
+        <div key={t.id} style={{
+          border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg2)'
+        }}>
+          {/* Header del tablero */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 14px', borderBottom: '1px solid var(--border)'
+          }}>
+            <span style={{ fontSize: 18 }}>⚡</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-h)' }}>{t.nombre}</div>
+              <div style={{
+                fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.5
+              }}>
+                {t.tipo}{t.ubicacion ? ` · ${t.ubicacion}` : ''}
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={handleNuevoCircuito}
+              title="Agregar circuito"
+            >
+              ＋ Circuito
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={() => {
+                if (confirm(`¿Eliminar tablero "${t.nombre}"? Los circuitos pasarán a "sin tablero".`)) {
+                  deleteTablero(t.id)
+                }
+              }}
+              title="Eliminar tablero"
+            >
+              🗑
+            </button>
+          </div>
+
+          {/* Circuitos del tablero */}
+          <div style={{ padding: '8px 12px' }}>
+            {circuitosDeTablero(t.id).length === 0 ? (
+              <div style={{
+                padding: '12px 0', textAlign: 'center', color: 'var(--text-dim)', fontSize: 12
+              }}>
+                Sin circuitos en este tablero.
+              </div>
+            ) : (
+              circuitosDeTablero(t.id).map((c, i) => (
+                <div key={c.id} style={{ marginBottom: 8 }}>
+                  <CircuitoCard
+                    circuito={c}
+                    index={i}
+                    onChange={(nc) => updateCircuito(c.id, nc)}
+                    onRemove={() => deleteCircuito(c.id)}
+                  />
+                  <div style={{ display: 'flex', gap: 6, marginTop: 4, justifyContent: 'flex-end' }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleEditarCircuito(c)}
+                    >
+                      ✏️ Editar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ))}
+
+      {/* Circuitos sin tablero */}
+      {circuitosSinTablero.length > 0 && (
+        <div style={{
+          border: '1px dashed var(--border)', borderRadius: 'var(--r)',
+          background: 'var(--bg2)', padding: 12
+        }}>
+          <div style={{
+            fontSize: 12, fontWeight: 600, color: 'var(--text3)',
+            marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5
+          }}>
+            Circuitos sin tablero asignado
+          </div>
+          {circuitosSinTablero.map((c, i) => (
+            <div key={c.id} style={{ marginBottom: 8 }}>
+              <CircuitoCard
+                circuito={c}
+                index={i}
+                onChange={(nc) => updateCircuito(c.id, nc)}
+                onRemove={() => deleteCircuito(c.id)}
+              />
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, justifyContent: 'flex-end' }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => handleEditarCircuito(c)}
+                >
+                  ✏️ Asignar a tablero
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Agregar tablero */}
+      {!nuevoTablero ? (
+        <button
+          className="btn btn-acc"
+          style={{ width: '100%' }}
+          onClick={() => setNuevoTablero(true)}
+        >
+          ＋ Nuevo Tablero
+        </button>
+      ) : (
+        <div style={{
+          border: '1px solid var(--border)', borderRadius: 'var(--r)',
+          background: 'var(--bg2)', padding: 14
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10, color: 'var(--text-h)' }}>
+            Nuevo Tablero
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+            <input
+              placeholder="Nombre (ej: TS1)"
+              value={formTablero.nombre}
+              onChange={e => setFormTablero(f => ({ ...f, nombre: e.target.value }))}
+              style={{
+                flex: 1, padding: '8px 10px', borderRadius: 'var(--r)',
+                border: '1px solid var(--border)', background: 'var(--bg)',
+                color: 'var(--text)', fontSize: 14
+              }}
+            />
+            <select
+              value={formTablero.tipo}
+              onChange={e => setFormTablero(f => ({ ...f, tipo: e.target.value as Tablero['tipo'] }))}
+              style={{
+                padding: '8px 10px', borderRadius: 'var(--r)',
+                border: '1px solid var(--border)', background: 'var(--bg)',
+                color: 'var(--text)', fontSize: 14
+              }}
+            >
+              <option value="general">General</option>
+              <option value="seccional">Seccional</option>
+              <option value="auxiliar">Auxiliar</option>
+            </select>
+          </div>
+          <input
+            placeholder="Ubicación (opcional)"
+            value={formTablero.ubicacion}
+            onChange={e => setFormTablero(f => ({ ...f, ubicacion: e.target.value }))}
+            style={{
+              width: '100%', padding: '8px 10px', marginBottom: 12,
+              borderRadius: 'var(--r)', border: '1px solid var(--border)',
+              background: 'var(--bg)', color: 'var(--text)', fontSize: 14
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setNuevoTablero(false)}>
+              Cancelar
+            </button>
+            <button
+              className="btn btn-acc btn-sm"
+              onClick={handleAgregarTablero}
+              disabled={!formTablero.nombre.trim()}
+            >
+              Guardar Tablero
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Formulario Circuito */}
+      {formularioAbierto && (
+        <FormularioCircuito
+          tableros={tableros}
+          circuitoEdit={circuitoEdit}
+          onSave={handleGuardarCircuito}
+          onCancel={() => {
+            setFormularioAbierto(false)
+            setCircuitoEdit(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}

@@ -2,12 +2,16 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   loadProjects, 
   saveProjects, 
-  createProject as createNewProject, 
   createAmbiente as createNewAmbiente 
 } from '../lib/storage';
 import { loadLayoutAsync } from '../lib/layout';
 import { calcularTransformacionEnlace } from '../lib/geometry';
-import { saveProjectRemote, listProjectsRemote, deleteProjectRemote } from '../firebase/projectService';
+import { 
+  createProjectRemote, 
+  saveProjectRemote, 
+  listProjectsRemote, 
+  deleteProjectRemote 
+} from '../firebase/projectService';
 import { useAuth } from '../core/AuthContext';
 import type { Project, Ambiente } from '../types/index';
 
@@ -33,7 +37,6 @@ export function useProjects() {
 
   // Sync: Pull from Cloud on Login
   useEffect(() => {
-    // Si no hay usuario, cargamos desde localStorage (modo offline/fallback)
     if (!user) {
       setProjects(loadProjects());
       return;
@@ -41,10 +44,8 @@ export function useProjects() {
 
     async function syncPull() {
       try {
-        // Cargar proyectos desde Firestore
         const cloudProjects = await listProjectsRemote(user!.uid);
 
-        // 1. Setear proyectos
         if (cloudProjects.length > 0) {
           setProjects(prev => {
             const merged = [...prev];
@@ -59,7 +60,6 @@ export function useProjects() {
             return merged.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
           });
         }
-
       } catch (e) {
         console.error("Error pulling data from cloud:", e);
       }
@@ -74,16 +74,17 @@ export function useProjects() {
     if (!user) return;
 
     projects.forEach(p => {
-      // Solo sincronizar si el usuario es el dueño o si no tiene dueño aún (y lo tomamos)
-      if (p.ownerId === user.uid || !p.ownerId) {
-        // Debounce por proyecto
+      // Usamos electricistaId o ownerId según la compatibilidad
+      const owner = p.electricistaId || p.ownerId;
+      
+      if (owner === user.uid || !owner) {
         if (syncTimeoutRef.current[p.id]) {
           window.clearTimeout(syncTimeoutRef.current[p.id]);
         }
         syncTimeoutRef.current[p.id] = window.setTimeout(async () => {
           try {
-            // Aseguramos que el proyecto tenga el ownerId antes de subirlo si no lo tenía
-            const projectToSave = { ...p, ownerId: user.uid };
+            // Aseguramos el ID del profesional antes de subir
+            const projectToSave = { ...p, electricistaId: user.uid };
             await saveProjectRemote(projectToSave);
             delete syncTimeoutRef.current[p.id];
           } catch (e) {
@@ -98,20 +99,21 @@ export function useProjects() {
     };
   }, [projects, user]);
 
-
-  // Limpiar el historial cuando se cambia de ambiente activo
   useEffect(() => {
     setAmbienteHistory([]);
   }, [activeAmbienteId]);
 
   // Efecto de persistencia y Migración
   useEffect(() => { 
-    // MIGRACIÓN: De Pixels a Metros para posiciones de elementos y textos
     const migratedProjects = projects.map(p => {
+      // Verificación de seguridad por si el proyecto es viejo y no tiene meta
+      if (!p.meta || !p.ambientes) return p;
+
       const newAmbientes = p.ambientes.map(amb => {
+        if (!amb.elementos) return amb;
         const needsMigration = amb.elementos.some(el => (el.paredPos || 0) > 40 || Math.abs(el.x) > 100);
         if (needsMigration) {
-          const esc = p.meta.escala;
+          const esc = p.meta.escala || 50; // default safe scale
           const elementos = amb.elementos.map(el => ({
             ...el,
             x: el.x * esc / 1000,
@@ -145,8 +147,8 @@ export function useProjects() {
   // --- Selectores ---
   
   const activeProject = projects.find(p => p.id === activeProjectId) || null;
-  const activeAmbiente = activeProject?.ambientes.find(a => a.id === activeAmbienteId) 
-    || activeProject?.ambientes[0] 
+  const activeAmbiente = activeProject?.ambientes?.find(a => a.id === activeAmbienteId) 
+    || activeProject?.ambientes?.[0] 
     || null;
 
   // --- Operaciones de Proyecto ---
@@ -164,19 +166,26 @@ export function useProjects() {
   const selectProject = useCallback((id: string) => {
     setActiveProjectId(id);
     const p = projects.find(x => x.id === id);
-    setActiveAmbienteId(p?.ambientes[0]?.id || null);
+    setActiveAmbienteId(p?.ambientes?.[0]?.id || null);
   }, [projects]);
 
-  const handleCreateProject = useCallback(() => {
-    const p = createNewProject();
+    const handleCreateProject = useCallback((clienteId: string) => {
+    const electricistaId = user?.uid || 'local';
+    
+    // CORREGIDO: orden de argumentos (nombre, electricistaId, clienteId)
+    const p = createProjectRemote('Nuevo Proyecto', electricistaId, clienteId);
+    
+    // Agregar ambiente inicial para que el editor tenga algo que mostrar
+    const ambienteInicial = createNewAmbiente('Ambiente 1');
+    p.ambientes = [ambienteInicial];
+    
     if (user) {
-      p.ownerId = user.uid;
-      // Guardado inmediato en la nube para creación
       saveProjectRemote(p).catch(err => console.error("Error saving new project to cloud:", err));
     }
+    
     setProjects(prev => [...prev, p]);
     setActiveProjectId(p.id);
-    setActiveAmbienteId(p.ambientes[0].id);
+    setActiveAmbienteId(ambienteInicial.id); 
     return p;
   }, [user]);
 
@@ -223,11 +232,11 @@ export function useProjects() {
 
   const addAmbiente = useCallback(() => {
     if (!activeProjectId || !activeProject) return;
-    const nuevoAmbiente = createNewAmbiente(`Ambiente ${activeProject.ambientes.length + 1}`);
+    const nuevoAmbiente = createNewAmbiente(`Ambiente ${(activeProject.ambientes?.length || 0) + 1}`);
     
     updateProject(activeProjectId, project => ({
       ...project,
-      ambientes: [...project.ambientes, nuevoAmbiente]
+      ambientes: [...(project.ambientes || []), nuevoAmbiente]
     }));
     setActiveAmbienteId(nuevoAmbiente.id);
   }, [activeProjectId, activeProject, updateProject]);
@@ -310,4 +319,4 @@ export function useProjects() {
     addProject,
     enlazarAberturas
   };
-}
+}
