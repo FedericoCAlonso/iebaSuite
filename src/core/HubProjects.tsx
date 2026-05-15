@@ -7,6 +7,7 @@ import { useProjectsScreen } from '../hooks/useProjectsScreen'
 import { ProjectHeader } from '../components/projects/ProjectHeader'
 import { ProjectConfigDialog } from '../components/shared/ProjectConfigDialog'
 import { SymbolManagerDialog } from '../components/SymbolManagerDialog'
+import { Modal } from '../components/shared/Modal'
 import './HubProjects.css'
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -182,60 +183,44 @@ export function HubProjects() {
         />
       )}
 
-      {showClienteModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--r)',
-            padding: 24, minWidth: 320, maxWidth: 480, width: '90%'
-          }}>
-            <h3 style={{
-              margin: '0 0 16px', fontFamily: 'var(--sans)',
-              fontSize: 16, color: 'var(--text-h)'
-            }}>
-              Asignar cliente al nuevo proyecto
-            </h3>
-
-            <select
-              value={selectedClienteId}
-              onChange={e => setSelectedClienteId(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                marginBottom: 16,
-                borderRadius: 'var(--r)',
-                border: '1px solid var(--border)',
-                background: 'var(--bg2)',
-                color: 'var(--text)',
-                fontFamily: 'var(--sans)',
-                fontSize: 14
-              }}
+      <Modal
+        isOpen={showClienteModal}
+        onClose={() => setShowClienteModal(false)}
+        title="Asignar cliente al nuevo proyecto"
+        footer={
+          <>
+            <button className="btn btn-ghost" onClick={() => setShowClienteModal(false)}>
+              Cancelar
+            </button>
+            <button
+              className="btn btn-acc"
+              onClick={handleConfirmCreate}
+              disabled={!selectedClienteId}
             >
-              {clients.map(c => (
-                <option key={c.id} value={c.id}>{c.razonSocial} — {c.dniCuit}</option>
-              ))}
-            </select>
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowClienteModal(false)}>
-                Cancelar
-              </button>
-              <button
-                className="btn btn-acc btn-sm"
-                onClick={handleConfirmCreate}
-                disabled={!selectedClienteId}
-              >
-                Crear proyecto
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              Crear proyecto
+            </button>
+          </>
+        }
+      >
+        <select
+          value={selectedClienteId}
+          onChange={e => setSelectedClienteId(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: 'var(--r)',
+            border: '1px solid var(--border)',
+            background: 'var(--bg2)',
+            color: 'var(--text)',
+            fontFamily: 'var(--sans)',
+            fontSize: 14
+          }}
+        >
+          {clients.map(c => (
+            <option key={c.id} value={c.id}>{c.razonSocial} — {c.dniCuit}</option>
+          ))}
+        </select>
+      </Modal>
     </div>
   )
 }

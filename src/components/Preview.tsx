@@ -27,7 +27,8 @@ interface PreviewProps {
 
 /** Cursor del área del plano según el tab activo */
 const CURSOR_BY_TAB: Record<EditorTab, string> = {
-  proyecto:   'default',
+  general:    'default',
+  hoja:       'default',
   paredes:    'default',
   aberturas:  'crosshair',
   electrico:  'crosshair',
@@ -39,7 +40,8 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
 
 /** Texto de ayuda en el toolbar según el tab activo */
 const HINT_BY_TAB: Record<EditorTab, string> = {
-  proyecto:  '— Solo lectura —',
+  general:   '— Solo lectura —',
+  hoja:      '— Solo lectura —',
   paredes:   '— Solo lectura —',
   aberturas: 'Tocá una pared para agregar abertura',
   electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
@@ -88,8 +90,8 @@ export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanv
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!ambiente || !meta || !containerRef.current) return;
 
-    // Tabs que no interactúan con el plano
-    if (activeTab === 'proyecto' || activeTab === 'paredes') return;
+        // Tabs que no interactúan con el plano
+    if (activeTab === 'general' || activeTab === 'hoja' || activeTab === 'paredes') return;
 
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
@@ -208,7 +210,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanv
         )}
 
         {/* Toast Helper */}
-        <div className={`toolbar-help ${activeTab !== 'proyecto' && activeTab !== 'paredes' ? 'active' : ''}`}>
+        <div className={`toolbar-help ${activeTab !== 'general' && activeTab !== 'hoja' && activeTab !== 'paredes' ? 'active' : ''}`}>
           {activeTab === 'electrico' ? '⚡ Tocá el plano para insertar' : 
            activeTab === 'aberturas' ? '🚪 Tocá una pared' : ''}
         </div>

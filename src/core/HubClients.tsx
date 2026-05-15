@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useClients } from './ClientContext'
+import { Modal } from '../components/shared/Modal'
 import './HubProjects.css'
 
 export function HubClients() {
@@ -87,71 +88,56 @@ export function HubClients() {
         ))}
       </div>
 
-      {formOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'var(--bg)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--r)',
-            padding: 24, minWidth: 320, maxWidth: 480, width: '90%'
-          }}>
-            <h3 style={{
-              margin: '0 0 16px', fontFamily: 'var(--sans)',
-              fontSize: 16, color: 'var(--text-h)'
-            }}>
-              Nuevo Cliente
-            </h3>
-
-            <form onSubmit={handleSubmit}>
-              <input
-                placeholder="Razón social / Nombre *"
-                value={form.razonSocial}
-                onChange={e => setForm(f => ({ ...f, razonSocial: e.target.value }))}
-                required
-                style={inputStyle}
-              />
-              <input
-                placeholder="DNI / CUIT"
-                value={form.dniCuit}
-                onChange={e => setForm(f => ({ ...f, dniCuit: e.target.value }))}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Teléfono"
-                value={form.telefono}
-                onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Email"
-                type="email"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Domicilio"
-                value={form.domicilio}
-                onChange={e => setForm(f => ({ ...f, domicilio: e.target.value }))}
-                style={inputStyle}
-              />
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setFormOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-acc btn-sm">
-                  Guardar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Modal
+        isOpen={formOpen}
+        onClose={() => setFormOpen(false)}
+        title="Nuevo Cliente"
+        footer={
+          <>
+            <button type="button" className="btn btn-ghost" onClick={() => setFormOpen(false)}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-acc" form="cliente-form">
+              Guardar
+            </button>
+          </>
+        }
+      >
+        <form id="cliente-form" onSubmit={handleSubmit}>
+          <input
+            placeholder="Razón social / Nombre *"
+            value={form.razonSocial}
+            onChange={e => setForm(f => ({ ...f, razonSocial: e.target.value }))}
+            required
+            style={inputStyle}
+          />
+          <input
+            placeholder="DNI / CUIT"
+            value={form.dniCuit}
+            onChange={e => setForm(f => ({ ...f, dniCuit: e.target.value }))}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Teléfono"
+            value={form.telefono}
+            onChange={e => setForm(f => ({ ...f, telefono: e.target.value }))}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Email"
+            type="email"
+            value={form.email}
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Domicilio"
+            value={form.domicilio}
+            onChange={e => setForm(f => ({ ...f, domicilio: e.target.value }))}
+            style={inputStyle}
+          />
+        </form>
+      </Modal>
     </div>
   )
 }

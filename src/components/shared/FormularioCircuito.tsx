@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Modal } from './Modal'
 import type { Circuito, Tablero, TipoCircuito } from '../../types/index'
 
 interface FormularioCircuitoProps {
@@ -66,123 +67,117 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
     onSave(form)
   }
 
+  const puedeGuardar = form.nombre.trim() && form.tableroId
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div style={{
-        background: 'var(--bg)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r)',
-        padding: 24, minWidth: 320, maxWidth: 460, width: '90%'
-      }}>
-        <h3 style={{
-          margin: '0 0 16px', fontFamily: 'var(--sans)',
-          fontSize: 16, color: 'var(--text-h)'
-        }}>
-          {circuitoEdit ? 'Editar Circuito' : 'Nuevo Circuito'}
-        </h3>
-
-        <form onSubmit={handleSubmit}>
-          <label style={labelStyle}>Nombre</label>
-          <input
-            placeholder="Ej: TS1.C1"
-            value={form.nombre}
-            onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-            required
-            style={inputStyle}
-          />
-
-          <label style={labelStyle}>Tipo</label>
-          <select
-            value={form.tipo}
-            onChange={e => setForm(f => ({ ...f, tipo: e.target.value as TipoCircuito }))}
-            style={inputStyle}
+    <Modal
+      isOpen={true}
+      onClose={onCancel}
+      title={circuitoEdit ? 'Editar Circuito' : 'Nuevo Circuito'}
+      footer={
+        <>
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            className="btn btn-acc"
+            form="circuito-form"
+            disabled={!puedeGuardar}
           >
-            {TIPOS_CIRCUITO.map(t => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+            Guardar
+          </button>
+        </>
+      }
+    >
+      <form id="circuito-form" onSubmit={handleSubmit}>
+        <label style={labelStyle}>Nombre</label>
+        <input
+          placeholder="Ej: TS1.C1"
+          value={form.nombre}
+          onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+          required
+          style={inputStyle}
+        />
 
-          <label style={labelStyle}>Tablero</label>
-          <select
-            value={form.tableroId}
-            onChange={e => setForm(f => ({ ...f, tableroId: e.target.value }))}
-            required
-            style={inputStyle}
-          >
-            {tableros.length === 0 && (
-              <option value="" disabled>Sin tableros — creá uno primero</option>
-            )}
-            {tableros.map(t => (
-              <option key={t.id} value={t.id}>{t.nombre} ({t.tipo})</option>
-            ))}
-          </select>
+        <label style={labelStyle}>Tipo</label>
+        <select
+          value={form.tipo}
+          onChange={e => setForm(f => ({ ...f, tipo: e.target.value as TipoCircuito }))}
+          style={inputStyle}
+        >
+          {TIPOS_CIRCUITO.map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Sección (mm²)</label>
-              <input
-                type="number"
-                step="0.5"
-                value={form.seccion}
-                onChange={e => setForm(f => ({ ...f, seccion: parseFloat(e.target.value) || 0 }))}
-                required
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>In (A)</label>
-              <input
-                type="number"
-                value={form.corrienteNominal}
-                onChange={e => setForm(f => ({ ...f, corrienteNominal: parseInt(e.target.value) || 0 }))}
-                style={inputStyle}
-              />
-            </div>
+        <label style={labelStyle}>Tablero</label>
+        <select
+          value={form.tableroId}
+          onChange={e => setForm(f => ({ ...f, tableroId: e.target.value }))}
+          required
+          style={inputStyle}
+        >
+          {tableros.length === 0 && (
+            <option value="" disabled>Sin tableros — creá uno primero</option>
+          )}
+          {tableros.map(t => (
+            <option key={t.id} value={t.id}>{t.nombre} ({t.tipo})</option>
+          ))}
+        </select>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Sección (mm²)</label>
+            <input
+              type="number"
+              step="0.5"
+              value={form.seccion}
+              onChange={e => setForm(f => ({ ...f, seccion: parseFloat(e.target.value) || 0 }))}
+              required
+              style={inputStyle}
+            />
           </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Diferencial (mA)</label>
-              <input
-                type="number"
-                value={form.sensibilidadDR}
-                onChange={e => setForm(f => ({ ...f, sensibilidadDR: parseInt(e.target.value) || 0 }))}
-                style={inputStyle}
-              />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={labelStyle}>Protección</label>
-              <input
-                placeholder="Ej: 16A TM"
-                value={form.proteccion}
-                onChange={e => setForm(f => ({ ...f, proteccion: e.target.value }))}
-                style={inputStyle}
-              />
-            </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>In (A)</label>
+            <input
+              type="number"
+              value={form.corrienteNominal}
+              onChange={e => setForm(f => ({ ...f, corrienteNominal: parseInt(e.target.value) || 0 }))}
+              style={inputStyle}
+            />
           </div>
+        </div>
 
-          <label style={labelStyle}>Descripción</label>
-          <input
-            placeholder="Observaciones del circuito"
-            value={form.descripcion}
-            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-            style={inputStyle}
-          />
-
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancel}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-acc btn-sm" disabled={!form.nombre || !form.tableroId}>
-              Guardar
-            </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Diferencial (mA)</label>
+            <input
+              type="number"
+              value={form.sensibilidadDR}
+              onChange={e => setForm(f => ({ ...f, sensibilidadDR: parseInt(e.target.value) || 0 }))}
+              style={inputStyle}
+            />
           </div>
-        </form>
-      </div>
-    </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Protección</label>
+            <input
+              placeholder="Ej: 16A TM"
+              value={form.proteccion}
+              onChange={e => setForm(f => ({ ...f, proteccion: e.target.value }))}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        <label style={labelStyle}>Descripción</label>
+        <input
+          placeholder="Observaciones del circuito"
+          value={form.descripcion}
+          onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+          style={inputStyle}
+        />
+      </form>
+    </Modal>
   )
 }

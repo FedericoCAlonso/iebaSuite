@@ -4,7 +4,7 @@ import type { SymbolDialogData, ScreenView, EditorTab } from '../types/index';
 export function useUIState() {
   const [screen, setScreen] = useState<ScreenView>('projects');
   const [mobileEditorVisible, setMobileEditorVisible] = useState(true);
-  const [activeTab, setActiveTabRaw] = useState<EditorTab>('proyecto'); 
+  const [activeTab, setActiveTabRaw] = useState<EditorTab>('general'); 
   const [pendingConnectionStart, setPendingConnectionStart] = useState<string | null>(null);
   
   // Modales

@@ -3,6 +3,7 @@ import { EditorLayout } from '../components/editor/EditorLayout';
 import { CreationFlowOverlay } from '../components/editor/CreationFlowOverlay';
 
 // Pestañas (Subcomponentes especializados)
+import { GeneralTab } from '../components/editor/tabs/GeneralTab';
 import { ProjectTab } from '../components/editor/tabs/ProjectTab';
 import { WallsTab } from '../components/editor/tabs/WallsTab';
 import { OpeningTab } from '../components/editor/tabs/OpeningTab';
@@ -70,12 +71,13 @@ export function EditorScreen(props: EditorScreenProps) {
 
   // Configuración visual de las pestañas
   const tabConfig: Record<EditorTab, { label: string, icon: string }> = {
-    proyecto:   { label: 'Proy.', icon: '📋' },
+    general:    { label: 'General', icon: '📋' },
+    hoja:       { label: 'Hoja',    icon: '🏠' },
     paredes:    { label: 'Paredes', icon: '🧱' },
-    aberturas:  { label: 'Abert.', icon: '🚪' },
-    electrico:  { label: 'Bocas', icon: '⚡' },
-    circuitos:  { label: 'Circuit.', icon: '🔌' },
-    conexiones: { label: 'Conex.', icon: '🔗' },
+    aberturas:  { label: 'Abert.',  icon: '🚪' },
+    electrico:  { label: 'Bocas',   icon: '⚡' },
+    circuitos:  { label: 'Circ.',   icon: '🔌' },
+    conexiones: { label: 'Cable.',  icon: '🔗' },
     maestro:    { label: 'Maestro', icon: '🗺️' },
     cobertura:  { label: 'Cobert.', icon: '☂️' }
   };
@@ -111,7 +113,7 @@ export function EditorScreen(props: EditorScreenProps) {
       }
       tabBar={
         <div className="panel-tabs">
-          {(['proyecto', 'paredes', 'aberturas', 'electrico', 'circuitos', 'conexiones', 'maestro', 'cobertura'] as const).map((k) => (
+          {(['general', 'hoja', 'paredes', 'aberturas', 'electrico', 'circuitos', 'conexiones', 'maestro', 'cobertura'] as const).map((k) => (
             <button
               key={k}
               className={`panel-tab ${activeTab === k ? 'active' : ''}`}
@@ -146,7 +148,14 @@ export function EditorScreen(props: EditorScreenProps) {
       />
 
       {/* Renderizado Condicional de Pestañas */}
-      {activeTab === 'proyecto' && (
+      {activeTab === 'general' && (
+        <GeneralTab 
+          project={project}
+          onUpdateProject={onUpdateProject}
+        />
+      )}
+
+      {activeTab === 'hoja' && (
         <ProjectTab 
           project={project}
           activeAmbiente={activeAmbiente}
