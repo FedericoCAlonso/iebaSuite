@@ -1,5 +1,8 @@
 export type SymbolUsage = 'planta' | 'unifilar'
 export type SymbolCategory = 'iluminacion' | 'tomacorrientes' | 'protecciones' | 'tableros' | 'medicion' | 'custom'
+
+export type SymbolId = string;
+
 export interface AnchorPoint {
   x: number
   y: number

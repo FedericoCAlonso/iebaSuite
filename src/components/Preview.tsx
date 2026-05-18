@@ -8,6 +8,7 @@
 
 import React, { useRef, useMemo, useCallback } from 'react';
 import { useZoomPan } from '../hooks/useZoomPan';
+import { useEditorTab } from '../core/EditorTabContext';
 
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
@@ -19,7 +20,6 @@ interface PreviewProps {
   project: Project;
   ambiente: Ambiente;
   meta: Meta;
-  activeTab: EditorTab;
   symbolsLib: DefinicionSimbolo[];
   onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string) => void;
   creationFlow?: { active: boolean; step: string; anchor: any; offsetX: number; offsetY: number };
@@ -27,6 +27,7 @@ interface PreviewProps {
 
 /** Cursor del área del plano según el tab activo */
 const CURSOR_BY_TAB: Record<EditorTab, string> = {
+  resumen:    'default',
   general:    'default',
   hoja:       'default',
   paredes:    'default',
@@ -40,6 +41,7 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
 
 /** Texto de ayuda en el toolbar según el tab activo */
 const HINT_BY_TAB: Record<EditorTab, string> = {
+  resumen:   '— Solo lectura —',
   general:   '— Solo lectura —',
   hoja:      '— Solo lectura —',
   paredes:   '— Solo lectura —',
@@ -51,9 +53,10 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   cobertura: '— Solo lectura —',
 };
 
-export function Preview({ project, ambiente, meta, symbolsLib, activeTab, onCanvasClick, creationFlow }: PreviewProps) {
+export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, creationFlow }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
+  const { activeTab } = useEditorTab();
 
   /**
    * Genera el string SVG. Memorizado para evitar re-renderizados pesados.

@@ -1,0 +1,223 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODULE: screens/SymbolManagerScreen.css
+   Estilos de la herramienta de gestión de símbolos del Hub.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.screen-symbols {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+/* ── Header ── */
+.screen-symbols__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.screen-symbols__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.screen-symbols__title {
+  font-family: var(--sans);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.screen-symbols__subtitle {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text3);
+}
+
+.screen-symbols__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.screen-symbols__search {
+  padding: 8px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-width: 220px;
+  outline: none;
+  transition: border-color .2s;
+}
+
+.screen-symbols__search:focus {
+  border-color: var(--acc);
+}
+
+/* ── Tabs de categoría ── */
+.screen-symbols__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.screen-symbols__tab {
+  padding: 6px 14px;
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+
+.screen-symbols__tab:hover {
+  background: var(--bg2);
+  color: var(--text);
+}
+
+.screen-symbols__tab.active {
+  background: var(--acc-bg);
+  color: var(--acc);
+  border-color: var(--acc-border);
+  font-weight: 600;
+}
+
+/* ── Grid de símbolos ── */
+.screen-symbols__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.symbol-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: all .2s;
+  cursor: default;
+}
+
+.symbol-card:hover {
+  border-color: var(--acc-border);
+  box-shadow: var(--shadow);
+}
+
+.symbol-card__preview {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r);
+  background: #fff;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.symbol-card__meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.symbol-card__name {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.symbol-card__tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.symbol-card__tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.symbol-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.symbol-card:hover .symbol-card__actions {
+  opacity: 1;
+}
+
+/* ── Empty state ── */
+.screen-symbols__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  color: var(--text3);
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .screen-symbols {
+    padding: 16px;
+  }
+
+  .screen-symbols__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .screen-symbols__header-right {
+    width: 100%;
+  }
+
+  .screen-symbols__search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .screen-symbols__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .symbol-card__actions {
+    opacity: 1;
+  }
+}

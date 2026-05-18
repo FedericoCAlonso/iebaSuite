@@ -6,12 +6,31 @@ const tools = [
   {
     path: '/proyectos',
     label: 'Relevador de Planta',
-
     icon: '📐',
     descripcion: 'Planos paramétricos de instalaciones eléctricas',
     disponible: true,
   },
-
+  {
+    path: '/simbolos',
+    label: 'Biblioteca de Símbolos',
+    icon: '🔣',
+    descripcion: 'Gestionar símbolos eléctricos personalizados',
+    disponible: true,
+  },
+  {
+    path: '/mediciones',
+    label: 'Mediciones',
+    icon: '📏',
+    descripcion: 'Puesta a tierra, diferenciales, continuidad, lazo, aislación, etc.',
+    disponible: true,
+  },
+  {
+    path: '/perfil',
+    label: 'Perfil Profesional',
+    icon: '👤',
+    descripcion: 'Datos del electricista, matrículas e instrumentos',
+    disponible: true,
+  },
   {
     path: '/srt',
     label: 'SRT 900/15',
@@ -65,4 +84,3 @@ export function HubHome() {
     </div>
   )
 }
-

@@ -9,6 +9,9 @@ import { HubProjects } from './HubProjects'
 import { HubClients } from './HubClients'
 import { DummyTool } from './DummyTool'
 import { LoginScreen } from './LoginScreen'
+import { SymbolManagerScreen } from '../screens/SymbolManagerScreen'
+import { MeasurementScreen } from '../screens/MeasurementScreen'
+import { ProfileScreen } from '../screens/ProfileScreen'
 import { RelevadorTool } from '../features/relevador/RelevadorTool'
 import { UnifilarTool } from '../features/relevador/UnifilarTool'
 import { ProjectProvider } from './ProjectContext'
@@ -51,6 +54,9 @@ function HubRoutes() {
         <Route index element={<HubHome />} />
         <Route path="proyectos" element={<HubProjects />} />
         <Route path="clientes" element={<HubClients />} />
+        <Route path="simbolos" element={<SymbolManagerScreen />} />
+        <Route path="mediciones" element={<MeasurementScreen />} />
+        <Route path="perfil" element={<ProfileScreen />} />
 
         <Route path="proyecto/:projectId" element={<ProjectProvider><Outlet /></ProjectProvider>}>
           <Route path="relevador" element={<RelevadorTool />} />

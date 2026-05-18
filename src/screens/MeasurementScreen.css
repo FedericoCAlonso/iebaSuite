@@ -1,0 +1,241 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODULE: screens/MeasurementScreen.css
+   Estilos de la herramienta consolidada de mediciones eléctricas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.screen-measurements {
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+/* ── Header ── */
+.screen-measurements__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.screen-measurements__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.screen-measurements__title {
+  font-family: var(--sans);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.screen-measurements__subtitle {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text3);
+}
+
+.screen-measurements__header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.screen-measurements__project-select {
+  padding: 8px 12px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  min-width: 240px;
+  outline: none;
+}
+
+/* ── Tabs ── */
+.screen-measurements__tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.screen-measurements__tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+
+.screen-measurements__tab:hover {
+  background: var(--bg2);
+  color: var(--text);
+}
+
+.screen-measurements__tab.active {
+  background: var(--acc-bg);
+  color: var(--acc);
+  border-color: var(--acc-border);
+  font-weight: 600;
+}
+
+.screen-measurements__tab-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: #fff;
+  margin-left: 2px;
+}
+
+/* ── Lista de mediciones ── */
+.measurement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.measurement-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  transition: all .2s;
+}
+
+.measurement-card:hover {
+  border-color: var(--acc-border);
+  box-shadow: var(--shadow);
+}
+
+.measurement-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.measurement-card__type {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.measurement-card__result {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.measurement-card__body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 16px;
+}
+
+.measurement-card__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.measurement-card__label {
+  font-size: 11px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.measurement-card__value {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.measurement-card__actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.measurement-card:hover .measurement-card__actions {
+  opacity: 1;
+}
+
+/* ── Formulario ── */
+.measurement-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+}
+
+@media (max-width: 600px) {
+  .measurement-form__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Empty state ── */
+.screen-measurements__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  color: var(--text3);
+  text-align: center;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .screen-measurements {
+    padding: 16px;
+  }
+
+  .screen-measurements__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .screen-measurements__header-right {
+    width: 100%;
+  }
+
+  .screen-measurements__project-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .measurement-card__actions {
+    opacity: 1;
+  }
+}

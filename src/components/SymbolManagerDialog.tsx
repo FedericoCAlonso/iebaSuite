@@ -6,6 +6,7 @@ import React, { useRef, useState } from 'react';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import { saveSymbols } from '../lib/symbols';
 import { F } from './Field';
+import { parseSvgFileContent } from '../utils/svgParser';
 
 interface SymbolManagerDialogProps {
   symbolsLib: DefinicionSimbolo[];
@@ -26,25 +27,8 @@ export function SymbolManagerDialog({ symbolsLib, onUpdate, onClose }: SymbolMan
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result;
-      if (typeof content === 'string') {
-        let svgInner = content;
-        try {
-          // Parsear SVG robustamente para ignorar metadatos (Inkscape, defs, etc)
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(content, "image/svg+xml");
-          const svgNode = doc.querySelector('svg');
-          if (svgNode) {
-            const removeSelectors = ['metadata', 'defs', 'title', 'desc', 'style', '[id^="sodipodi"]', '[id^="inkscape"]'];
-            removeSelectors.forEach(sel => {
-              svgNode.querySelectorAll(sel).forEach(el => el.remove());
-            });
-            svgInner = svgNode.innerHTML;
-          }
-        } catch(e) {
-          console.warn("Fallo al parsear SVG, usando regex de respaldo.");
-          const match = content.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-          if (match) svgInner = match[1];
-        }
+            if (typeof content === 'string') {
+        const svgInner = parseSvgFileContent(content);
 
         // Preparar nuevo símbolo
         const newId = `sym-custom-${Date.now()}`;

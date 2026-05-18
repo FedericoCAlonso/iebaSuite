@@ -22,6 +22,14 @@ export interface Instrumento {
   marca: string
   modelo: string
   nroSerie: string
+  calibracion?: {
+    certificadoNro: string
+    fechaEmision: number
+    fechaVencimiento: number
+    laboratorio: string
+    alcance: string
+    adjuntoPath?: string      // URL de Storage si se sube PDF
+  }
 }
 
 export interface Electricista extends AppUser {

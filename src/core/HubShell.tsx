@@ -6,6 +6,9 @@ const mainTools = [
   { path: '/',            label: 'Inicio',          icon: '⊞' },
   { path: '/proyectos',   label: 'Proyectos',       icon: '📐' },
   { path: '/clientes',    label: 'Clientes',        icon: '🤝' },
+  { path: '/simbolos',    label: 'Símbolos',        icon: '🔣' },
+  { path: '/mediciones',  label: 'Mediciones',      icon: '📏' },
+  { path: '/perfil',      label: 'Perfil',          icon: '👤' },
 ]
 
 const projectTools = (id: string) => [

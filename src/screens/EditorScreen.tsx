@@ -12,9 +12,11 @@ import { CircuitsTab } from '../components/editor/tabs/CircuitsTab';
 import { ConnectionsTab } from '../components/editor/tabs/ConnectionsTab';
 import { CoverageTab } from '../components/editor/tabs/CoverageTab';
 import { MasterConfigTab } from '../components/editor/tabs/MasterConfigTab';
+import { ResumenTab } from '../components/editor/tabs/ResumenTab';
 
 // Hooks y Lógica
 import { useEditorState } from '../hooks/useEditorState';
+import { useEditorTab } from '../core/EditorTabContext';
 
 // Tipos
 import {
@@ -26,9 +28,7 @@ interface EditorScreenProps {
   project: Project;
   activeAmbiente: Ambiente;
   activeAmbienteId: string;
-  activeTab: EditorTab;
   symbolsLib: import('../lib/symbols').DefinicionSimbolo[];
-  onTabChange: (tab: EditorTab) => void;
   onUpdateMeta: (meta: Project['meta']) => void;
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
   onUpdateProject: (fn: (p: Project) => Project) => void;
@@ -49,9 +49,7 @@ export function EditorScreen(props: EditorScreenProps) {
     project, 
     activeAmbiente, 
     activeAmbienteId, 
-    activeTab, 
     symbolsLib, 
-    onTabChange, 
     onUpdateAmbiente, 
     onUpdateProject, 
     onAddAmbiente, 
@@ -60,6 +58,8 @@ export function EditorScreen(props: EditorScreenProps) {
     onSymbolDialog, 
     onShowNetlist 
   } = props;
+
+  const { activeTab, setActiveTab } = useEditorTab();
 
   // Extraemos toda la lógica de estado y cálculos pesados al Custom Hook
   const state = useEditorState(
@@ -71,6 +71,7 @@ export function EditorScreen(props: EditorScreenProps) {
 
   // Configuración visual de las pestañas
   const tabConfig: Record<EditorTab, { label: string, icon: string }> = {
+    resumen:    { label: 'Resumen', icon: '📊' },
     general:    { label: 'General', icon: '📋' },
     hoja:       { label: 'Hoja',    icon: '🏠' },
     paredes:    { label: 'Paredes', icon: '🧱' },
@@ -113,11 +114,11 @@ export function EditorScreen(props: EditorScreenProps) {
       }
       tabBar={
         <div className="panel-tabs">
-          {(['general', 'hoja', 'paredes', 'aberturas', 'electrico', 'circuitos', 'conexiones', 'maestro', 'cobertura'] as const).map((k) => (
+          {(['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'electrico', 'circuitos', 'conexiones', 'maestro', 'cobertura'] as const).map((k) => (
             <button
               key={k}
               className={`panel-tab ${activeTab === k ? 'active' : ''}`}
-              onClick={() => onTabChange(k)}
+              onClick={() => setActiveTab(k)}
             >
               <span style={{ fontSize: 16 }}>{tabConfig[k].icon}</span>
               <span>{tabConfig[k].label}</span>
@@ -148,6 +149,13 @@ export function EditorScreen(props: EditorScreenProps) {
       />
 
       {/* Renderizado Condicional de Pestañas */}
+      {activeTab === 'resumen' && (
+        <ResumenTab
+          project={project}
+          activeAmbiente={activeAmbiente}
+        />
+      )}
+
       {activeTab === 'general' && (
         <GeneralTab 
           project={project}
@@ -230,3 +238,4 @@ export function EditorScreen(props: EditorScreenProps) {
     </EditorLayout>
   );
 }
+

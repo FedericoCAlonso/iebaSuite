@@ -1,0 +1,142 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODULE: screens/ProfileScreen.css
+   Estilos de la pantalla de perfil del profesional.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.screen-profile {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: 100%;
+}
+
+/* ── Header ── */
+.screen-profile__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.screen-profile__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.screen-profile__title {
+  font-family: var(--sans);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.screen-profile__subtitle {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text3);
+}
+
+/* ── Secciones ── */
+.screen-profile__section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.screen-profile__section:last-child {
+  border-bottom: none;
+}
+
+.screen-profile__section-title {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.screen-profile__hint {
+  font-size: 13px;
+  color: var(--text3);
+  margin: 0 0 12px;
+}
+
+/* ── Grid de campos ── */
+.screen-profile__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+}
+
+@media (max-width: 600px) {
+  .screen-profile__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Filas dinámicas (matrículas / instrumentos) ── */
+.screen-profile__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .screen-profile__row {
+    grid-template-columns: 1fr 1fr auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .screen-profile__row {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* ── Instrumento card ── */
+.screen-profile__instruments {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.instrument-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  background: var(--bg-card);
+}
+
+.instrument-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.instrument-card__calibracion {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .screen-profile {
+    padding: 16px;
+  }
+
+  .screen-profile__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

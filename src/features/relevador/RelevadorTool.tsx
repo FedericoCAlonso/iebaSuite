@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useCurrentProject } from '../../core/ProjectContext'
 import { useSymbols } from '../../core/SymbolsContext'
+import { EditorTabProvider } from '../../core/EditorTabContext'
 import { AppHeader } from '../../components/AppHeader'
 import { EditorScreen } from '../../screens/EditorScreen'
 import { Preview } from '../../components/Preview'
@@ -37,51 +38,55 @@ export function RelevadorTool() {
 
       <main className="main-content">
         <div className="workspace">
-          {ui.activeTab === 'maestro' ? (
-            <MasterView
-              project={activeProject}
-              symbolsLib={symbolsLib}
-              onUpdateAmbiente={(id, fn) => updateProject(
-                activeProject.id,
-                p => ({ ...p, ambientes: p.ambientes.map(a => a.id === id ? fn(a) : a) })
-              )}
-              onUpdateProject={(fn) => updateProject(activeProject.id, fn)}
-              onSelectAmbiente={setActiveAmbienteId}
-              onTabChange={ui.setActiveTab}
-            />
+          {!activeAmbiente || !activeAmbienteId ? (
+            <div className="empty" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Cargando ambiente...
+            </div>
           ) : (
-            <>
-              <div className={`panel-left ${ui.mobileEditorVisible ? 'mobile-visible' : ''}`}>
-                <EditorScreen
+            <EditorTabProvider activeTab={ui.activeTab} setActiveTab={ui.setActiveTab}>
+              {ui.activeTab === 'maestro' ? (
+                <MasterView
                   project={activeProject}
-                  activeAmbiente={activeAmbiente!}
-                  activeAmbienteId={activeAmbienteId!}
-                  activeTab={ui.activeTab}
-                  onTabChange={ui.setActiveTab}
                   symbolsLib={symbolsLib}
-                  onUpdateMeta={(meta: any) => updateProject(
-                    activeProject.id, (p: any) => ({ ...p, meta })
+                  onUpdateAmbiente={(id, fn) => updateProject(
+                    activeProject.id,
+                    p => ({ ...p, ambientes: p.ambientes.map(a => a.id === id ? fn(a) : a) })
                   )}
-                  onUpdateAmbiente={updateAmbiente}
-                  onUpdateProject={(fn: any) => updateProject(activeProject.id, fn)}
-                  onAddAmbiente={addAmbiente}
-                  onDeleteAmbiente={deleteAmbiente}
+                  onUpdateProject={(fn) => updateProject(activeProject.id, fn)}
                   onSelectAmbiente={setActiveAmbienteId}
-                  onSymbolDialog={ui.modals.setSymDialog}
-                  onShowNetlist={() => ui.modals.setShowNetlist(true)}
                 />
-              </div>
-              <div className="panel-right">
-                <Preview
-                  project={activeProject}
-                  ambiente={activeAmbiente!}
-                  meta={activeProject.meta}
-                  activeTab={ui.activeTab}
-                  symbolsLib={symbolsLib}
-                  onCanvasClick={actions.handleCanvasClick}
-                />
-              </div>
-            </>
+              ) : (
+                <>
+                  <div className={`panel-left ${ui.mobileEditorVisible ? 'mobile-visible' : ''}`}>
+                    <EditorScreen
+                      project={activeProject}
+                      activeAmbiente={activeAmbiente}
+                      activeAmbienteId={activeAmbienteId}
+                      symbolsLib={symbolsLib}
+                      onUpdateMeta={(meta: any) => updateProject(
+                        activeProject.id, (p: any) => ({ ...p, meta })
+                      )}
+                      onUpdateAmbiente={updateAmbiente}
+                      onUpdateProject={(fn: any) => updateProject(activeProject.id, fn)}
+                      onAddAmbiente={addAmbiente}
+                      onDeleteAmbiente={deleteAmbiente}
+                      onSelectAmbiente={setActiveAmbienteId}
+                      onSymbolDialog={ui.modals.setSymDialog}
+                      onShowNetlist={() => ui.modals.setShowNetlist(true)}
+                    />
+                  </div>
+                  <div className="panel-right">
+                    <Preview
+                      project={activeProject}
+                      ambiente={activeAmbiente}
+                      meta={activeProject.meta}
+                      symbolsLib={symbolsLib}
+                      onCanvasClick={actions.handleCanvasClick}
+                    />
+                  </div>
+                </>
+              )}
+            </EditorTabProvider>
           )}
         </div>
       </main>
