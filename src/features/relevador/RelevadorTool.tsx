@@ -1,14 +1,20 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentProject } from '../../core/ProjectContext'
 import { useSymbols } from '../../core/SymbolsContext'
 import { EditorTabProvider } from '../../core/EditorTabContext'
 import { AppHeader } from '../../components/AppHeader'
-import { EditorScreen } from '../../screens/EditorScreen'
-import { Preview } from '../../components/Preview'
-import { MasterView } from '../../components/MasterView'
+import { EditorScreen } from './EditorScreen'
+import { Preview } from './components/Preview'
+import { MasterView } from './components/MasterView'
+import type { Project, EditorTab } from '../../types/index'
+
+const PLANTA_TABS = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'maestro', 'cobertura'] as const
+const ELECTRICO_TABS = ['resumen', 'electrico', 'circuitos', 'conexiones'] as const
 
 export function RelevadorTool() {
   const navigate = useNavigate()
+  const [editorMode, setEditorMode] = useState<'planta' | 'electrico'>('planta')
   const { symbolsLib } = useSymbols()
   const { 
     activeProject,
@@ -25,13 +31,37 @@ export function RelevadorTool() {
     actions
   } = useCurrentProject()
 
+  const handleModeChange = (next: 'planta' | 'electrico') => {
+    setEditorMode(next)
+    const valid = next === 'planta' ? PLANTA_TABS : ELECTRICO_TABS
+    if (!(valid as readonly string[]).includes(ui.activeTab)) {
+      ui.setActiveTab(valid[0] as EditorTab)
+    }
+  }
+
+  const isPlanta = editorMode === 'planta'
+  const showMasterView = isPlanta && ui.activeTab === 'maestro'
+
+  const modeSelector = (
+    <select
+      value={editorMode}
+      onChange={e => handleModeChange(e.target.value as 'planta' | 'electrico')}
+      style={{ fontSize: 12, padding: '1px 4px', marginLeft: 6 }}
+    >
+      <option value="planta">🏗️ Planta</option>
+      <option value="electrico">⚡ Eléctrico</option>
+    </select>
+  )
+
   return (
     <div className="app tool-relevador">
       <AppHeader
         screen="editor"
         activeProject={activeProject}
+        activeAmbienteName={activeAmbiente?.nombre}
         canUndo={canUndo}
-        onGoHome={() => navigate('/proyectos')}
+        modeSelector={modeSelector}
+        onGoHome={() => navigate('/')}
         onUndo={undoAmbiente}
         onShowExport={() => ui.modals.setShowExport(true)}
       />
@@ -44,7 +74,7 @@ export function RelevadorTool() {
             </div>
           ) : (
             <EditorTabProvider activeTab={ui.activeTab} setActiveTab={ui.setActiveTab}>
-              {ui.activeTab === 'maestro' ? (
+              {showMasterView ? (
                 <MasterView
                   project={activeProject}
                   symbolsLib={symbolsLib}
@@ -59,15 +89,16 @@ export function RelevadorTool() {
                 <>
                   <div className={`panel-left ${ui.mobileEditorVisible ? 'mobile-visible' : ''}`}>
                     <EditorScreen
+                      mode={editorMode}
                       project={activeProject}
                       activeAmbiente={activeAmbiente}
                       activeAmbienteId={activeAmbienteId}
                       symbolsLib={symbolsLib}
-                      onUpdateMeta={(meta: any) => updateProject(
-                        activeProject.id, (p: any) => ({ ...p, meta })
+                      onUpdateMeta={(meta: Project['meta']) => updateProject(
+                        activeProject.id, (p: Project) => ({ ...p, meta })
                       )}
                       onUpdateAmbiente={updateAmbiente}
-                      onUpdateProject={(fn: any) => updateProject(activeProject.id, fn)}
+                      onUpdateProject={(fn: (p: Project) => Project) => updateProject(activeProject.id, fn)}
                       onAddAmbiente={addAmbiente}
                       onDeleteAmbiente={deleteAmbiente}
                       onSelectAmbiente={setActiveAmbienteId}
@@ -90,8 +121,6 @@ export function RelevadorTool() {
           )}
         </div>
       </main>
-
-      {/* AppModals y Toast se renderizan ahora desde el ProjectProvider */}
 
       <button
         className="mobile-view-toggle"

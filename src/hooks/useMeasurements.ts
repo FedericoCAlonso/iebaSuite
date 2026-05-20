@@ -11,6 +11,8 @@ import type { Measurement, MeasurementBase } from '../types/index';
 
 const STORAGE_KEY = 'ieba_measurements_v1';
 
+
+
 export const MEDICION_LABELS: Record<Measurement['moduleType'], { label: string; icon: string; unidadDefault: string; campos: string[] }> = {
   puesta_tierra: {
     label: 'Puesta a tierra',
@@ -48,23 +50,12 @@ export const MEDICION_LABELS: Record<Measurement['moduleType'], { label: string;
     unidadDefault: 'MΩ',
     campos: ['Resistencia (MΩ)', 'Tensión prueba (V)', 'Temp. ambiente (°C)', 'Humedad relativa (%)'],
   },
-  termografia: {
-    label: 'Termografía',
-    icon: '🌡️',
-    unidadDefault: '°C',
-    campos: ['Temperatura (°C)', 'ΔT ambiente (°C)', 'Emisividad'],
-  },
+
   calidad_potencia: {
     label: 'Calidad de potencia',
     icon: '📊',
     unidadDefault: '%',
     campos: ['THD V (%)', 'THD I (%)', 'Factor de potencia', 'Tensión (V)', 'Corriente (A)'],
-  },
-  srt_boca: {
-    label: 'SRT boca a boca',
-    icon: '🔌',
-    unidadDefault: '-',
-    campos: ['Resultado', 'Observaciones'],
   },
 };
 

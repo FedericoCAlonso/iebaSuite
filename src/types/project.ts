@@ -17,9 +17,11 @@ export interface Inmueble {
 }
 
 export interface Suministro {
-  tension: number            // V
-  fases: 1 | 2 | 3
-  potenciaContratada?: number  // kW
+  tension?: number            // V
+  fases?: 1 | 3
+  potenciaContratadaKW?: number  // kW
+  nroMedidor?: string
+  distribuidora?: string
   medidorId?: string
   categoriaTarifa?: string
 }
@@ -29,14 +31,17 @@ export interface Suministro {
 export interface Project {
   // Campos del nuevo modelo relacional
   id: string
-  clienteId: string
-  electricistaId: string
   nombre: string
-  estado: ProjectEstado
-  inmueble: Inmueble
-  suministro: Suministro
   createdAt: number
   updatedAt: number
+
+  // Relacional / config (mínimos campos obligatorios)
+  clienteId?: string
+  electricistaId?: string
+  estado?: ProjectEstado
+  sistemaDistribucion?: 'TT' | 'IT' | 'TN-S' | 'TN-C' | 'TN-C-S'
+  inmueble?: Inmueble
+  suministro?: Suministro
 
   // Campos legacy del modelo plano (mantenidos para compatibilidad)
   meta: Meta
@@ -47,6 +52,10 @@ export interface Project {
   hojasMaestras?: HojaMaestra[]
   ownerId?: string
   sharedWith?: string[]
+
+  // Nuevas entidades
+  diferenciales?: Diferencial[]
+  tramos?: TramoConductor[]
 }
 
 export interface HojaMaestra {
@@ -67,10 +76,14 @@ export interface Circuito {
   tipo: TipoCircuito;
   tableroId: string;           // ID del tablero al que pertenece (obligatorio)
   seccion: number;             // Sección del conductor en mm²
-  material?: 'cobre' | 'aluminio';
-  aislacion?: string;          // Tipo de aislamiento (ej: "PVC", "XLPE")
+  material?: 'cobre' | 'aluminio';               // default 'cobre'
+  aislacion?: 'PVC' | 'XLPE' | 'EPR';            // default 'PVC'
+  metodoInstalacion?: 'A1'|'A2'|'B1'|'B2'|'C'|'D'|'E'|'F'|'G';
+  temperaturaAmbiente?: number;                  // °C, default 30
+  longitudDeclarada?: number;                    // metros, prioridad sobre calculada
+  caidaTensionMax?: number;                      // %, default 3
+  curvaDisparo?: 'B' | 'C' | 'D';
   proteccion?: string;         // Legacy: Ej: "10A TM"
-  curvaDisparo?: string;       // Curva térmica/magnética (ej: "C", "D")
   corrienteNominal?: number;   // In del protector en A
   sensibilidadDR?: number;     // mA del diferencial (30, 300, etc.)
   cantConductores?: number;    // Cantidad de conductores activos (default: 2)
@@ -89,6 +102,33 @@ export interface Tablero {
   ubicacion?: string;
   elementoId?: string;         // ID del ElementoElectrico que lo representa
   ambienteId?: string;         // ID del Ambiente donde está físicamente
+  factorSimultaneidad?: number; // default 1.0, editable por el proyectista
+  diferencialesIds?: string[];   // IDs de diferenciales instalados en este tablero
+}
+
+// ─── DIFERENCIAL ───
+
+export interface Diferencial {
+  id: string;
+  tableroId: string;
+  sensibilidadMA: 10 | 30 | 100 | 300 | 500;
+  tipo: 'AC' | 'A' | 'F' | 'B' | 'S' | 'G';
+  inominalA: number;
+  polos: 2 | 4;
+  circuitosIds: string[];       // circuitos que protege
+  descripcion?: string;
+}
+
+// ─── TRAMO CONDUCTOR ───
+
+export interface TramoConductor {
+  id: string;
+  conexionId: string;
+  tipo: 'auto' | 'manual' | 'interhoja';
+  longitudAuto?: number;        // calculada desde coordenadas, solo si mismo ambiente
+  longitudManual?: number;      // ingresada por usuario
+  longitudEfectiva: number;      // manual tiene prioridad sobre auto
+  descripcion?: string;         // ej: "bajada desde techo", "cruce de jardín"
 }
 
 // ─── CONEXIONES (NETLIST) ───

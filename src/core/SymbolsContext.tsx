@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import {
-  loadSymbolsAsync,
+  getDefaultSymbolsSync,
+  getDefaultCategoriesSync,
+  loadCustomSymbolsFromStorage,
   saveSymbols,
-  fetchSymbolsFile,
   type SymbolCategory,
   type DefinicionSimbolo
 } from '../lib/symbols';
@@ -12,7 +13,6 @@ import { useAuth } from './AuthContext';
 interface SymbolsContextType {
   symbolsLib: DefinicionSimbolo[];
   categoriesLib: SymbolCategory[];
-  isLoadingSymbols: boolean;
   setSymbolsLib: (newLibrary: DefinicionSimbolo[]) => void;
 }
 
@@ -20,67 +20,54 @@ const SymbolsContext = createContext<SymbolsContextType | undefined>(undefined);
 
 export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [symbolsLib, setSymbolsLibState] = useState<DefinicionSimbolo[]>([]);
-  const [categoriesLib, setCategoriesLib] = useState<SymbolCategory[]>([]);
-  const [isLoadingSymbols, setIsLoadingSymbols] = useState(true);
 
-  // Carga inicial (Offline / Fallback)
-  useEffect(() => {
-    async function initLoad() {
-      try {
-        const [localSymbols, symbolsFileData] = await Promise.all([
-          loadSymbolsAsync(),
-          fetchSymbolsFile()
-        ]);
-        setSymbolsLibState(localSymbols);
-        setCategoriesLib(symbolsFileData.categories);
-      } catch (error) {
-        console.error("Error en carga inicial de símbolos:", error);
-      } finally {
-        if (!user) setIsLoadingSymbols(false);
-      }
-    }
-    initLoad();
-  }, [user]);
+  // Inicialización síncrona: símbolos estándar del bundle + custom locales
+  const [symbolsLib, setSymbolsLibState] = useState<DefinicionSimbolo[]>(() => {
+    const defaults = getDefaultSymbolsSync();
+    const custom = loadCustomSymbolsFromStorage();
+    return [...defaults, ...custom];
+  });
 
-  // Sincronización con la nube cuando el usuario se autentica
+  const [categoriesLib] = useState<SymbolCategory[]>(() => getDefaultCategoriesSync());
+
+  // Sincronización con la nube cuando el usuario se autentica — en segundo plano, sin bloquear
   useEffect(() => {
     if (!user) return;
 
+    const uid = user.uid;
+    let cancelled = false;
+
     async function syncSymbols() {
-      setIsLoadingSymbols(true);
       try {
-        const [customSymbols, symbolsFileData] = await Promise.all([
-          loadCustomSymbolsRemote(user?.uid ?? ''),
-          fetchSymbolsFile()
-        ]);
+        const customSymbols = await loadCustomSymbolsRemote(uid);
+        if (cancelled) return;
 
-        const defaultSymbols = symbolsFileData.symbols;
-        setCategoriesLib(symbolsFileData.categories);
+        const defaultIds = new Set(getDefaultSymbolsSync().map(s => s.id));
+        const merged = [
+          ...getDefaultSymbolsSync(),
+          ...customSymbols.filter(s => !defaultIds.has(s.id))
+        ];
 
-        // Mezclar símbolos por defecto con los personalizados de la nube
-        const mergedSymbols = [...defaultSymbols, ...customSymbols];
-        setSymbolsLibState(mergedSymbols);
-
-        // Backup local
-        saveSymbols(mergedSymbols);
+        setSymbolsLibState(merged);
+        saveSymbols(merged);
       } catch (error) {
         console.error("Error al sincronizar símbolos con la nube:", error);
-      } finally {
-        setIsLoadingSymbols(false);
       }
     }
 
     syncSymbols();
+
+    return () => { cancelled = true; };
   }, [user]);
 
   const updateSymbols = useCallback((newLibrary: DefinicionSimbolo[]) => {
     setSymbolsLibState(newLibrary);
     saveSymbols(newLibrary);
 
-    if (user) {
+    const uid = user?.uid;
+    if (uid) {
       const customOnly = newLibrary.filter(s => s.id.startsWith('sym-custom-'));
-      saveCustomSymbolsRemote(user.uid, customOnly).catch(console.error);
+      saveCustomSymbolsRemote(uid, customOnly).catch(console.error);
     }
   }, [user]);
 
@@ -88,7 +75,6 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <SymbolsContext.Provider value={{
       symbolsLib,
       categoriesLib,
-      isLoadingSymbols,
       setSymbolsLib: updateSymbols
     }}>
       {children}

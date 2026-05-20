@@ -1,6 +1,6 @@
 // src/hooks/useProjectInstallacion.ts
 import { useCallback } from 'react'
-import { useCurrentProject } from '../core/ProjectContextCore'
+import { useCurrentProject } from '../core/ProjectContext'
 import { generateId } from '../lib/storage'
 import type { Circuito, Tablero } from '../types/index'
 

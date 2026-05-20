@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Modal } from './Modal'
+import { Modal } from '../../ui/Modal';
 import type { Circuito, Tablero, TipoCircuito } from '../../types/index'
 
 interface FormularioCircuitoProps {

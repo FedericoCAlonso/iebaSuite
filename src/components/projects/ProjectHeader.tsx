@@ -1,8 +1,6 @@
 import React from 'react';
 
 interface ProjectHeaderProps {
-  /** Acción para gestionar la librería de símbolos */
-  onManageSymbols: () => void;
   /** Acción para disparar el flujo de importación */
   onImport: () => void;
   /** Acción para crear un nuevo proyecto */
@@ -17,7 +15,6 @@ interface ProjectHeaderProps {
  * Encabezado de la pantalla de proyectos con acciones globales.
  */
 export const ProjectHeader: React.FC<ProjectHeaderProps> = ({ 
-  onManageSymbols, 
   onImport, 
   onCreate, 
   fileRef, 
@@ -29,18 +26,12 @@ export const ProjectHeader: React.FC<ProjectHeaderProps> = ({
       <div className="header-actions">
         <button 
           className="btn btn-ghost btn-sm" 
-          onClick={onManageSymbols}
-        >
-          ⚙️ Símbolos
-        </button>
-        <button 
-          className="btn btn-ghost btn-sm" 
           onClick={onImport}
         >
           ↑ Importar
         </button>
         <button 
-          className="btn btn-acc btn-sm" 
+          className="btn btn-acc btn-sm"
           onClick={onCreate}
         >
           + Nuevo Proyecto
@@ -58,3 +49,4 @@ export const ProjectHeader: React.FC<ProjectHeaderProps> = ({
     </div>
   );
 };
+

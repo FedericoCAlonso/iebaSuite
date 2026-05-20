@@ -14,7 +14,6 @@ import type {
   Pared, 
   Abertura, 
   ElementoElectrico, 
-  SymbolId,
   TextoPlano,
   Circuito,
   Tablero,
@@ -159,12 +158,12 @@ export const createAbertura = (overide: Partial<Abertura> = {}): Abertura => ({
 
 /**
  * Crea un elemento eléctrico.
- * @param tipo ID del símbolo (SymbolId).
+ * @param tipo ID del símbolo (string).
  * @param x Posición X inicial (si es libre).
  * @param y Posición Y inicial (si es libre).
  */
 export const createElemento = (
-  tipo: SymbolId, 
+  tipo: string, 
   x = 0, 
   y = 0
 ): ElementoElectrico => ({
@@ -202,6 +201,10 @@ export const createCircuito = (overide: Partial<Circuito> = {}): Circuito => ({
   tipo: 'TUG' as TipoCircuito,
   tableroId: '',
   seccion: 2.5,
+  material: 'cobre',
+  aislacion: 'PVC',
+  temperaturaAmbiente: 30,
+  caidaTensionMax: 3,
   proteccion: '16A TM',
   cantConductores: 2,
   conducto: 'PVC 20mm',
@@ -216,6 +219,8 @@ export const createTablero = (overide: Partial<Tablero> = {}): Tablero => ({
   id: generateId(),
   nombre: 'TS1',
   tipo: 'seccional',
+  factorSimultaneidad: 1.0,
+  diferencialesIds: [],
   ...overide
 });
 

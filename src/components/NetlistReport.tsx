@@ -2,7 +2,7 @@
 // MODULE: components/NetlistReport.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { Modal } from './shared/Modal';
+import { Modal } from '../ui/Modal';
 import type { Ambiente, ElementoElectrico, Project } from '../types/index';
 
 interface NetlistReportProps {

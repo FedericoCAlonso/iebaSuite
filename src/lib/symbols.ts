@@ -1,9 +1,11 @@
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MODULE: symbols.ts
 // Librería dinámica de símbolos eléctricos. Reemplaza los símbolos hardcodeados.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import type { SymbolId } from '../types/index';
+import symbolsFileData from '../../public/symbols.json';
+import type { ModuleType } from '../types/index';
 
 export interface SymbolCategory {
   id: string;
@@ -11,7 +13,7 @@ export interface SymbolCategory {
 }
 
 export interface DefinicionSimbolo {
-  id: SymbolId;
+  id: string;
   label: string;
   /** 
    * SVG path u otros elementos gráficos asumiendo un espacio normalizado
@@ -27,6 +29,8 @@ export interface DefinicionSimbolo {
   uso?: 'planta' | 'unifilar';
   /** Categoría para filtrado */
   categoria?: string;
+  /** Tipo de medición asociada a este símbolo, si la hubiera */
+  medicionAsociada?: ModuleType;
 }
 
 export interface SymbolsFile {
@@ -34,12 +38,23 @@ export interface SymbolsFile {
   symbols: DefinicionSimbolo[];
 }
 
+// ─── SÍMBOLOS ESTÁNDAR DEL BUNDLE (síncronos) ───
+
+export const getDefaultSymbolsSync = (): DefinicionSimbolo[] => {
+  return (symbolsFileData.symbols || []) as DefinicionSimbolo[];
+};
+
+export const getDefaultCategoriesSync = (): SymbolCategory[] => {
+  return (symbolsFileData.categories || []) as SymbolCategory[];
+};
+
 // ─── GESTIÓN EN STORAGE ───
 
 const SYMBOLS_KEY = 'ieba_custom_symbols_v1';
 
 /**
  * Carga el archivo completo de símbolos (categorías y definiciones).
+ * @deprecated Usar getDefaultSymbolsSync / getDefaultCategoriesSync para evitar bloqueos.
  */
 export const fetchSymbolsFile = async (): Promise<SymbolsFile> => {
   try {
@@ -53,37 +68,42 @@ export const fetchSymbolsFile = async (): Promise<SymbolsFile> => {
     };
   } catch (err) {
     console.error("Error al cargar symbols.json estático:", err);
-    return { categories: [], symbols: [] };
+    return { categories: getDefaultCategoriesSync(), symbols: getDefaultSymbolsSync() };
   }
 };
 
 /**
  * Carga solo los símbolos base estáticos (para compatibilidad).
+ * @deprecated Usar getDefaultSymbolsSync.
  */
 export const fetchDefaultSymbols = async (): Promise<DefinicionSimbolo[]> => {
-  const file = await fetchSymbolsFile();
-  return file.symbols;
+  return getDefaultSymbolsSync();
+};
+
+/**
+ * Carga símbolos personalizados desde localStorage (síncrono).
+ */
+export const loadCustomSymbolsFromStorage = (): DefinicionSimbolo[] => {
+  try {
+    const data = localStorage.getItem(SYMBOLS_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data) as DefinicionSimbolo[];
+    const defaultIds = new Set(getDefaultSymbolsSync().map(s => s.id));
+    return parsed.filter(s => !defaultIds.has(s.id));
+  } catch (error) {
+    console.error("Error al cargar símbolos locales:", error);
+    return [];
+  }
 };
 
 /**
  * Carga la librería completa (locales + custom)
+ * @deprecated Usar getDefaultSymbolsSync + loadCustomSymbolsFromStorage para carga no bloqueante.
  */
 export const loadSymbolsAsync = async (): Promise<DefinicionSimbolo[]> => {
-  const defaults = await fetchDefaultSymbols();
-  try {
-    const data = localStorage.getItem(SYMBOLS_KEY);
-    if (!data) {
-      saveSymbols(defaults);
-      return defaults;
-    }
-    const parsed = JSON.parse(data);
-    const defaultsIds = defaults.map(s => s.id);
-    const custom = parsed.filter((s: DefinicionSimbolo) => !defaultsIds.includes(s.id));
-    return [...defaults, ...custom];
-  } catch (error) {
-    console.error("Error al cargar símbolos locales:", error);
-    return defaults;
-  }
+  const defaults = getDefaultSymbolsSync();
+  const custom = loadCustomSymbolsFromStorage();
+  return [...defaults, ...custom];
 };
 
 export const saveSymbols = (symbols: DefinicionSimbolo[]): void => {

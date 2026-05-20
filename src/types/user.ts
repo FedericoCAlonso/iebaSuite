@@ -6,6 +6,26 @@ export interface AppUser {
   displayName?: string
   plan: UserPlan
   createdAt: number
+  perfil?: {
+    cuit?: string
+    telefono?: string
+    domicilioProfesional?: string
+  }
+  matriculas?: {
+    numero: string
+    colegio: string
+    jurisdiccion: string
+    vencimiento?: number
+  }[]
+  instrumentos?: {
+    id: string
+    tipo: string
+    marca: string
+    modelo: string
+    nroSerie?: string
+    fechaCalibracion?: number
+    certificadoStoragePath?: string
+  }[]
 }
 
 // ─── ELECTRICISTA (Perfil Técnico) ───
@@ -45,9 +65,11 @@ export interface Electricista extends AppUser {
 export interface Cliente {
   id: string
   razonSocial: string
-  dniCuit: string
+  dniCuit?: string
   email?: string
   telefono?: string
   domicilio?: string
-  proyectosIds: string[]
+  contacto?: string
+  createdAt: number
+  proyectosIds?: string[]
 }

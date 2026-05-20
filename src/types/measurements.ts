@@ -1,17 +1,16 @@
 export type ModuleType = 
-  | 'srt_boca'
   | 'puesta_tierra'
   | 'diferencial'
   | 'continuidad_masas'
   | 'resistencia_lazo'
   | 'corriente_cortocircuito'
   | 'resistencia_aislacion'
-  | 'termografia'
   | 'calidad_potencia'
 
 export type ResultadoMedicion = 'aprobado' | 'observado' | 'rechazado' | 'no_aplica'
 
-export type MetodoPuestaTierra = 'falla_de_potencial' | 'telecom' | 'pinza' | '62%'
+export type MetodoPuestaTierra = 'caida_de_tension' | 'dos_puntas'
+export type CategoriaPuestaTierra = 'principal' | 'funcional_independiente'
 export type TipoDiferencial = 'ac' | 'a' | 'f' | 'b'
 
 export interface MeasurementBase {
@@ -19,13 +18,18 @@ export interface MeasurementBase {
   moduleType: ModuleType
   projectId: string
   ambienteId?: string
-  elementoId?: string
-  circuitoId?: string
+  elementoId?: string        // ElementoElectrico.id (bocas, puntos de p.tierra, etc.)
+  circuitoId?: string        // Circuito.id
+  diferencialId?: string     // Diferencial.id
+  tableroId?: string         // Tablero.id (para calidad de potencia en tableros)
+  lineaId?: string           // Conexion.id o tramo seccional
   ubicacion: string          // Descripción libre del punto de medición
   observaciones?: string
   resultado: ResultadoMedicion
   operador: string
   instrumentoId?: string      // ID del instrumento usado (del perfil)
+  errorMedicion?: string      // Ej: '± 2% + 3d' o '0.05Ω'
+  fecha?: number              // timestamp de la medición (distinto al timestamp de carga)
   timestamp: number
   photoStoragePaths?: string[]
 }
@@ -34,10 +38,11 @@ export interface MeasurementBase {
 export interface MeasurementTierra extends MeasurementBase {
   moduleType: 'puesta_tierra'
   metodo: MetodoPuestaTierra
+  categoria: CategoriaPuestaTierra
+  interconexionHacia?: string  // Ej: 'Estrella a barra principal' o 'Ninguna'
   resistenciaOhm: number
   resistenciaSueloOhm?: number
   humedadSuelo?: number
-  distanciaJabalina?: number
 }
 
 /** Interruptor diferencial */
@@ -85,18 +90,14 @@ export interface MeasurementAislacion extends MeasurementBase {
   humedadRelativa?: number
 }
 
-/** Termografía */
-export interface MeasurementTermografia extends MeasurementBase {
-  moduleType: 'termografia'
-  temperaturaC: number
-  diferenciaC?: number        // ΔT respecto a ambiente
-  emisividad?: number
-  imagenTermicaPath?: string
-}
+
 
 /** Calidad de potencia (THD, FP, etc.) */
 export interface MeasurementCalidadPotencia extends MeasurementBase {
   moduleType: 'calidad_potencia'
+  potenciaActivaW?: number
+  potenciaReactivaVAr?: number
+  potenciaAparenteVA?: number
   thdVPercent?: number
   thdIPercent?: number
   factorPotencia?: number
@@ -104,11 +105,6 @@ export interface MeasurementCalidadPotencia extends MeasurementBase {
   corrienteAN?: number
 }
 
-/** SRT boca a boca */
-export interface MeasurementSrtBoca extends MeasurementBase {
-  moduleType: 'srt_boca'
-  resultadoSrt?: string
-}
 
 export type Measurement =
   | MeasurementTierra
@@ -117,6 +113,4 @@ export type Measurement =
   | MeasurementLazo
   | MeasurementCortocircuito
   | MeasurementAislacion
-  | MeasurementTermografia
   | MeasurementCalidadPotencia
-  | MeasurementSrtBoca

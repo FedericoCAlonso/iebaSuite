@@ -1,0 +1,232 @@
+// Layout y Composición
+import { EditorLayout } from './components/EditorLayout';
+import { CreationFlowOverlay } from './components/CreationFlowOverlay';
+
+// Pestañas (Subcomponentes especializados)
+import { GeneralTab } from './components/tabs/GeneralTab';
+import { ProjectTab } from './components/tabs/ProjectTab';
+import { WallsTab } from './components/tabs/WallsTab';
+import { OpeningTab } from './components/tabs/OpeningTab';
+import { ElectricalTab } from './components/tabs/ElectricalTab';
+import { CircuitsTab } from './components/tabs/CircuitsTab';
+import { ConnectionsTab } from './components/tabs/ConnectionsTab';
+import { CoverageTab } from './components/tabs/CoverageTab';
+import { ResumenTab } from './components/tabs/ResumenTab';
+
+// Hooks y Lógica
+import { useEditorTab } from '../../core/EditorTabContext';
+import { useEditorState } from '../../hooks/useEditorState';
+
+// Tipos
+import {
+  type Project, type Ambiente, type SymbolDialogData,
+  type EditorTab
+} from '../../types/index';
+
+interface EditorScreenProps {
+  mode: 'planta' | 'electrico';
+  project: Project;
+  activeAmbiente: Ambiente;
+  activeAmbienteId: string;
+  symbolsLib: import('../../lib/symbols').DefinicionSimbolo[];
+  onUpdateMeta: (meta: Project['meta']) => void;
+  onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
+  onUpdateProject: (fn: (p: Project) => Project) => void;
+  onAddAmbiente: () => void;
+  onDeleteAmbiente: (id: string) => void;
+  onSelectAmbiente: (id: string) => void;
+  onSymbolDialog: (data: SymbolDialogData) => void;
+  onShowNetlist: () => void;
+}
+
+const PLANTA_TABS: EditorTab[] = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'maestro', 'cobertura'];
+const ELECTRICO_TABS: EditorTab[] = ['resumen', 'electrico', 'circuitos', 'conexiones'];
+
+export function EditorScreen(props: EditorScreenProps) {
+  const { 
+    mode,
+    project, 
+    activeAmbiente, 
+    activeAmbienteId, 
+    symbolsLib, 
+    onUpdateAmbiente, 
+    onUpdateProject, 
+    onAddAmbiente, 
+    onDeleteAmbiente, 
+    onSelectAmbiente, 
+    onSymbolDialog, 
+    onShowNetlist 
+  } = props;
+
+  const { activeTab, setActiveTab } = useEditorTab();
+
+  const state = useEditorState(
+    project, 
+    activeAmbiente, 
+    onUpdateAmbiente, 
+    onUpdateProject
+  );
+
+  const tabConfig: Record<EditorTab, { label: string, icon: string }> = {
+    resumen:    { label: 'Resumen', icon: '📊' },
+    general:    { label: 'General', icon: '📋' },
+    hoja:       { label: 'Hoja',    icon: '🏠' },
+    paredes:    { label: 'Paredes', icon: '🧱' },
+    aberturas:  { label: 'Abert.',  icon: '🚪' },
+    electrico:  { label: 'Bocas',   icon: '⚡' },
+    circuitos:  { label: 'Circ.',   icon: '🔌' },
+    conexiones: { label: 'Cable.',  icon: '🔗' },
+    maestro:    { label: 'Maestro', icon: '🗺️' },
+    cobertura:  { label: 'Cobert.', icon: '☂️' }
+  };
+
+  const visibleTabs = mode === 'planta' ? PLANTA_TABS : ELECTRICO_TABS;
+
+  if (!project || !activeAmbiente) {
+    return <div className="empty">Sin proyecto seleccionado</div>;
+  }
+
+  return (
+    <EditorLayout
+      sheetBar={
+        <div className="amb-bar">
+          {(project.ambientes || []).map((a) => (
+            <button
+              key={a.id}
+              className={`amb-tab ${a.id === activeAmbienteId ? 'active' : ''}`}
+              onClick={() => onSelectAmbiente(a.id)}
+            >
+              {a.nombre}
+              {a.tipoAmbiente && a.tipoAmbiente !== 'interior' && (
+                <span style={{ marginLeft: 4, fontSize: 10, opacity: 0.7 }}>
+                  {a.tipoAmbiente === 'exterior' ? '☀' : '⛅'}
+                </span>
+              )}
+            </button>
+          ))}
+          <button 
+            className="amb-tab-add" 
+            onClick={onAddAmbiente} 
+            title="Nueva hoja de relevamiento"
+          >＋</button>
+        </div>
+      }
+      tabBar={
+        <div className="panel-tabs" style={{ overflowX: 'auto', flexWrap: 'nowrap' }}>
+          {visibleTabs.map((k) => (
+            <button
+              key={k}
+              className={`panel-tab ${activeTab === k ? 'active' : ''}`}
+              onClick={() => setActiveTab(k)}
+            >
+              <span style={{ fontSize: 16 }}>{tabConfig[k].icon}</span>
+              <span>{tabConfig[k].label}</span>
+            </button>
+          ))}
+        </div>
+      }
+      footer={
+        activeTab === 'paredes' && !state.creationFlow.active && (
+          <button 
+            className="btn btn-acc btn-full" 
+            onClick={() => state.startCreation('tramo')}
+          >
+            + Nuevo Tramo
+          </button>
+        )
+      }
+    >
+      <CreationFlowOverlay 
+        creationFlow={state.creationFlow}
+        allVertices={state.allVertices}
+        onCancel={state.cancelCreation}
+        onStepChange={state.setCreationStep}
+        onAnchorSelect={state.setCreationAnchor}
+        onOffsetChange={state.setCreationOffset}
+        onConfirm={state.confirmCreation}
+      />
+
+      {mode === 'planta' && activeTab === 'resumen' && (
+        <ResumenTab project={project} activeAmbiente={activeAmbiente} />
+      )}
+
+      {mode === 'planta' && activeTab === 'general' && (
+        <GeneralTab project={project} onUpdateProject={onUpdateProject} />
+      )}
+
+      {mode === 'planta' && activeTab === 'hoja' && (
+        <ProjectTab 
+          project={project}
+          activeAmbiente={activeAmbiente}
+          onUpdateAmbiente={onUpdateAmbiente}
+          onDeleteAmbiente={onDeleteAmbiente}
+        />
+      )}
+
+      {mode === 'planta' && activeTab === 'paredes' && !state.creationFlow.active && (
+        <WallsTab 
+          activeAmbiente={activeAmbiente}
+          activeTramoIdx={state.activeTramoIdx}
+          setActiveTramoIdx={state.setActiveTramoIdx}
+          onUpdateAmbiente={onUpdateAmbiente}
+        />
+      )}
+
+      {mode === 'planta' && activeTab === 'aberturas' && (
+        <OpeningTab 
+          project={project}
+          activeAmbiente={activeAmbiente}
+          activeAmbienteId={activeAmbienteId}
+          updateOpenings={state.updateOpenings}
+          onLinkOpening={state.linkOpening}
+        />
+      )}
+
+      {mode === 'planta' && activeTab === 'cobertura' && !state.creationFlow.active && (
+        <CoverageTab 
+          activeAmbiente={activeAmbiente}
+          onUpdateAmbiente={onUpdateAmbiente}
+          onStartCreation={() => state.startCreation('cobertura')}
+        />
+      )}
+
+      {mode === 'planta' && activeTab === 'maestro' && (
+        <div className="empty">Cambiando a vista Maestro…</div>
+      )}
+
+      {mode === 'electrico' && activeTab === 'resumen' && (
+        <ResumenTab project={project} activeAmbiente={activeAmbiente} />
+      )}
+
+      {mode === 'electrico' && activeTab === 'electrico' && (
+        <ElectricalTab 
+          project={project}
+          activeAmbiente={activeAmbiente}
+          symbolsLib={symbolsLib}
+          circuitos={state.circuitos}
+          updateElectrical={state.updateElectrical}
+          updateStructural={state.updateStructural}
+          onSymbolDialog={onSymbolDialog}
+          onShowNetlist={onShowNetlist}
+          pendingConnection={state.pendingConnection}
+          onStartConnecting={state.startConnecting}
+          onFinishConnecting={state.finishConnecting}
+          onCancelConnecting={state.cancelConnecting}
+        />
+      )}
+
+      {mode === 'electrico' && activeTab === 'circuitos' && (
+        <CircuitsTab />
+      )}
+
+      {mode === 'electrico' && activeTab === 'conexiones' && (
+        <ConnectionsTab 
+          project={project}
+          circuitos={state.circuitos}
+          conexiones={state.conexiones}
+          updateConexiones={state.updateConexiones}
+        />
+      )}
+    </EditorLayout>
+  );
+}

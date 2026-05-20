@@ -1,8 +1,10 @@
 // src/core/ClientContext.tsx
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
+import { doc, deleteDoc } from 'firebase/firestore'
 import { useAuth } from './AuthContext'
 import { listClients, createClient, updateClient } from '../firebase/clientService'
+import { db } from '../firebase/config'
 import type { Cliente } from '../types/index'
 
 interface ClientContextValue {
@@ -10,6 +12,7 @@ interface ClientContextValue {
   isLoadingClients: boolean
   addClient: (data: Omit<Cliente, 'id' | 'proyectosIds'>) => Promise<void>
   editClient: (id: string, data: Partial<Cliente>) => Promise<void>
+  deleteClient: (id: string) => Promise<void>
   refreshClients: () => Promise<void>
 }
 
@@ -55,8 +58,14 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     await load()
   }, [load])
 
+    const deleteClient = useCallback(async (id: string) => {
+    if (!db) throw new Error('Firebase no configurado')
+    await deleteDoc(doc(db, 'clientes', id))
+    await load()
+  }, [load])
+
   return (
-    <ClientContext.Provider value={{ clients, isLoadingClients, addClient, editClient, refreshClients }}>
+    <ClientContext.Provider value={{ clients, isLoadingClients, addClient, editClient, deleteClient, refreshClients }}>
       {children}
     </ClientContext.Provider>
   )

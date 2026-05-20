@@ -149,9 +149,10 @@ export function useAppActions({
     };
     
     // Limpieza de campos legacy si existen
-    delete (newProject as any).paredes;
-    delete (newProject as any).aberturas;
-    delete (newProject as any).elementos;
+    const legacyFields = newProject as unknown as Record<string, unknown>;
+    delete legacyFields['paredes'];
+    delete legacyFields['aberturas'];
+    delete legacyFields['elementos'];
 
     addProject(newProject);
     selectProject(newProject.id);

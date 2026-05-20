@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { F } from '../Field';
-import { NumInput } from '../NumImput';
-import { Modal } from './Modal';
+import { F } from '../../ui/Field';
+import { NumInput } from '../../ui/NumInput';
+import { Modal } from '../../ui/Modal';
 import { type Project } from '../../types/index';
 
 interface ProjectConfigDialogProps {

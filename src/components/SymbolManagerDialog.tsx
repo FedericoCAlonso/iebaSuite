@@ -5,7 +5,7 @@
 import React, { useRef, useState } from 'react';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import { saveSymbols } from '../lib/symbols';
-import { F } from './Field';
+import { F } from '../ui/Field';
 import { parseSvgFileContent } from '../utils/svgParser';
 
 interface SymbolManagerDialogProps {

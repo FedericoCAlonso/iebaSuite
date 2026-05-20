@@ -3,7 +3,9 @@ import type { Project } from '../types/index';
 interface AppHeaderProps {
   screen: 'projects' | 'editor';
   activeProject: Project | null;
+  activeAmbienteName?: string;
   canUndo: boolean;
+  modeSelector?: React.ReactNode;
   onGoHome: () => void;
   onUndo: () => void;
   onShowExport: () => void;
@@ -12,7 +14,9 @@ interface AppHeaderProps {
 export function AppHeader({
   screen,
   activeProject,
+  activeAmbienteName,
   canUndo,
+  modeSelector,
   onGoHome,
   onUndo,
   onShowExport
@@ -21,7 +25,15 @@ export function AppHeader({
     <header className="topbar">
       <span className="topbar-logo" onClick={onGoHome}>ieBA</span>
       {screen === 'editor' && activeProject && (
-        <span className="topbar-crumb">▸ <span>{activeProject.meta.nombre}</span></span>
+        <span className="topbar-crumb">
+          ▸ <span>{activeProject.meta?.nombre || activeProject.nombre || 'Proyecto'}</span>
+          {activeAmbienteName && (
+            <span style={{ opacity: 0.7 }}> / {activeAmbienteName}</span>
+          )}
+          {modeSelector && (
+            <span style={{ marginLeft: 8 }}>{modeSelector}</span>
+          )}
+        </span>
       )}
       <span className="topbar-sep"/>
       

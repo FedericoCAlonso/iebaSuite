@@ -2,7 +2,7 @@ import { SymbolDialog } from '../SymbolDialog';
 import { ExportDialog } from '../ExportDialog';
 import { SymbolManagerDialog } from '../SymbolManagerDialog';
 import { NetlistReport } from '../NetlistReport';
-import { useCurrentProject } from '../../core/ProjectContextCore';
+import { useCurrentProject } from '../../core/ProjectContext';
 import { useSymbols } from '../../core/SymbolsContext';
 
 export function AppModals() {

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import type { ElementoElectrico, SymbolDialogData } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
-import { F } from './Field';   
+import { F } from '../ui/Field';   
 import { createElemento } from '../lib/storage';
 import { pxToM } from '../lib/geometry';
 

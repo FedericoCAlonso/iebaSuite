@@ -3,9 +3,9 @@
 // En React: src/components/ExportDialog.tsx
 // ═══════════════════════════════════════════════════════════════════════════
 import React from "react";
-import { type Project, type Conexion } from "../types/index";
-import type { DefinicionSimbolo } from "../lib/symbols";
-import { RENDERER } from "../lib/renderer";
+import { type Project, type Conexion } from '../types/index';
+import type { DefinicionSimbolo } from '../lib/symbols';
+import { RENDERER } from '../lib/renderer';
 
 interface ExportDialogProps {
   project: Project;

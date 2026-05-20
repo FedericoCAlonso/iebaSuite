@@ -1,11 +1,38 @@
-import { useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { useProjects } from '../hooks/useProjects'
 import { useUIState } from '../hooks/useUIState'
 import { useAppActions } from '../hooks/useAppActions'
 import { useToast } from '../hooks/useToast'
 import { AppModals } from '../components/shared/AppModals'
-import { ProjectContext } from './ProjectContextCore'
+import type { Project, Ambiente } from '../types/index'
+
+export interface ProjectContextValue {
+  activeProject: Project;
+  activeAmbiente: Ambiente | null;
+  activeAmbienteId: string | null;
+  setActiveAmbienteId: (id: string | null) => void;
+  updateProject: (id: string, fn: (p: Project) => Project) => void;
+  updateAmbiente: (fn: (a: Ambiente) => Ambiente) => void;
+  addAmbiente: () => void;
+  deleteAmbiente: (id: string) => void;
+  undoAmbiente: () => void;
+  canUndo: boolean;
+  enlazarAberturas: (proyectoId: string, ambA_id: string, abA_id: string, ambB_id: string, abB_id: string) => void;
+  // UI State & Actions
+  ui: ReturnType<typeof useUIState>;
+  actions: ReturnType<typeof useAppActions>;
+  toast: string | null;
+  showToast: (msg: string) => void;
+}
+
+const ProjectContext = createContext<ProjectContextValue | null>(null)
+
+export function useCurrentProject() {
+  const ctx = useContext(ProjectContext)
+  if (!ctx) throw new Error('useCurrentProject debe usarse dentro de ProjectProvider')
+  return ctx
+}
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const { projectId } = useParams<{ projectId: string }>()
@@ -35,13 +62,13 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   })
 
   if (!projectId) return <Navigate to="/proyectos" replace />
-  
+
   if (!projectState.activeProject) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        height: '100vh', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        alignItems: 'center',
         justifyContent: 'center',
         background: '#0f172a',
         color: '#38bdf8',
@@ -76,5 +103,3 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     </ProjectContext.Provider>
   )
 }
-
-export { useCurrentProject } from './ProjectContextCore'

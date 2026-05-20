@@ -1,0 +1,149 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE: components/WallCard.tsx
+// Tarjeta de edición de una pared (Pared) dentro de un tramo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+import { NumInput } from '../../../ui/NumInput';
+import { Card } from '../../../ui/Card';
+import { F } from '../../../ui/Field';
+import { type Pared, type Irregularidad } from '../../../types/index';
+
+interface WallCardProps {
+  pared: Pared;
+  index: number;
+  isLast: boolean;
+  onChange: (pared: Pared) => void;
+  onRemove: () => void;
+}
+
+function buildTitle(pared: Pared, index: number): string {
+  const largo = pared.largo === 'auto' ? 'auto' : `${pared.largo}m`;
+  return `Pared ${index + 1} · ${largo} · ${pared.angulo}°`;
+}
+
+export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardProps) {
+  return (
+    <Card
+      idx={`P${index + 1}`}
+      idxColor="var(--green)"
+      title={buildTitle(pared, index)}
+      badge={pared.largo === 'auto' ? 'auto' : `${pared.largo}m`}
+      onRemove={onRemove}
+    >
+      {/* Fila: largo + ángulo */}
+      <div className="field-row">
+        <F label="Largo (m)">
+          {isLast && pared.largo === 'auto' ? (
+            <input
+              className="input-base"
+              value="auto"
+              disabled
+              style={{ color: 'var(--text-dim)', cursor: 'not-allowed' }}
+            />
+          ) : (
+            <NumInput
+              value={pared.largo === 'auto' ? 0 : (pared.largo as number)}
+              onChange={(v: number) => onChange({ ...pared, largo: v })}
+            />
+          )}
+        </F>
+        <F label="Ángulo (°)">
+          <NumInput
+            value={pared.angulo}
+            onChange={(v: number) => onChange({ ...pared, angulo: v })}
+          />
+        </F>
+        <F label="Grosor (m)">
+          <NumInput
+            value={pared.grosor ?? 0}
+            onChange={(v: number) => onChange({ ...pared, grosor: v || null })}
+            placeholder="default"
+          />
+        </F>
+      </div>
+
+      {/* Esquina saliente */}
+      <div className="field-row" style={{ alignItems: 'center' }}>
+        <F label="Esquina saliente">
+          <input
+            type="checkbox"
+            checked={!!pared.esquina_saliente}
+            onChange={e => onChange({
+              ...pared,
+              esquina_saliente: e.target.checked ? { ancho: 0.1 } : null,
+            })}
+          />
+        </F>
+        {pared.esquina_saliente && (
+          <F label="Ancho esquina (m)">
+            <NumInput
+              value={pared.esquina_saliente.ancho}
+              onChange={(v: number) => onChange({
+                ...pared,
+                esquina_saliente: { ancho: v },
+              })}
+            />
+          </F>
+        )}
+      </div>
+
+      {/* Irregularidades */}
+      {pared.irregularidades.length > 0 && (
+        <div style={{ marginTop: '8px', borderTop: '1px solid var(--border-dim)', paddingTop: '8px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '6px' }}>Irregularidades</div>
+          {pared.irregularidades.map((irr: Irregularidad, i: number) => (
+            <div key={i} className="field-row" style={{ alignItems: 'flex-end', marginBottom: '6px' }}>
+              <F label="Pos (m)">
+                <NumInput
+                  value={irr.posicion}
+                  onChange={(v: number) => {
+                    const next = [...pared.irregularidades];
+                    next[i] = { ...irr, posicion: v };
+                    onChange({ ...pared, irregularidades: next });
+                  }}
+                />
+              </F>
+              <F label="Ancho (m)">
+                <NumInput
+                  value={irr.ancho}
+                  onChange={(v: number) => {
+                    const next = [...pared.irregularidades];
+                    next[i] = { ...irr, ancho: v };
+                    onChange({ ...pared, irregularidades: next });
+                  }}
+                />
+              </F>
+              <F label="Prof (m)">
+                <NumInput
+                  value={irr.profundidad}
+                  onChange={(v: number) => {
+                    const next = [...pared.irregularidades];
+                    next[i] = { ...irr, profundidad: v };
+                    onChange({ ...pared, irregularidades: next });
+                  }}
+                />
+              </F>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() => onChange({
+                  ...pared,
+                  irregularidades: pared.irregularidades.filter((_: any, j: number) => j !== i),
+                })}
+              >✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        className="btn btn-ghost btn-sm btn-full"
+        style={{ marginTop: '8px' }}
+        onClick={() => onChange({
+          ...pared,
+          irregularidades: [...pared.irregularidades, { posicion: 0, ancho: 0.5, profundidad: 0.1 }],
+        })}
+      >
+        + Irregularidad
+      </button>
+    </Card>
+  );
+}
