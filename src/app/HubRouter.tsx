@@ -7,7 +7,6 @@ import { HubShell } from '../features/hub/HubShell'
 import { HubHome } from '../features/hub/HubHome'
 import { HubProjects } from '../features/hub/HubProjects'
 import { HubClients } from '../features/hub/HubClients'
-import { DummyTool } from '../core/DummyTool'
 import { LoginScreen } from '../features/auth/LoginScreen'
 import { SymbolManagerScreen } from '../features/symbols/SymbolManagerScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
@@ -54,9 +53,6 @@ function HubRoutes() {
           <Route path="relevador" element={<RelevadorTool />} />
           <Route path="mediciones" element={<MeasurementScreen />} />
           <Route path="unifilar" element={<UnifilarTool />} />
-          <Route path="srt" element={<DummyTool nombre="SRT 900/15" icono="🔌" descripcion="Relevamiento boca a boca según SRT 900/15" />} />
-          <Route path="tierra" element={<DummyTool nombre="Puestas a tierra" icono="⚡" descripcion="Medición de resistencia de puesta a tierra" />} />
-          <Route path="diferencial" element={<DummyTool nombre="Diferenciales" icono="⏱" descripcion="Tiempos de respuesta de interruptores diferenciales" />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
