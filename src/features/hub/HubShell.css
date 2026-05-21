@@ -1,7 +1,7 @@
 .hub-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100vh;
   background: var(--bg);
 }
 
@@ -16,7 +16,7 @@
   align-items: center;
   gap: 24px;
   height: var(--topbar-h);
-  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 .hub-nav__brand {
@@ -45,7 +45,10 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
-.hub-nav__tools::-webkit-scrollbar { display: none; }
+
+.hub-nav__tools::-webkit-scrollbar {
+  display: none;
+}
 
 .hub-nav__item {
   display: flex;
@@ -64,34 +67,54 @@
   border: 1px solid transparent;
   transition: all .2s;
 }
+
 .hub-nav__item:hover {
   background: var(--bg2);
   color: var(--text);
   border-color: var(--border);
 }
+
 .hub-nav__item--active {
   background: var(--acc-bg);
   color: var(--acc);
   border-color: var(--acc-border);
 }
 
-.hub-nav__icon { font-size: 16px; }
+.hub-nav__icon {
+  font-size: 16px;
+}
 
 .hub-main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
+
 
 /* Mobile: nav fija abajo */
 @media (max-width: 768px) {
+
+  /* 1. Forzamos al cascarón a medir exactamente la pantalla sin desborde */
+  .hub-shell {
+    display: flex;
+    flex-direction: column;
+    /* Alinea contenido y nav verticalmente */
+    height: 100vh;
+    height: 100dvh;
+    /* dvh corrige fallos de altura en Safari/Chrome móvil */
+    overflow: hidden;
+  }
+
+  /* 2. La barra de navegación se queda abajo de forma natural (SIN fixed) */
   .hub-nav {
     order: 2;
-    position: fixed;
-    bottom: 0;
-    top: auto;
-    left: 0;
-    right: 0;
+    /* Se posiciona abajo en el orden visual */
+    position: relative;
+    /* ¡CAMBIO CLAVE! Ya no flota sobre el contenido */
+    bottom: auto;
+    left: auto;
+    right: auto;
     height: auto;
     min-height: 64px;
     border-top: 1px solid var(--border);
@@ -100,10 +123,17 @@
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
     justify-content: space-around;
     gap: 0;
-    box-shadow: none;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.02);
+    /* Sombra hacia arriba */
   }
 
-  .hub-nav__brand { display: none; }
+  .hub-nav__brand {
+    display: none;
+  }
+
+  .hub-nav__user {
+    display: none;
+  }
 
   .hub-nav__tools {
     width: 100%;
@@ -119,19 +149,28 @@
     letter-spacing: 0;
     border: none;
   }
+
   .hub-nav__item--active {
     background: var(--acc-bg);
     border: none;
   }
 
-  .hub-nav__icon { font-size: 22px; }
-
-  .hub-main {
-    order: 1;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  .hub-nav__icon {
+    font-size: 22px;
   }
 
-  .hub-nav__user { display: none; }
+  /* 3. El contenido principal toma el espacio exacto restante arriba de la nav */
+  .hub-main {
+    order: 1;
+    /* Se posiciona arriba en el orden visual */
+    flex: 1;
+    /* Absorbe todo el espacio que deja libre la nav */
+    min-height: 0;
+    /* Permite que el scroll de los hijos funcione */
+    padding-bottom: 0;
+    /* Ya no necesita padding porque la nav no se superpone */
+  }
+
 }
 
 .hub-nav__user {

@@ -84,27 +84,30 @@ export function HubHome() {
           Herramientas para instalaciones eléctricas
         </p>
       </header>
+      <div className="hub-home__sections-scrolleable">
 
-      <section className="hub-home__section">
-        <h2 className="hub-home__section-title">Cuenta</h2>
-        <div className="hub-home__grid">
-          {accountTools.map(t => (
-            <ToolCard key={t.path} t={t} />
-          ))}
-        </div>
-      </section>
+        <section className="hub-home__section">
+          <h2 className="hub-home__section-title">Cuenta</h2>
+          <div className="hub-home__grid">
+            {accountTools.map(t => (
+              <ToolCard key={t.path} t={t} />
+            ))}
+          </div>
+        </section>
 
-      <section className="hub-home__section">
-        <h2 className="hub-home__section-title">Proyecto</h2>
-        <p className="hub-home__section-subtitle">
-          Elegí una herramienta y luego seleccioná el proyecto
-        </p>
-        <div className="hub-home__grid">
-          {projectTools.map(t => (
-            <ToolCard key={t.path} t={t} />
-          ))}
-        </div>
-      </section>
+        <section className="hub-home__section">
+          <h2 className="hub-home__section-title">Proyecto</h2>
+          <p className="hub-home__section-subtitle">
+            Elegí una herramienta y luego seleccioná el proyecto
+          </p>
+          <div className="hub-home__grid">
+            {projectTools.map(t => (
+              <ToolCard key={t.path} t={t} />
+            ))}
+          </div>
+        </section>
+      </div>
+
     </div>
   )
 }
