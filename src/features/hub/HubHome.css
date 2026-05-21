@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;      /* Ocupa el alto total de la ventana */
-  box-sizing: border-box; /
+  box-sizing: border-box; 
 }
 
 .hub-home__header {
