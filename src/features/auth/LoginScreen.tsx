@@ -97,6 +97,7 @@ export function LoginScreen() {
             className="login-toggle-btn"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
+          
             {mode === 'login' ? 'Registrarse' : 'Ingresar'}
           </button>
         </p>
