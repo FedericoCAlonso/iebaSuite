@@ -65,9 +65,19 @@ export interface HojaMaestra {
   ambientesIds: string[]
 }
 
+export type TipoElementoCabecera = 'seccionador' | 'interruptor_seccionador' | 'TM' | 'DR' | 'otro';
+
+export interface CabeceraConfig {
+  tipo: TipoElementoCabecera;
+  polos?: 2 | 3 | 4;
+  inominalA?: number;
+  sensibilidadMA?: number;
+  descripcion?: string;
+}
+
 // ─── CIRCUITOS ───
 
-export type TipoCircuito = 'IUG' | 'IUE' | 'TUG' | 'TUE' | 'ACU' | 'MBT' | 'MBTF' | 'TEC' | 'OTRO';
+export type TipoCircuito = 'IUG' | 'IUE' | 'TUG' | 'TUE' | 'ACU' | 'MBT' | 'MBTF' | 'TEC' | 'DPS' | 'OTRO';
 export type TipoConducto = 'cano_rigido' | 'bandeja' | 'enterrado' | 'canaleta' | 'otro';
 
 export interface Circuito {
@@ -91,6 +101,8 @@ export interface Circuito {
   tipoConducto?: TipoConducto;
   color?: string;              // Color para visualización
   descripcion?: string;
+  parentId?: string;           // ID del elemento aguas arriba (ej: Diferencial u otro circuito)
+  polos?: 2 | 3 | 4;           // Cantidad de polos (para gráficas de conductores)
 }
 
 // ─── TABLERO ───
@@ -104,6 +116,9 @@ export interface Tablero {
   ambienteId?: string;         // ID del Ambiente donde está físicamente
   factorSimultaneidad?: number; // default 1.0, editable por el proyectista
   diferencialesIds?: string[];   // IDs de diferenciales instalados en este tablero
+  alimentadorDesdeTableroId?: string | 'red_distribuidora'; // ID del tablero aguas arriba o red
+  alimentadorDesdeCircuitoId?: string; // ID del circuito que oficia de alimentador en el tablero superior
+  interruptorCabecera?: CabeceraConfig; // Elemento de cabecera del tablero
 }
 
 // ─── DIFERENCIAL ───
@@ -117,6 +132,7 @@ export interface Diferencial {
   polos: 2 | 4;
   circuitosIds: string[];       // circuitos que protege
   descripcion?: string;
+  parentId?: string;            // ID del elemento aguas arriba en el unifilar
 }
 
 // ─── TRAMO CONDUCTOR ───
@@ -278,6 +294,11 @@ export interface ElementoElectrico {
   esTablero?: boolean;
   columnaId?: string;
   lado?: 'interior' | 'exterior';
+  medicionPAT?: {
+    valorOhms: number;
+    metodo: 'caida_tension' | 'dos_puntas';
+    fecha: string;
+  };
 }
 
 export interface TextoPlano {

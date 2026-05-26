@@ -44,7 +44,12 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
     corrienteNominal: 16,
     sensibilidadDR: 0,
     proteccion: '',
-    descripcion: ''
+    descripcion: '',
+    curvaDisparo: 'C' as Circuito['curvaDisparo'],
+    polos: 2 as Circuito['polos'],
+    cantConductores: 2,
+    tipoConducto: 'cano_rigido' as Circuito['tipoConducto'],
+    longitudDeclarada: 0
   })
 
   useEffect(() => {
@@ -57,7 +62,12 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
         corrienteNominal: circuitoEdit.corrienteNominal || 16,
         sensibilidadDR: circuitoEdit.sensibilidadDR || 0,
         proteccion: circuitoEdit.proteccion || '',
-        descripcion: circuitoEdit.descripcion || ''
+        descripcion: circuitoEdit.descripcion || '',
+        curvaDisparo: circuitoEdit.curvaDisparo || 'C',
+        polos: circuitoEdit.polos || 2,
+        cantConductores: circuitoEdit.cantConductores || 2,
+        tipoConducto: circuitoEdit.tipoConducto || 'cano_rigido',
+        longitudDeclarada: circuitoEdit.longitudDeclarada || 0
       })
     }
   }, [circuitoEdit])
@@ -151,31 +161,82 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
 
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Diferencial (mA)</label>
-            <input
-              type="number"
+            <label style={labelStyle}>Sensibilidad DR (mA)</label>
+            <select
               value={form.sensibilidadDR}
-              onChange={e => setForm(f => ({ ...f, sensibilidadDR: parseInt(e.target.value) || 0 }))}
+              onChange={e => setForm(f => ({ ...f, sensibilidadDR: Number(e.target.value) }))}
               style={inputStyle}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Protección</label>
-            <input
-              placeholder="Ej: 16A TM"
-              value={form.proteccion}
-              onChange={e => setForm(f => ({ ...f, proteccion: e.target.value }))}
-              style={inputStyle}
-            />
+            >
+              <option value={0}>Sin DR asociado / Compartido</option>
+              <option value={10}>10 mA</option>
+              <option value={30}>30 mA</option>
+              <option value={300}>300 mA</option>
+            </select>
           </div>
         </div>
 
-        <label style={labelStyle}>Descripción</label>
-        <input
-          placeholder="Observaciones del circuito"
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Polos (Aparato)</label>
+            <select
+              value={form.polos}
+              onChange={e => setForm(f => ({ ...f, polos: Number(e.target.value) as 2 | 3 | 4 }))}
+              style={inputStyle}
+            >
+              <option value={2}>Bipolar (2P)</option>
+              <option value={3}>Tripolar (3P)</option>
+              <option value={4}>Tetrapolar (4P)</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Curva de Disparo</label>
+            <select
+              value={form.curvaDisparo}
+              onChange={e => setForm(f => ({ ...f, curvaDisparo: e.target.value as Circuito['curvaDisparo'] }))}
+              style={inputStyle}
+            >
+              <option value="B">B (Rápida)</option>
+              <option value="C">C (Estándar)</option>
+              <option value="D">D (Lenta)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Conductores Activos</label>
+            <select
+              value={form.cantConductores}
+              onChange={e => setForm(f => ({ ...f, cantConductores: Number(e.target.value) }))}
+              style={inputStyle}
+            >
+              <option value={2}>2 (F+N)</option>
+              <option value={3}>3 (2F+N)</option>
+              <option value={4}>4 (3F+N)</option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Tipo Conducción</label>
+            <select
+              value={form.tipoConducto}
+              onChange={e => setForm(f => ({ ...f, tipoConducto: e.target.value as Circuito['tipoConducto'] }))}
+              style={inputStyle}
+            >
+              <option value="cano_rigido">Caño Rígido</option>
+              <option value="bandeja">Bandeja</option>
+              <option value="enterrado">Enterrado</option>
+              <option value="canaleta">Canaleta</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <label style={labelStyle}>Descripción / Observaciones</label>
+        <textarea
+          rows={3}
           value={form.descripcion}
           onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-          style={inputStyle}
+          style={{ ...inputStyle, resize: 'vertical' }}
         />
       </form>
     </Modal>

@@ -30,6 +30,11 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
   const [ref, setRef] = useState(existing?.referencia || '');
   const [datos, setDatos] = useState(existing?.datos || []);
   const [mostrar, setMostrar] = useState(existing?.mostrarDato || false);
+  const [medicionPAT, setMedicionPAT] = useState(existing?.medicionPAT || {
+    valorOhms: 40,
+    metodo: 'caida_tension' as const,
+    fecha: new Date().toISOString().split('T')[0]
+  });
 
   const [usarSnap, setUsarSnap] = useState<boolean>(() => {
     if (isEdit && existing?.paredIdx != null) return true;
@@ -50,11 +55,17 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
         mostrarDato: mostrar 
       };
       
-      // Si el usuario desactiva el snap, quitamos la referencia a la pared
       if (!usarSnap) {
         updated.paredIdx = null;
         updated.paredPos = null;
       }
+      
+      if (tipo === 'sym-pat-seguridad') {
+        updated.medicionPAT = medicionPAT;
+      } else {
+        delete updated.medicionPAT;
+      }
+      
       onConfirm(updated);
     } else if (clickData.mode === 'create') {
       // Creamos un elemento nuevo
@@ -62,6 +73,10 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
       el.referencia = ref;
       el.datos = datos;
       el.mostrarDato = mostrar;
+
+      if (tipo === 'sym-pat-seguridad') {
+        el.medicionPAT = medicionPAT;
+      }
 
       // Inyectamos anclaje solo si el usuario dejó marcado el snap
       if (usarSnap && clickData.snapSegIdx != null) {
@@ -127,6 +142,36 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
             <option value="si">Sí (etiqueta visible)</option>
           </select>
         </F>
+
+        {tipo === 'sym-pat-seguridad' && (
+          <>
+            <div className="sec-hdr">Medición Anual de PAT</div>
+            <F label="Resistencia (Ohms)">
+              <input
+                type="number"
+                step="0.1"
+                value={medicionPAT.valorOhms}
+                onChange={e => setMedicionPAT(m => ({ ...m, valorOhms: parseFloat(e.target.value) || 0 }))}
+              />
+            </F>
+            <F label="Método de Medición">
+              <select
+                value={medicionPAT.metodo}
+                onChange={e => setMedicionPAT(m => ({ ...m, metodo: e.target.value as 'caida_tension' | 'dos_puntas' }))}
+              >
+                <option value="caida_tension">Caída de Tensión (Picas)</option>
+                <option value="dos_puntas">Medidor Lazo / Dos Puntas</option>
+              </select>
+            </F>
+            <F label="Fecha de Medición">
+              <input
+                type="date"
+                value={medicionPAT.fecha}
+                onChange={e => setMedicionPAT(m => ({ ...m, fecha: e.target.value }))}
+              />
+            </F>
+          </>
+        )}
 
         <div className="sec-hdr">Datos técnicos adicionales</div>
         

@@ -13,10 +13,8 @@ function getProjectTools(id: string, estado?: string) {
   const tools = [
     { path: `/proyecto/${id}/resumen`,    label: 'Resumen',    icon: '📊' },
     { path: `/proyecto/${id}/relevador`,  label: 'Relevador',  icon: '🗺️' },
+    { path: `/proyecto/${id}/unifilar`,   label: 'Unifilar',   icon: '🔌' },
   ]
-  if (estado === 'presupuesto' || estado === 'en_ejecucion' || estado === 'ejecutado' || estado === 'certificado') {
-    tools.push({ path: `/proyecto/${id}/unifilar`, label: 'Unifilar', icon: '🔌' })
-  }
   if (estado === 'ejecutado' || estado === 'certificado') {
     tools.push({ path: `/proyecto/${id}/mediciones`, label: 'Mediciones', icon: '📏' })
     tools.push({ path: `/proyecto/${id}/srt`, label: 'SRT 900', icon: '📋' })
