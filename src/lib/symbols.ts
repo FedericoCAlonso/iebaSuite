@@ -48,6 +48,18 @@ export const getDefaultCategoriesSync = (): SymbolCategory[] => {
   return (symbolsFileData.categories || []) as SymbolCategory[];
 };
 
+export type SymbolUso = 'planta' | 'unifilar';
+
+export const getSymbolsByUsoSync = (uso?: SymbolUso): DefinicionSimbolo[] => {
+  if (!uso) return getDefaultSymbolsSync();
+  return getDefaultSymbolsSync().filter(symbol => symbol.uso === uso);
+};
+
+export const getSymbolsByCategorySync = (categoria?: string): DefinicionSimbolo[] => {
+  if (!categoria) return getDefaultSymbolsSync();
+  return getDefaultSymbolsSync().filter(symbol => symbol.categoria === categoria);
+};
+
 // ─── GESTIÓN EN STORAGE ───
 
 const SYMBOLS_KEY = 'ieba_custom_symbols_v1';

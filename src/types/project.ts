@@ -1,3 +1,5 @@
+import type { UnifilDiagram } from './unifilar'
+
 export interface Meta {
   nombre: string
   escala: number
@@ -56,6 +58,7 @@ export interface Project {
   // Nuevas entidades
   diferenciales?: Diferencial[]
   tramos?: TramoConductor[]
+  unifilDiagrams?: UnifilDiagram[]
 }
 
 export interface HojaMaestra {
