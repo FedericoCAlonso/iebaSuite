@@ -7,7 +7,13 @@ import { AppHeader } from '../../components/AppHeader'
 import { EditorScreen } from './EditorScreen'
 import { Preview } from './components/Preview'
 import { MasterView } from './components/MasterView'
-import type { Project, EditorTab } from '../../types/index'
+import { useMeasurements } from '../../hooks/useMeasurements'
+import { useProfile } from '../../core/ProfileContext'
+import { useMeasurementForm } from '../measurements/hooks/useMeasurementForm'
+import { useEntityOptions } from '../measurements/hooks/useEntityOptions'
+import { MeasurementForm } from '../measurements/components/MeasurementForm'
+import { MEDICION_CONFIG } from '../measurements/constants'
+import type { Project, EditorTab, ModuleType } from '../../types/index'
 
 const PLANTA_TABS = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'maestro', 'cobertura'] as const
 const ELECTRICO_TABS = ['resumen', 'electrico', 'circuitos', 'conexiones'] as const
@@ -30,6 +36,26 @@ export function RelevadorTool() {
     ui,
     actions
   } = useCurrentProject()
+
+  const { profile } = useProfile()
+  const operador = profile?.displayName || profile?.email || 'Sin operador'
+  const { measurements, addMeasurement, updateMeasurement } = useMeasurements(activeProject?.id || '')
+  
+  const [measurementModal, setMeasurementModal] = useState<{ elementoId: string; moduleType: ModuleType } | null>(null)
+  
+  const entityOptions = useEntityOptions()
+  const measurementForm = useMeasurementForm({
+    projectId: activeProject?.id || '',
+    operador,
+    onAdd: addMeasurement,
+    onUpdate: updateMeasurement,
+  })
+
+  const handleMeasurementSubmit = async (formElement: HTMLFormElement) => {
+    if (!measurementModal) return
+    await measurementForm.submit(measurementModal.moduleType, formElement)
+    setMeasurementModal(null)
+  }
 
   const handleModeChange = (next: 'planta' | 'electrico') => {
     setEditorMode(next)
@@ -104,6 +130,11 @@ export function RelevadorTool() {
                       onSelectAmbiente={setActiveAmbienteId}
                       onSymbolDialog={ui.modals.setSymDialog}
                       onShowNetlist={() => ui.modals.setShowNetlist(true)}
+                      globalMeasurements={measurements}
+                      onNewMeasurementModal={(elementoId, moduleType) => {
+                        measurementForm.startNew(moduleType)
+                        setMeasurementModal({ elementoId, moduleType })
+                      }}
                     />
                   </div>
                   <div className="panel-right">
@@ -121,6 +152,30 @@ export function RelevadorTool() {
           )}
         </div>
       </main>
+
+      {/* MODAL DE MEDICIÓN EN EL RELEVADOR */}
+      {measurementModal && (
+        <div className="measurement-form-modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="measurement-form-modal-header" style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
+            <h3 className="measurement-form-modal-title" style={{ margin: 0 }}>
+              Nueva medición — {MEDICION_CONFIG[measurementModal.moduleType].label}
+            </h3>
+            <button className="btn btn-ghost btn-sm" onClick={() => setMeasurementModal(null)}>✕</button>
+          </div>
+          <div style={{ background: 'var(--bg)', padding: '16px', borderRadius: '0 0 8px 8px', overflowY: 'auto', maxHeight: '80vh' }}>
+            <MeasurementForm
+              type={measurementModal.moduleType}
+              editingMeasurement={null}
+              initialData={{ elementoId: measurementModal.elementoId }}
+              instrumentos={profile?.instrumentos}
+              entityOptions={entityOptions}
+              isSubmitting={measurementForm.isSubmitting}
+              onSubmit={handleMeasurementSubmit}
+              onCancel={() => setMeasurementModal(null)}
+            />
+          </div>
+        </div>
+      )}
 
       <button
         className="mobile-view-toggle"

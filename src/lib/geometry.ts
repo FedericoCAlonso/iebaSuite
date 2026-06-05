@@ -8,6 +8,7 @@
  */
 
 import type { Pared, Project, Ambiente, Abertura } from '../types/index';
+import { getAmbienteParedes } from './storage';
 
 /** Punto o Vector en el plano 2D */
 export type Point = [number, number];
@@ -85,8 +86,21 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number,
   paredes.forEach((pared, i) => {
     const grosor = (pared.grosor !== null && pared.grosor !== 0) ? pared.grosor : 0.15;
     const grosorPx = mToPx(grosor, escala);
-    if (i > 0) dir = rot(dir, sentido * (pared.angulo || 0));
-    const esAutoCierre = pared.largo === 'auto' || (pared.largo === 0 && i >= 2);
+
+    // Si tiene referencia, la usamos para redefinir el inicio y la dirección base
+    if (pared.refParedIdx !== undefined && pared.refParedIdx >= 0 && pared.refParedIdx < segs.length) {
+      const refSeg = segs[pared.refParedIdx];
+      dir = refSeg.dir;
+      const refDistPx = mToPx(pared.refDistancia || 0, escala);
+      pos = add(refSeg.inicio, scale(dir, refDistPx));
+    }
+
+    if (i > 0 || pared.refParedIdx !== undefined) {
+      dir = rot(dir, sentido * (pared.angulo || 0));
+    }
+
+    // El auto-cierre no tiene sentido si estamos rompiendo la cadena
+    const esAutoCierre = pared.refParedIdx === undefined && (pared.largo === 'auto' || (pared.largo === 0 && i >= 2));
     
     if (esAutoCierre) {
       if (i !== paredes.length - 1) return;
@@ -112,10 +126,9 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number,
   return segs;
 }
 
-export function calcularVectores(segs: Segmento[]): void {
-  let area = 0;
-  segs.forEach(s => { area += s.inicio[0] * s.fin[1] - s.fin[0] * s.inicio[1]; });
-  const cw = area >= 0;
+export function calcularVectores(segs: Segmento[], sentidoN: number): void {
+  // 1 para horario, -1 para antihorario
+  const cw = sentidoN === 1;
   segs.forEach(s => {
     const p = perpIzq(s.dir);
     if (cw) {
@@ -126,6 +139,31 @@ export function calcularVectores(segs: Segmento[]): void {
       s.v_ext = [-p[0], -p[1]] as Point;
     }
   });
+}
+
+/**
+ * Agrupa segmentos en cadenas para renderizado.
+ * Una nueva cadena comienza cada vez que una pared tiene refParedIdx definido
+ * (es decir, "rompe" la cadena secuencial).
+ */
+export function computeChains(segs: Segmento[]): Array<{ segs: Segmento[]; cerrado: boolean }> {
+  const chains: Array<{ segs: Segmento[]; cerrado: boolean }> = [];
+  let currentChain: Segmento[] = [];
+
+  for (let i = 0; i < segs.length; i++) {
+    const isNewBranch = i > 0 && segs[i].pared?.refParedIdx !== undefined;
+    if (isNewBranch && currentChain.length > 0) {
+      chains.push({ segs: currentChain, cerrado: esCerrado(currentChain) });
+      currentChain = [];
+    }
+    currentChain.push(segs[i]);
+  }
+
+  if (currentChain.length > 0) {
+    chains.push({ segs: currentChain, cerrado: esCerrado(currentChain) });
+  }
+
+  return chains;
 }
 
 export function snapAPared(cx: number, cy: number, segs: Segmento[]) {
@@ -264,13 +302,17 @@ export function anguloSimboloPared(seg: Segmento): number {
 }
 
 export function buildSegs(amb: Ambiente, meta: any) {
-  const tramos = (amb.tramos || []).map((t: any) => {
-    const s = construirEjes(t.paredes, meta.escala, t.sentido || 1);
-    calcularVectores(s);
-    return { segs: s, cerrado: esCerrado(s) };
-  });
-  const allSegs = tramos.flatMap((t: any) => t.segs);
-  return { tramos, allSegs };
+  const paredes = getAmbienteParedes(amb);
+  const grosorDefault = meta.grosor_pared_default ?? 0.15;
+  const paredesConGrosor = paredes.map((p: Pared) => ({
+    ...p,
+    grosor: p.grosor ?? grosorDefault
+  }));
+  const sentidoN = amb.sentido === 'horario' ? 1 : -1;
+  const segs = construirEjes(paredesConGrosor, meta.escala, sentidoN, 0, 0);
+  calcularVectores(segs, sentidoN);
+  const chains = computeChains(segs);
+  return { chains, allSegs: segs };
 }
 
 /**

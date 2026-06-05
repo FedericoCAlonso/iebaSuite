@@ -10,6 +10,7 @@ import type { EntityOption } from '../../hooks/useEntityOptions';
 
 interface CommonFieldsProps {
   editingMeasurement: Measurement | null;
+  initialData?: Partial<Measurement>;
   instrumentos?: { id: string; marca: string; modelo: string; nroSerie: string }[];
   entityOptions?: EntityOption[];
   entityLabel?: string;
@@ -27,22 +28,27 @@ const RESULTADO_OPTIONS: { value: ResultadoMedicion; label: string }[] = [
 
 export const CommonFields: React.FC<CommonFieldsProps> = ({
   editingMeasurement,
+  initialData,
   instrumentos = [],
   entityOptions = [],
   entityLabel = 'Entidad vinculada',
   showEntitySelect = false,
   entityName = 'elementoId',
 }) => {
-  const defaultResultado = editingMeasurement?.resultado || 'aprobado';
-  const defaultUbicacion = editingMeasurement?.ubicacion || '';
-  const defaultObs = editingMeasurement?.observaciones || '';
-  const defaultInst = editingMeasurement?.instrumentoId || '';
+  const defaultResultado = editingMeasurement?.resultado || initialData?.resultado || 'aprobado';
+  const defaultUbicacion = editingMeasurement?.ubicacion || initialData?.ubicacion || '';
+  const defaultObs = editingMeasurement?.observaciones || initialData?.observaciones || '';
+  const defaultInst = editingMeasurement?.instrumentoId || initialData?.instrumentoId || '';
   const defaultEntity = editingMeasurement?.elementoId
     || editingMeasurement?.circuitoId
     || editingMeasurement?.diferencialId
     || editingMeasurement?.tableroId
+    || initialData?.elementoId
+    || initialData?.circuitoId
+    || initialData?.diferencialId
+    || initialData?.tableroId
     || '';
-  const defaultError = editingMeasurement?.errorMedicion || '';
+  const defaultError = editingMeasurement?.errorMedicion || initialData?.errorMedicion || '';
   
   // Convertir timestamp a YYYY-MM-DDThh:mm para el input datetime-local
   const defaultFechaISO = editingMeasurement?.fecha 

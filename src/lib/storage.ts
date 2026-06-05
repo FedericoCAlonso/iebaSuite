@@ -78,7 +78,7 @@ export const createPared = (overide: Partial<Pared> = {}): Pared => ({
 });
 
 /**
- * Crea un nuevo tramo de paredes.
+ * Crea un nuevo tramo de paredes. @deprecated - usar paredes[] en Ambiente directamente.
  */
 export const createTramo = (overide: Partial<Tramo> = {}): Tramo => ({
   id: generateId(),
@@ -88,6 +88,28 @@ export const createTramo = (overide: Partial<Tramo> = {}): Tramo => ({
 });
 
 /**
+ * Obtiene la lista plana de paredes de un ambiente.
+ * Maneja la migración transparente desde el modelo legacy de tramos.
+ */
+export const getAmbienteParedes = (amb: Ambiente): Pared[] => {
+  if (amb.paredes && amb.paredes.length > 0) return amb.paredes;
+  // Migración: flatten legacy tramos
+  return (amb.tramos || []).flatMap(t => t.paredes);
+};
+
+/**
+ * Migra un ambiente del modelo legacy (tramos) al nuevo modelo plano (paredes).
+ */
+export const migrateAmbiente = (amb: Ambiente): Ambiente => {
+  if (amb.paredes && amb.paredes.length > 0) return amb;
+  const flatParedes = (amb.tramos || []).flatMap(t => t.paredes);
+  return {
+    ...amb,
+    paredes: flatParedes.length > 0 ? flatParedes : [createPared()],
+  };
+};
+
+/**
  * Crea una nueva instancia de Ambiente.
  */
 export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
@@ -95,9 +117,9 @@ export const createAmbiente = (nombre = 'Ambiente'): Ambiente => ({
   nombre,
   tipoAmbiente: 'interior',
   sentido: 'horario',
-  alturaLocal: undefined, // hereda meta.alturaDefault
+  alturaLocal: undefined,
   mostrar_cotas: true,
-  tramos: [createTramo()],
+  paredes: [createPared()],
   aberturas: [],
   elementos: [],
   textos: [],

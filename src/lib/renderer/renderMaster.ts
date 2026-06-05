@@ -60,9 +60,9 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
   const labels: string[] = [];
 
   const globalData = placed.map(amb => {
-    const { tramos } = buildSegs(amb, meta);
+    const { chains } = buildSegs(amb, meta);
     const rot = amb.rotation || 0;
-    return { amb, tramos, rot };
+    return { amb, chains, rot };
   });
 
   const allRoomPolys: Point[][] = placed.map(amb => {
@@ -75,9 +75,9 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
     floors.push(`<polygon points="${ptsAttr(poly)}" fill="${C.INT_FILL}" stroke="none"/>`);
   });
 
-  globalData.forEach(({ amb, tramos, rot }) => {
-    tramos.forEach(t => {
-      const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+  globalData.forEach(({ amb, chains, rot }) => {
+    chains.forEach(c => {
+      const { ext, int } = GEO.poligonoMuro(c.segs, c.cerrado);
       const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
       const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
       walls.push(`<polygon points="${ptsAttr([...gExt, ...([...gInt].reverse())])}" fill="${C.PARED_FILL}" stroke="none"/>`);
@@ -86,9 +86,9 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
 
   const facePool: {inicio: Point, fin: Point, isExterior: boolean}[] = [];
   
-  globalData.forEach(({ amb, tramos, rot }) => {
-    tramos.forEach(t => {
-      const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+  globalData.forEach(({ amb, chains, rot }) => {
+    chains.forEach(c => {
+      const { ext, int } = GEO.poligonoMuro(c.segs, c.cerrado);
       const gExt = ext.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
       const gInt = int.map(p => GEO.transformPoint(p as Point, amb.posX!, amb.posY!, rot, escala));
       
@@ -123,31 +123,33 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
   });
 
   const huecos: string[] = [];
-  globalData.forEach(({ amb, tramos, rot }) => {
+  globalData.forEach(({ amb, chains, rot }) => {
+    const allSegs = chains.flatMap(c => c.segs);
     amb.aberturas?.forEach(ab => {
       const dx = GEO.mToPx(amb.posX!, escala);
       const dy = GEO.mToPx(amb.posY!, escala);
       const huecoOut: string[] = [];
-      renderAbertura(huecoOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0, true);
+      renderAbertura(huecoOut, ab, allSegs, escala, 0, 0, true);
       huecos.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${huecoOut.join('\n')}</g>`);
     });
   });
 
-  globalData.forEach(({ amb, tramos, rot }) => {
+  globalData.forEach(({ amb, chains, rot }) => {
+    const allSegs = chains.flatMap(c => c.segs);
     const dx = GEO.mToPx(amb.posX!, escala);
     const dy = GEO.mToPx(amb.posY!, escala);
 
     amb.aberturas?.forEach(ab => {
       if (ab.esPrincipal === false) return;
       const abOut: string[] = [];
-      renderAbertura(abOut, ab, tramos.flatMap(t => t.segs), escala, 0, 0, false);
+      renderAbertura(abOut, ab, allSegs, escala, 0, 0, false);
       const cleanOut = abOut.filter(s => !s.includes('fill="white"'));
       openings.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${cleanOut.join('\n')}</g>`);
     });
 
     amb.elementos?.forEach(el => {
       const symOut: string[] = [];
-      renderElemento(symOut, el, tramos.flatMap(t => t.segs), escala, 0, 0, false, symbolsLib, amb.elementosEstructurales);
+      renderElemento(symOut, el, allSegs, escala, 0, 0, false, symbolsLib, amb.elementosEstructurales);
       symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
     });
 

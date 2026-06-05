@@ -1,36 +1,28 @@
 import { useState, useMemo, useCallback } from 'react';
 import { RENDERER } from '../lib/renderer';
 import * as GEO from '../lib/geometry';
-import { createPared, createZonaCobertura } from '../lib/storage';
+import { createZonaCobertura } from '../lib/storage';
 import {
   type Project, type Ambiente, type Abertura,
   type ElementoElectrico, type Circuito, type Conexion,
   type Cable,
 } from '../types/index';
 
-/**
- * Custom Hook que encapsula toda la lógica de estado y cálculos del editor.
- * Aplica el principio de SRP (Single Responsibility Principle).
- * Todos los handlers están memoizados con useCallback para evitar re-renders
- * innecesarios en componentes hijos que usen React.memo.
- */
 export function useEditorState(
   project: Project,
   activeAmbiente: Ambiente,
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void,
   onUpdateProject: (fn: (p: Project) => Project) => void
 ) {
-  const [activeTramoIdx, setActiveTramoIdx] = useState(0);
-
-  // Estado del flujo de creación Paso A/B
+  // Estado del flujo de creación (solo coberturas)
   const [creationFlow, setCreationFlow] = useState<{
     active: boolean;
-    type: 'tramo' | 'cobertura';
+    type: 'cobertura' | 'tramo';
     step: 'A' | 'B';
     anchor: { x: number; y: number; label: string; ref?: unknown } | null;
     offsetX: number;
     offsetY: number;
-  }>({ active: false, type: 'tramo', step: 'A', anchor: null, offsetX: 0, offsetY: 0 });
+  }>({ active: false, type: 'cobertura', step: 'A', anchor: null, offsetX: 0, offsetY: 0 });
 
   // Estado para conexiones entre bocas (inter-ambiente)
   const [pendingConnection, setPendingConnection] = useState<{
@@ -41,29 +33,26 @@ export function useEditorState(
   // --- Geometría: Cálculo de todos los vértices anclables ---
   const allVertices = useMemo(() => {
     if (!activeAmbiente || !project) return [];
-    const { tramos } = RENDERER.buildSegs(activeAmbiente, project.meta);
+    const { allSegs } = RENDERER.buildSegs(activeAmbiente, project.meta);
     const result: { x: number, y: number, label: string, ref: unknown }[] = [];
 
-    // Vértices de tramos de paredes
-    tramos.forEach((t, ti) => {
-      t.segs.forEach((s, si) => {
-        const xM = GEO.pxToM(s.inicio[0], project.meta.escala);
-        const yM = GEO.pxToM(s.inicio[1], project.meta.escala);
-        result.push({
-          x: xM, y: yM,
-          label: `Tramo ${ti + 1} · Vértice ${si + 1} — (${xM.toFixed(2)}m, ${yM.toFixed(2)}m)`,
-          ref: { type: 'vertice', ambienteRefId: activeAmbiente.id, tramoRefId: activeAmbiente.tramos[ti].id, verticeRefIdx: si }
-        });
-        if (si === t.segs.length - 1) {
-          const xF = GEO.pxToM(s.fin[0], project.meta.escala);
-          const yF = GEO.pxToM(s.fin[1], project.meta.escala);
-          result.push({
-            x: xF, y: yF,
-            label: `Tramo ${ti + 1} · Vértice ${si + 2} — (${xF.toFixed(2)}m, ${yF.toFixed(2)}m)`,
-            ref: { type: 'vertice', ambienteRefId: activeAmbiente.id, tramoRefId: activeAmbiente.tramos[ti].id, verticeRefIdx: si + 1 }
-          });
-        }
+    allSegs.forEach((s, si) => {
+      const xM = GEO.pxToM(s.inicio[0], project.meta.escala);
+      const yM = GEO.pxToM(s.inicio[1], project.meta.escala);
+      result.push({
+        x: xM, y: yM,
+        label: `Pared ${si + 1} · inicio — (${xM.toFixed(2)}m, ${yM.toFixed(2)}m)`,
+        ref: { type: 'vertice', ambienteRefId: activeAmbiente.id, verticeRefIdx: si }
       });
+      if (si === allSegs.length - 1) {
+        const xF = GEO.pxToM(s.fin[0], project.meta.escala);
+        const yF = GEO.pxToM(s.fin[1], project.meta.escala);
+        result.push({
+          x: xF, y: yF,
+          label: `Pared ${si + 1} · fin — (${xF.toFixed(2)}m, ${yF.toFixed(2)}m)`,
+          ref: { type: 'vertice', ambienteRefId: activeAmbiente.id, verticeRefIdx: si + 1 }
+        });
+      }
     });
 
     // Vértices de zonas de cobertura
@@ -161,32 +150,23 @@ export function useEditorState(
 
   /**
    * Vincula una abertura de la hoja activa con una ya existente en otra hoja.
-   * Crea un enlace bidireccional, sincroniza propiedades y AUTO-ROTA la hoja esclava
-   * para que los muros coincidan en el plano maestro.
+   * Crea un enlace bidireccional, sincroniza propiedades y aplica la transformación
+   * geométrica a la hoja activa (esclava) para que los muros coincidan.
    */
   const linkOpening = useCallback((targetAmbId: string, targetOpeningId: string, currentOpeningId: string) => {
     onUpdateProject(proj => {
       const targetAmb = proj.ambientes.find(a => a.id === targetAmbId);
+      const currentAmb = proj.ambientes.find(a => a.id === activeAmbiente.id);
       const targetOp = targetAmb?.aberturas.find(o => o.id === targetOpeningId);
-      if (!targetAmb || !targetOp) return proj;
-
-      // 1. Calcular rotación necesaria para que los muros queden enfrentados
-      const { allSegs: segsActiva } = RENDERER.buildSegs(activeAmbiente, proj.meta);
-      const { allSegs: segsVecina } = RENDERER.buildSegs(targetAmb, proj.meta);
-
-      const opActiva = activeAmbiente.aberturas.find(o => o.id === currentOpeningId);
-      if (!opActiva) return proj;
-
-      const sActiva = segsActiva[opActiva.pared];
-      const sVecina = segsVecina[targetOp.pared];
-
-      let rotacionEsclava = 0;
-      if (sActiva && sVecina) {
-        const angActiva = Math.atan2(sActiva.fin[1] - sActiva.inicio[1], sActiva.fin[0] - sActiva.inicio[0]) * 180 / Math.PI;
-        const angVecina = Math.atan2(sVecina.fin[1] - sVecina.inicio[1], sVecina.fin[0] - sVecina.inicio[0]) * 180 / Math.PI;
-        // Queremos que angVecina + rotationB = angActiva + 180
-        rotacionEsclava = (angActiva + 180) - angVecina;
+      const opActiva = currentAmb?.aberturas.find(o => o.id === currentOpeningId);
+      if (!targetAmb || !targetOp || !currentAmb || !opActiva) {
+         console.warn('Faltan datos para el enlace', {targetAmb, targetOp, currentAmb, opActiva});
+         return proj;
       }
+
+      // La maestra es targetAmb, la esclava es currentAmb
+      // calcularTransformacionEnlace(A, abA, B, abB) -> posiciona B relativa a A
+      const transform = GEO.calcularTransformacionEnlace(targetAmb, targetOp, currentAmb, opActiva, proj.meta.escala);
 
       return {
         ...proj,
@@ -195,7 +175,9 @@ export function useEditorState(
           if (amb.id === activeAmbiente.id) {
             return {
               ...amb,
-              rotation: rotacionEsclava,
+              posX: transform.posX,
+              posY: transform.posY,
+              rotation: transform.rotation,
               aberturas: (amb.aberturas || []).map(o => {
                 if (o.id === currentOpeningId) {
                   return {
@@ -206,8 +188,9 @@ export function useEditorState(
                     ancho: targetOp.ancho,
                     tipo: targetOp.tipo,
                     subtipo: targetOp.subtipo,
-                    lado: targetOp.lado === 'interior' ? 'exterior' : 'interior',
-                    sentido: targetOp.sentido === 'derecha' ? 'izquierda' : 'derecha'
+                    hojas: targetOp.hojas,
+                    lado: targetOp.lado === 'interior' ? 'exterior' : (targetOp.lado === 'exterior' ? 'interior' : targetOp.lado),
+                    sentido: targetOp.sentido === 'derecha' ? 'izquierda' : (targetOp.sentido === 'izquierda' ? 'derecha' : targetOp.sentido)
                   };
                 }
                 return o;
@@ -266,34 +249,16 @@ export function useEditorState(
     const finalX = (creationFlow.anchor?.x || 0) + creationFlow.offsetX;
     const finalY = (creationFlow.anchor?.y || 0) + creationFlow.offsetY;
 
-    if (creationFlow.type === 'tramo') {
-      onUpdateAmbiente(a => {
-        const nts = [...a.tramos];
-        nts[activeTramoIdx] = { ...nts[activeTramoIdx], cerrado: false };
-        const newIdx = nts.length;
-        nts.push({
-          id: Date.now().toString(),
-          cerrado: false,
-          paredes: [createPared()],
-          origenX: finalX,
-          origenY: finalY,
-          amarre: creationFlow.anchor?.ref as import('../types').PuntoAmarre | undefined
-        });
-        setActiveTramoIdx(newIdx);
-        return { ...a, tramos: nts };
-      });
-    } else {
-      onUpdateAmbiente(a => ({
-        ...a,
-        coberturas: [...(a.coberturas || []), {
-          ...createZonaCobertura(),
-          origenX: finalX,
-          origenY: finalY
-        }]
-      }));
-    }
+    onUpdateAmbiente(a => ({
+      ...a,
+      coberturas: [...(a.coberturas || []), {
+        ...createZonaCobertura(),
+        origenX: finalX,
+        origenY: finalY
+      }]
+    }));
     cancelCreation();
-  }, [creationFlow, activeTramoIdx, onUpdateAmbiente, cancelCreation]);
+  }, [creationFlow, onUpdateAmbiente, cancelCreation]);
 
   // --- Handlers de Netlist Inter-Ambiente ---
   const startConnecting = useCallback((elementoId: string) => {
@@ -327,7 +292,6 @@ export function useEditorState(
 
   return {
     // Estado
-    activeTramoIdx, setActiveTramoIdx,
     creationFlow,
 
     // Acciones del flujo

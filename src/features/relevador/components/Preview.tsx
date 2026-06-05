@@ -37,6 +37,7 @@ const CURSOR_BY_TAB: Record<EditorTab, string> = {
   conexiones: 'default',
   maestro:    'default',
   cobertura:  'default',
+  escaleras:  'default',
 };
 
 /** Texto de ayuda en el toolbar según el tab activo */
@@ -51,6 +52,7 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   conexiones:'— Solo lectura —',
   maestro:   '— Plano Maestro —',
   cobertura: '— Solo lectura —',
+  escaleras: '— Solo lectura —',
 };
 
 export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, creationFlow }: PreviewProps) {
@@ -132,8 +134,8 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
   /** Información técnica de la geometría actual */
   const status = useMemo(() => {
     if (!ambiente) return null;
-    const { tramos, allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
-    const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
+    const { chains, allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
+    const allClosed = chains.length > 0 && chains.every(c => c.cerrado);
     return { 
       paredes: segs.length, 
       cerrado: allClosed 

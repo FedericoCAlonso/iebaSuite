@@ -22,6 +22,23 @@ function buildTitle(pared: Pared, index: number): string {
 }
 
 export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardProps) {
+  const isBranched = pared.refParedIdx !== undefined;
+
+  const handleBranchToggle = (checked: boolean) => {
+    if (checked) {
+      const next: Pared = {
+        ...pared,
+        refParedIdx: Math.max(0, index - 1),
+        refDistancia: 0,
+      };
+      if (next.largo === 'auto') next.largo = 1;
+      onChange(next);
+    } else {
+      const { refParedIdx, refDistancia, ...rest } = pared;
+      onChange(rest);
+    }
+  };
+
   return (
     <Card
       idx={`P${index + 1}`}
@@ -61,6 +78,41 @@ export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardP
           />
         </F>
       </div>
+
+      {/* Opción de ramificación */}
+      {index > 0 && (
+        <div style={{ marginTop: '8px', padding: '8px', background: 'var(--bg)', borderRadius: '4px', border: '1px solid var(--border-dim)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', marginBottom: isBranched ? '8px' : 0 }}>
+            <input
+              type="checkbox"
+              checked={isBranched}
+              onChange={e => handleBranchToggle(e.target.checked)}
+            />
+            📍 Ramificar desde otra pared (Romper cadena)
+          </label>
+          {isBranched && (
+            <div className="field-row">
+              <F label="Pared Referencia">
+                <select
+                  className="input-base"
+                  value={pared.refParedIdx}
+                  onChange={e => onChange({ ...pared, refParedIdx: Number(e.target.value) })}
+                >
+                  {Array.from({ length: index }).map((_, i) => (
+                    <option key={i} value={i}>Pared {i + 1}</option>
+                  ))}
+                </select>
+              </F>
+              <F label="Distancia desde inicio (m)">
+                <NumInput
+                  value={pared.refDistancia || 0}
+                  onChange={(v: number) => onChange({ ...pared, refDistancia: v })}
+                />
+              </F>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Esquina saliente */}
       <div className="field-row" style={{ alignItems: 'center' }}>

@@ -19,6 +19,8 @@ interface ElectricalTabProps {
   onStartConnecting?: (elId: string) => void;
   onFinishConnecting?: (ambId: string, elId: string) => void;
   onCancelConnecting?: () => void;
+  globalMeasurements?: import('../../../../types/index').Measurement[];
+  onNewMeasurementModal?: (elementoId: string, moduleType: import('../../../../types/index').ModuleType) => void;
 }
 
 /**
@@ -35,7 +37,9 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
   pendingConnection,
   onStartConnecting,
   onFinishConnecting,
-  onCancelConnecting
+  onCancelConnecting,
+  globalMeasurements,
+  onNewMeasurementModal
 }) => {
   return (
     <>
@@ -57,6 +61,7 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
           wallCount={RENDERER.buildSegs(activeAmbiente, project.meta).allSegs.length}
           symbolsLib={symbolsLib}
           circuitos={circuitos}
+          tableros={project.tableros}
           onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
           onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
           onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}
@@ -65,6 +70,8 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
           onStartConnecting={onStartConnecting}
           onFinishConnecting={onFinishConnecting}
           onCancelConnecting={onCancelConnecting}
+          globalMeasurements={globalMeasurements}
+          onNewMeasurementModal={onNewMeasurementModal}
         />
       ))}
     </>

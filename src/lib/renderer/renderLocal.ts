@@ -11,11 +11,11 @@ import { C } from './constants';
 import { ptsAttr, txt, line } from './utils';
 import { buildSegs } from '../geometry';
 import { getLayout } from './layout';
-import { renderAbertura, renderCobertura, renderCotas, renderElemento, renderElementoEstructural, renderIrregularidad } from './components';
+import { renderAbertura, renderCobertura, renderCotas, renderElemento, renderElementoEstructural, renderIrregularidad, renderEscalera } from './components';
 import { renderConexiones } from './connections';
 
 export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project): string {
-  const { tramos, allSegs: segs } = buildSegs(ambiente, meta);
+  const { chains, allSegs: segs } = buildSegs(ambiente, meta);
   const { dx, dy, pageW, pageH, margin } = getLayout(ambiente, meta);
   const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
   
@@ -28,18 +28,16 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
     </svg>`;
   }
 
-  const allClosed = tramos.length > 0 && tramos.every(t => t.cerrado);
-  
-  // 1. Polígono de fondo (piso)
-  if (allClosed) {
-    tramos.forEach(t => {
-      out.push(`<polygon points="${ptsAttr(t.segs.map(s => GEO.add(s.inicio, [dx, dy])))}" fill="${C.INT_FILL}" stroke="none"/>`);
-    });
-  }
+  // 1. Polígono de fondo (piso) - solo para cadenas cerradas
+  chains.forEach(c => {
+    if (c.cerrado) {
+      out.push(`<polygon points="${ptsAttr(c.segs.map(s => GEO.add(s.inicio, [dx, dy])))}" fill="${C.INT_FILL}" stroke="none"/>`);
+    }
+  });
 
   // 2. Muros principales
-  tramos.forEach(t => {
-    const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+  chains.forEach(c => {
+    const { ext, int } = GEO.poligonoMuro(c.segs, c.cerrado);
     const extT = ext.map(p => GEO.add(p as Point, [dx, dy]));
     const intT = int.map(p => GEO.add(p as Point, [dx, dy]));
     
@@ -48,8 +46,11 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
     for (let i = 0; i < extT.length - 1; i++) out.push(line(extT[i], extT[i+1], C.EXT, C.EXT_W));
     for (let i = 0; i < intT.length - 1; i++) out.push(line(intT[i], intT[i+1], C.INT, C.INT_W));
 
-    if (!t.cerrado && t.segs.length > 0) {
-      out.push(line(extT[0], intT[0], C.EXT, C.EXT_W));
+    if (!c.cerrado && c.segs.length > 0) {
+      const isBranch = c.segs[0].pared?.refParedIdx !== undefined;
+      if (!isBranch) {
+        out.push(line(extT[0], intT[0], C.EXT, C.EXT_W));
+      }
       out.push(line(extT[extT.length - 1], intT[intT.length - 1], C.EXT, C.EXT_W));
     }
   });
@@ -80,6 +81,11 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
   // 6. Elementos Estructurales
   (ambiente.elementosEstructurales || []).forEach(ee => {
     renderElementoEstructural(out, ee, meta.escala, dx, dy);
+  });
+
+  // 6.5 Escaleras
+  (ambiente.escaleras || []).forEach(esc => {
+    renderEscalera(out, esc, segs, meta.escala, dx, dy);
   });
 
   // 7. Elementos Eléctricos
@@ -140,22 +146,21 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
 }
 
 export function renderHoja(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[]): string {
-  const { tramos, allSegs: segs } = buildSegs(ambiente, meta);
+  const { chains, allSegs: segs } = buildSegs(ambiente, meta);
   if (!segs.length) return '';
 
   const out: string[] = [];
   const escala = meta.escala;
 
-  const allClosed = (ambiente.tramos || []).every(t => t.cerrado);
-  if (allClosed) {
-    tramos.forEach(t => {
-      const { int } = GEO.poligonoMuro(t.segs, t.cerrado);
+  chains.forEach(c => {
+    if (c.cerrado) {
+      const { int } = GEO.poligonoMuro(c.segs, true);
       out.push(`<polygon points="${int.map(p => p.join(',')).join(' ')}" fill="${C.INT_FILL}"/>`);
-    });
-  }
+    }
+  });
 
-  tramos.forEach(t => {
-    const { ext, int } = GEO.poligonoMuro(t.segs, t.cerrado);
+  chains.forEach(c => {
+    const { ext, int } = GEO.poligonoMuro(c.segs, c.cerrado);
     out.push(`<polygon points="${ext.map(p => p.join(',')).join(' ')}" fill="${C.PARED_FILL}" stroke="${C.EXT}" stroke-width="0.5"/>`);
     out.push(`<polyline points="${int.map(p => p.join(',')).join(' ')}" fill="none" stroke="${C.INT}" stroke-width="0.2"/>`);
   });

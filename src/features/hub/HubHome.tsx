@@ -41,13 +41,6 @@ const projectTools = [
     disponible: true,
   },
   {
-    path: '/unifilar',
-    label: 'Unifilar',
-    icon: '🔌',
-    descripcion: 'Diagrama unifilar de tableros',
-    disponible: true,
-  },
-  {
     path: '/mediciones',
     label: 'Mediciones',
     icon: '📏',

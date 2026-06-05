@@ -66,7 +66,7 @@ export function createProjectRemote(
 export async function saveProjectRemote(project: Project): Promise<void> {
   assertDb(db)
   const ref = doc(db, COL, project.id)
-  const cleaned = deepCleanUndefined({ ...project, updatedAt: Date.now() })
+  const cleaned = deepCleanUndefined(project)
   await setDoc(ref, cleaned)
 }
 

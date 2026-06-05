@@ -286,7 +286,6 @@ export function SymbolManagerScreen() {
                     onChange={e =>
                       setEditingSymbol({ ...editingSymbol, label: e.target.value })
                     }
-                    disabled={!editingSymbol.id.startsWith('sym-custom-')}
                   />
                 </F>
                 <div className="field-row">
@@ -301,7 +300,6 @@ export function SymbolManagerScreen() {
                           escalaBase: parseFloat(e.target.value) || 1,
                         })
                       }
-                      disabled={!editingSymbol.id.startsWith('sym-custom-')}
                     />
                   </F>
                   <F label="Categoría">
@@ -313,7 +311,6 @@ export function SymbolManagerScreen() {
                           categoria: e.target.value || undefined,
                         })
                       }
-                      disabled={!editingSymbol.id.startsWith('sym-custom-')}
                     >
                       <option value="">Sin categoría</option>
                       {categoriesLib.map(c => (
@@ -332,7 +329,6 @@ export function SymbolManagerScreen() {
                           uso: e.target.value as 'planta' | 'unifilar',
                         })
                       }
-                      disabled={!editingSymbol.id.startsWith('sym-custom-')}
                     >
                       <option value="planta">Planta</option>
                       <option value="unifilar">Unifilar</option>
@@ -365,7 +361,6 @@ export function SymbolManagerScreen() {
                     svgContent: e.target.value,
                   })
                 }
-                disabled={!editingSymbol.id.startsWith('sym-custom-')}
               />
             </F>
 
@@ -376,11 +371,9 @@ export function SymbolManagerScreen() {
               >
                 Cerrar
               </button>
-              {editingSymbol.id.startsWith('sym-custom-') && (
-                <button className="btn btn-acc" onClick={handleSaveEdit}>
-                  Guardar cambios
-                </button>
-              )}
+              <button className="btn btn-acc" onClick={handleSaveEdit}>
+                Guardar cambios
+              </button>
             </div>
           </div>
         </div>

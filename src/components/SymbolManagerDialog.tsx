@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React, { useRef, useState } from 'react';
-import type { DefinicionSimbolo } from '../lib/symbols';
+import type { DefinicionSimbolo, SymbolPin } from '../lib/symbols';
 import { saveSymbols } from '../lib/symbols';
 import { F } from '../ui/Field';
 import { parseSvgFileContent } from '../utils/svgParser';
@@ -54,11 +54,12 @@ export function SymbolManagerDialog({ symbolsLib, onUpdate, onClose }: SymbolMan
   };
 
   const handleSaveEdit = () => {
-    if (!editingId || !formData.id) return;
-    const updated = symbolsLib.map(s => s.id === editingId ? { ...s, ...formData } as DefinicionSimbolo : s);
+    if (!editingId) return;
+    const updated = symbolsLib.map(s => s.id === editingId ? { ...s, ...formData, id: editingId } as DefinicionSimbolo : s);
     onUpdate(updated);
     saveSymbols(updated);
     setEditingId(null);
+    setFormData({});
   };
 
   const handleDelete = (id: string) => {
@@ -144,6 +145,44 @@ export function SymbolManagerDialog({ symbolsLib, onUpdate, onClose }: SymbolMan
                 onChange={e => setFormData({ ...formData, svgContent: e.target.value })}
               />
             </F>
+
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontWeight: 700, marginBottom: 8 }}>Pines / Conexiones</div>
+              {(formData.pins || []).map((p: SymbolPin, idx: number) => (
+                <div key={p.id || idx} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <input style={{ width: 110 }} value={p.id} onChange={e => {
+                    const pins = (formData.pins || []).slice(); pins[idx] = { ...pins[idx], id: e.target.value }; setFormData({ ...formData, pins });
+                  }} />
+                  <input style={{ width: 120 }} value={p.name || ''} placeholder="Nombre" onChange={e => {
+                    const pins = (formData.pins || []).slice(); pins[idx] = { ...pins[idx], name: e.target.value }; setFormData({ ...formData, pins });
+                  }} />
+                  <select value={p.role} onChange={e => {
+                    const pins = (formData.pins || []).slice(); pins[idx] = { ...pins[idx], role: e.target.value as any }; setFormData({ ...formData, pins });
+                  }}>
+                    <option value="phase">phase</option>
+                    <option value="neutral">neutral</option>
+                    <option value="pe">pe</option>
+                    <option value="other">other</option>
+                  </select>
+                  <input type="number" step="0.1" style={{ width: 80 }} value={p.x as any} onChange={e => {
+                    const pins = (formData.pins || []).slice(); pins[idx] = { ...pins[idx], x: parseFloat(e.target.value) || 0 }; setFormData({ ...formData, pins });
+                  }} />
+                  <input type="number" step="0.1" style={{ width: 80 }} value={p.y as any} onChange={e => {
+                    const pins = (formData.pins || []).slice(); pins[idx] = { ...pins[idx], y: parseFloat(e.target.value) || 0 }; setFormData({ ...formData, pins });
+                  }} />
+                  <button className="btn btn-sm btn-danger" onClick={() => {
+                    const pins = (formData.pins || []).slice(); pins.splice(idx, 1); setFormData({ ...formData, pins });
+                  }}>Eliminar</button>
+                </div>
+              ))}
+              <div style={{ marginTop: 8 }}>
+                <button className="btn btn-ghost" onClick={() => {
+                  const pins = (formData.pins || []).slice();
+                  pins.push({ id: `pin-${Date.now()}`, role: 'phase', x: 0, y: 0 });
+                  setFormData({ ...formData, pins });
+                }}>+ Agregar Pin</button>
+              </div>
+            </div>
 
             <div className="dialog-actions" style={{ marginTop: 16 }}>
               <button className="btn btn-ghost" onClick={() => setEditingId(null)}>Cancelar</button>

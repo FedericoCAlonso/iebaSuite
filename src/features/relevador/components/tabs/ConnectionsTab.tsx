@@ -10,7 +10,7 @@ interface ConnectionsTabProps {
 }
 
 /**
- * Pestaña para la gestión del netlist y conexiones inter-boca.
+ * Pestaña para la gestión del netlist y canalizaciones inter-boca.
  */
 export const ConnectionsTab: React.FC<ConnectionsTabProps> = React.memo(({ 
   project, 
@@ -21,14 +21,14 @@ export const ConnectionsTab: React.FC<ConnectionsTabProps> = React.memo(({
   return (
     <>
       <div className="info-helper">
-        🔗 Creá el netlist vinculando bocas entre sí. Estas líneas punteadas se verán en el plano.
+        🔗 Creá canalizaciones vinculando bocas entre sí. Estas líneas punteadas se verán en el plano.
       </div>
       {conexiones.map((c, i) => (
         <ConexionCard
           key={c.id}
           conexion={c}
           index={i}
-          ambientes={project.ambientes}
+          project={project}
           circuitos={circuitos}
           onChange={(nc: any) => updateConexiones(ps => ps.map(x => x.id === nc.id ? nc : x))}
           onRemove={() => updateConexiones(ps => ps.filter(x => x.id !== c.id))}
@@ -57,11 +57,11 @@ export const ConnectionsTab: React.FC<ConnectionsTabProps> = React.memo(({
           }]);
         }}
       >
-        + Nueva Conexión
+        + Nueva Canalización
       </button>
       {conexiones.length === 0 && (
         <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
-          No hay conexiones en el netlist. Agregá una para unir dos bocas.
+          No hay canalizaciones cargadas. Agregá una para vincular las bocas con cañerías.
         </div>
       )}
     </>

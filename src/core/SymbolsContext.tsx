@@ -25,7 +25,10 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [symbolsLib, setSymbolsLibState] = useState<DefinicionSimbolo[]>(() => {
     const defaults = getDefaultSymbolsSync();
     const custom = loadCustomSymbolsFromStorage();
-    return [...defaults, ...custom];
+    const merged = new Map<string, DefinicionSimbolo>();
+    defaults.forEach(symbol => merged.set(symbol.id, symbol));
+    custom.forEach(symbol => merged.set(symbol.id, symbol));
+    return Array.from(merged.values());
   });
 
   const [categoriesLib] = useState<SymbolCategory[]>(() => getDefaultCategoriesSync());
@@ -42,11 +45,11 @@ export const SymbolsProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const customSymbols = await loadCustomSymbolsRemote(uid);
         if (cancelled) return;
 
-        const defaultIds = new Set(getDefaultSymbolsSync().map(s => s.id));
-        const merged = [
-          ...getDefaultSymbolsSync(),
-          ...customSymbols.filter(s => !defaultIds.has(s.id))
-        ];
+        const defaults = getDefaultSymbolsSync();
+        const mergedMap = new Map<string, DefinicionSimbolo>();
+        defaults.forEach(symbol => mergedMap.set(symbol.id, symbol));
+        customSymbols.forEach(symbol => mergedMap.set(symbol.id, symbol));
+        const merged = Array.from(mergedMap.values());
 
         setSymbolsLibState(merged);
         saveSymbols(merged);

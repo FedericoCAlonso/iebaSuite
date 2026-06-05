@@ -1,6 +1,8 @@
 import { Card } from '../../../../ui/Card';
 import { F } from '../../../../ui/Field';
+import { calcularLongitudOrtogonal } from '../../../../lib/electrical/calculations';
 import type { Project, Ambiente } from '../../../../types/index';
+import { exportToCSV, exportToMarkdown } from '../../../../lib/exporters';
 
 interface ResumenTabProps {
   project: Project;
@@ -119,6 +121,75 @@ export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
           <StatCard icon="━" value={segCount} label="Segmentos" />
           <StatCard icon="⚡" value={elecCount} label="Bocas" accent />
           <StatCard icon="🚪" value={abertCount} label="Aberturas" />
+        </div>
+      </Card>
+
+      {/* Exportaciones */}
+      <Card
+        idx="💾"
+        title="Exportación de Datos"
+        defaultOpen
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button 
+            className="btn btn-acc" 
+            onClick={() => {
+              // 1. Markdown
+              exportToMarkdown(project);
+
+              // 2. Bocas CSV
+              const dataBocas = project.ambientes.flatMap(a => 
+                a.elementos.map(el => {
+                  const circ = project.circuitos?.find(c => c.id === el.circuitoId);
+                  return {
+                    Hoja: a.nombre,
+                    Referencia: el.referencia || 'S/R',
+                    Tipo: el.tipo,
+                    Altura: el.altura || 0,
+                    Circuito: circ ? circ.nombre : 'N/A'
+                  };
+                })
+              );
+              exportToCSV(dataBocas, `${project.nombre.replace(/ /g, '_')}_Bocas.csv`);
+
+              // 3. Circuitos CSV
+              const dataCirc = (project.circuitos || []).map(c => {
+                let bocasCount = 0;
+                project.ambientes.forEach(a => {
+                  bocasCount += a.elementos.filter(el => el.circuitoId === c.id || c.id === el.datos.find(d=>d.clave==='circuitoId')?.valor).length;
+                });
+
+                let longitudSum = 0;
+                let longitudEstimada = false;
+                (project.conexiones || []).forEach(cx => {
+                  if (cx.circuitoId === c.id || (cx.circuitosIds || []).includes(c.id)) {
+                    if (cx.origenLongitud === 'declarada' && cx.seccionConduccion) {
+                      longitudSum += cx.seccionConduccion;
+                    } else {
+                      const auto = calcularLongitudOrtogonal(project, cx.from.ambienteId, cx.from.elementoId, cx.to.ambienteId, cx.to.elementoId);
+                      if (auto !== null) {
+                        longitudSum += auto;
+                        longitudEstimada = true;
+                      }
+                    }
+                  }
+                });
+
+                return {
+                  Nombre: c.nombre,
+                  Tipo: c.tipo,
+                  Seccion_mm2: c.seccion,
+                  Polos: c.polos || 2,
+                  Proteccion: c.proteccion || 'N/A',
+                  Bocas: bocasCount,
+                  Longitud_m: longitudSum > 0 ? `${longitudSum.toFixed(2)}${longitudEstimada ? ' (estimada)' : ''}` : '0'
+                };
+              });
+              exportToCSV(dataCirc, `${project.nombre.replace(/ /g, '_')}_Circuitos.csv`);
+            }}
+          >
+            📦 Descargar Paquete de Reportes Completos (CSV + MD)
+          </button>
         </div>
       </Card>
     </div>

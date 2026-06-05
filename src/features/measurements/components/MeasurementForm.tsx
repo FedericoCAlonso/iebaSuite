@@ -13,6 +13,7 @@ import { TYPE_FIELDS } from './fields';
 interface Props {
   type: ModuleType;
   editingMeasurement: Measurement | null;
+  initialData?: Partial<Measurement>;
   instrumentos?: { id: string; marca: string; modelo: string; nroSerie: string }[];
   entityOptions: EntityOptions | null;
   isSubmitting: boolean;
@@ -39,6 +40,7 @@ function getEntityMeta(type: ModuleType) {
 export const MeasurementForm: React.FC<Props> = ({
   type,
   editingMeasurement,
+  initialData,
   instrumentos,
   entityOptions,
   isSubmitting,
@@ -82,7 +84,7 @@ export const MeasurementForm: React.FC<Props> = ({
 
   const defaults = editingMeasurement
     ? { ...editingMeasurement } as Record<string, unknown>
-    : {};
+    : { ...initialData } as Record<string, unknown>;
 
   return (
     <div className="measurement-form-wrapper">
@@ -90,6 +92,7 @@ export const MeasurementForm: React.FC<Props> = ({
         <div className="measurement-form__grid">
           <CommonFields
             editingMeasurement={editingMeasurement}
+            initialData={initialData}
             instrumentos={instrumentos}
             showEntitySelect={!!entityMeta}
             entityLabel={entityMeta?.label}

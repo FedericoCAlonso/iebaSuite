@@ -15,6 +15,7 @@ interface ElectricalCardProps {
   wallCount: number;
   symbolsLib: DefinicionSimbolo[];
   circuitos: Circuito[];
+  tableros?: import('../../../types/index').Tablero[];
   onChange: (el: ElementoElectrico) => void;
   onRemove: () => void;
   onEdit: () => void;
@@ -24,6 +25,8 @@ interface ElectricalCardProps {
   onStartConnecting?: (elId: string) => void;
   onFinishConnecting?: (ambId: string, elId: string) => void;
   onCancelConnecting?: () => void;
+  globalMeasurements?: import('../../../types/index').Measurement[];
+  onNewMeasurementModal?: (elementoId: string, moduleType: import('../../../types/index').ModuleType) => void;
 }
 
 export function ElectricalCard({
@@ -32,6 +35,7 @@ export function ElectricalCard({
   wallCount,
   symbolsLib,
   circuitos,
+  tableros = [],
   onChange,
   onRemove,
   onEdit,
@@ -40,13 +44,33 @@ export function ElectricalCard({
   pendingConnection,
   onStartConnecting,
   onFinishConnecting,
-  onCancelConnecting
+  onCancelConnecting,
+  globalMeasurements = [],
+  onNewMeasurementModal
 }: ElectricalCardProps) {
 
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   const label = symDef ? symDef.label : el.tipo;
 
   const circuito = circuitos.find(c => c.id === el.circuitoId);
+
+  const isTablero = symDef?.categoria === 'tableros' || el.esTablero;
+  const isLlave = el.tipo.includes('llave');
+  const isBoca = el.tipo.includes('boca');
+
+  const getDato = (clave: string) => el.datos.find(x => x.clave === clave)?.valor || '';
+  const setDato = (clave: string, valor: string) => {
+    const d = el.datos.find(x => x.clave === clave);
+    let newDatos;
+    if (d) {
+      if (valor === '') newDatos = el.datos.filter(x => x.clave !== clave);
+      else newDatos = el.datos.map(x => x.clave === clave ? { ...x, valor } : x);
+    } else {
+      if (valor === '') return;
+      newDatos = [...el.datos, { clave, valor }];
+    }
+    onChange({ ...el, datos: newDatos });
+  };
 
   // Dot de color del circuito asignado
   const circuitoDot = circuito ? (
@@ -55,6 +79,8 @@ export function ElectricalCard({
       background: circuito.color || '#999', marginRight: 4, verticalAlign: 'middle'
     }} />
   ) : null;
+
+  const symbolMeasurements = globalMeasurements.filter(m => m.elementoId === el.id);
 
   return (
     <Card
@@ -100,19 +126,36 @@ export function ElectricalCard({
       </div>
 
       <div className="field-row">
-        <F label="Circuito">
-          <select
-            value={el.circuitoId || ''}
-            onChange={e => onChange({ ...el, circuitoId: e.target.value || undefined })}
-          >
-            <option value="">— Sin circuito —</option>
-            {circuitos.map(c => (
-              <option key={c.id} value={c.id}>
-                {c.nombre} ({c.tipo})
-              </option>
-            ))}
-          </select>
-        </F>
+        {isTablero ? (
+          <F label="Tablero Representado">
+            <select
+              value={getDato('tableroId')}
+              onChange={e => setDato('tableroId', e.target.value)}
+            >
+              <option value="">— Ninguno (sólo dibujo) —</option>
+              {tableros.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre} ({t.tipo})
+                </option>
+              ))}
+            </select>
+            {tableros.length === 0 && <span style={{fontSize: 10, color: 'var(--orange)'}}>No hay tableros lógicos.</span>}
+          </F>
+        ) : (
+          <F label="Circuito">
+            <select
+              value={el.circuitoId || ''}
+              onChange={e => onChange({ ...el, circuitoId: e.target.value || undefined })}
+            >
+              <option value="">— Sin circuito —</option>
+              {circuitos.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} ({c.tipo})
+                </option>
+              ))}
+            </select>
+          </F>
+        )}
         <F label="Mostrar dato en SVG">
           <select
             value={el.mostrarDato ? 'si' : 'no'}
@@ -123,6 +166,31 @@ export function ElectricalCard({
           </select>
         </F>
       </div>
+
+      {(isLlave || isBoca) && (
+        <div className="field-row">
+          {isLlave && (
+            <F label="Efectos que comanda">
+              <input 
+                type="text" 
+                value={getDato('efectos')} 
+                onChange={e => setDato('efectos', e.target.value)}
+                placeholder="Ej: A, B"
+              />
+            </F>
+          )}
+          {isBoca && (
+            <F label="Efecto de encendido">
+              <input 
+                type="text" 
+                value={getDato('efecto')} 
+                onChange={e => setDato('efecto', e.target.value)}
+                placeholder="Ej: A"
+              />
+            </F>
+          )}
+        </div>
+      )}
 
       {/* Datos técnicos libres */}
       {el.datos.length > 0 && (
@@ -169,6 +237,46 @@ export function ElectricalCard({
       >
         + Dato técnico
       </button>
+
+      {/* Historial de Mediciones */}
+      {(symDef?.medicionAsociada || symbolMeasurements.length > 0) && (
+        <div style={{ marginTop: 12, padding: 8, background: 'var(--bg-subtle)', borderRadius: 6, border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <strong style={{ fontSize: 13, color: 'var(--text-bright)' }}>Historial de Mediciones</strong>
+            {symDef?.medicionAsociada && (
+              <button 
+                className="btn btn-acc btn-sm"
+                onClick={() => onNewMeasurementModal?.(el.id, symDef.medicionAsociada!)}
+              >
+                + Nueva
+              </button>
+            )}
+          </div>
+          {symbolMeasurements.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {symbolMeasurements.sort((a,b) => (b.fecha || b.timestamp) - (a.fecha || a.timestamp)).map(m => {
+                const date = new Date(m.fecha || m.timestamp);
+                return (
+                  <div key={m.id} style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)', padding: '4px 8px', borderRadius: 4 }}>
+                    <span style={{ color: 'var(--text-dim)' }}>{date.toLocaleDateString()} {date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                    <span style={{ 
+                      color: m.resultado === 'aprobado' ? 'var(--green)' : m.resultado === 'observado' ? 'var(--yellow)' : 'var(--red)',
+                      fontWeight: 'bold',
+                      textTransform: 'capitalize'
+                    }}>
+                      {m.resultado}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>
+              No hay mediciones registradas.
+            </div>
+          )}
+        </div>
+      )}
 
       {el.paredIdx != null ? (
         <div className="field-row">

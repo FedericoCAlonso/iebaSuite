@@ -185,8 +185,12 @@ export interface Ambiente {
   tipoAmbiente?: TipoAmbiente
   sentido: 'horario' | 'antihorario'
   alturaLocal?: number
-  tramos: Tramo[]
+  /** Lista plana de paredes. Reemplaza a tramos[]. */
+  paredes: Pared[]
+  /** @deprecated Usar paredes[]. Se mantiene solo para migración de datos legacy. */
+  tramos?: Tramo[]
   aberturas: Abertura[]
+  escaleras?: Escalera[]
   elementos: ElementoElectrico[]
   coberturas?: ZonaCobertura[]
   elementosEstructurales?: ElementoEstructural[]
@@ -199,6 +203,7 @@ export interface Ambiente {
   posY?: number
 }
 
+/** @deprecated Solo para migración de datos legacy. */
 export interface Tramo {
   id: string
   cerrado: boolean
@@ -208,6 +213,7 @@ export interface Tramo {
   amarre?: PuntoAmarre
 }
 
+/** @deprecated Solo para migración de datos legacy. */
 export interface PuntoAmarre {
   tipo: 'vertice' | 'medida_libre' | 'pendiente'
   ambienteRefId?: string
@@ -249,12 +255,30 @@ export interface Pared {
   grosor: number | null
   esquina_saliente: { ancho: number } | null
   irregularidades: Irregularidad[]
+  refParedIdx?: number
+  refDistancia?: number
 }
 
 export interface Irregularidad {
   posicion: number
   ancho: number
   profundidad: number
+}
+
+// ─── ESCALERA ───
+
+export interface Escalera {
+  id: string;
+  paredIdx: number | null;
+  posicion: number;
+  ancho: number;
+  sentido: 'sube' | 'baja';
+  forma: 'recta' | 'L_der' | 'L_izq' | 'U_der' | 'U_izq' | 'caracol';
+  largo1: number;
+  largo2?: number;
+  radio?: number;
+  ambienteVecinoId?: string;
+  escaleraVecinaId?: string;
 }
 
 // ─── ABERTURA ───

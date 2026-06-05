@@ -7,6 +7,7 @@ import { GeneralTab } from './components/tabs/GeneralTab';
 import { ProjectTab } from './components/tabs/ProjectTab';
 import { WallsTab } from './components/tabs/WallsTab';
 import { OpeningTab } from './components/tabs/OpeningTab';
+import { StairsTab } from './components/tabs/StairsTab';
 import { ElectricalTab } from './components/tabs/ElectricalTab';
 import { CircuitsTab } from './components/tabs/CircuitsTab';
 import { ConnectionsTab } from './components/tabs/ConnectionsTab';
@@ -37,9 +38,11 @@ interface EditorScreenProps {
   onSelectAmbiente: (id: string) => void;
   onSymbolDialog: (data: SymbolDialogData) => void;
   onShowNetlist: () => void;
+  globalMeasurements?: import('../../types/index').Measurement[];
+  onNewMeasurementModal?: (elementoId: string, moduleType: import('../../types/index').ModuleType) => void;
 }
 
-const PLANTA_TABS: EditorTab[] = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'maestro', 'cobertura'];
+const PLANTA_TABS: EditorTab[] = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'escaleras', 'maestro', 'cobertura'];
 const ELECTRICO_TABS: EditorTab[] = ['resumen', 'electrico', 'circuitos', 'conexiones'];
 
 export function EditorScreen(props: EditorScreenProps) {
@@ -55,7 +58,9 @@ export function EditorScreen(props: EditorScreenProps) {
     onDeleteAmbiente, 
     onSelectAmbiente, 
     onSymbolDialog, 
-    onShowNetlist 
+    onShowNetlist,
+    globalMeasurements,
+    onNewMeasurementModal
   } = props;
 
   const { activeTab, setActiveTab } = useEditorTab();
@@ -73,9 +78,10 @@ export function EditorScreen(props: EditorScreenProps) {
     hoja:       { label: 'Hoja',    icon: '🏠' },
     paredes:    { label: 'Paredes', icon: '🧱' },
     aberturas:  { label: 'Abert.',  icon: '🚪' },
+    escaleras:  { label: 'Escal.',  icon: '🪜' },
     electrico:  { label: 'Bocas',   icon: '⚡' },
     circuitos:  { label: 'Circ.',   icon: '🔌' },
-    conexiones: { label: 'Cable.',  icon: '🔗' },
+    conexiones: { label: 'Canal.',  icon: '🔗' },
     maestro:    { label: 'Maestro', icon: '🗺️' },
     cobertura:  { label: 'Cobert.', icon: '☂️' }
   };
@@ -166,8 +172,6 @@ export function EditorScreen(props: EditorScreenProps) {
       {mode === 'planta' && activeTab === 'paredes' && !state.creationFlow.active && (
         <WallsTab 
           activeAmbiente={activeAmbiente}
-          activeTramoIdx={state.activeTramoIdx}
-          setActiveTramoIdx={state.setActiveTramoIdx}
           onUpdateAmbiente={onUpdateAmbiente}
         />
       )}
@@ -179,6 +183,13 @@ export function EditorScreen(props: EditorScreenProps) {
           activeAmbienteId={activeAmbienteId}
           updateOpenings={state.updateOpenings}
           onLinkOpening={state.linkOpening}
+        />
+      )}
+
+      {mode === 'planta' && activeTab === 'escaleras' && (
+        <StairsTab 
+          activeAmbiente={activeAmbiente}
+          onUpdateAmbiente={onUpdateAmbiente}
         />
       )}
 
@@ -212,6 +223,8 @@ export function EditorScreen(props: EditorScreenProps) {
           onStartConnecting={state.startConnecting}
           onFinishConnecting={state.finishConnecting}
           onCancelConnecting={state.cancelConnecting}
+          globalMeasurements={globalMeasurements}
+          onNewMeasurementModal={onNewMeasurementModal}
         />
       )}
 

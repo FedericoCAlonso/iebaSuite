@@ -14,7 +14,6 @@ import { MeasurementScreen } from '../features/measurements/MeasurementScreen'
 import { ProjectSummaryScreen } from '../features/hub/ProjectSummaryScreen'
 import { ProjectPickerScreen } from '../features/hub/ProjectPickerScreen'
 import { RelevadorTool } from '../features/relevador/RelevadorTool'
-import { UnifilarTool } from '../features/relevador/UnifilarTool'
 import { ProjectProvider } from '../core/ProjectContext'
 
 function HubRoutes() {
@@ -52,7 +51,6 @@ function HubRoutes() {
           <Route path="resumen" element={<ProjectSummaryScreen />} />
           <Route path="relevador" element={<RelevadorTool />} />
           <Route path="mediciones" element={<MeasurementScreen />} />
-          <Route path="unifilar" element={<UnifilarTool />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

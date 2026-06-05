@@ -12,6 +12,18 @@ export interface SymbolCategory {
   name: string;
 }
 
+export type SymbolPinRole = 'phase' | 'neutral' | 'pe' | 'other';
+
+export interface SymbolPin {
+  id: string;
+  name?: string;
+  role: SymbolPinRole;
+  /** Coordenadas normalizadas dentro del espacio del símbolo */
+  x: number;
+  y: number;
+  anchor?: 'top' | 'bottom' | 'left' | 'right';
+}
+
 export interface DefinicionSimbolo {
   id: string;
   label: string;
@@ -31,6 +43,8 @@ export interface DefinicionSimbolo {
   categoria?: string;
   /** Tipo de medición asociada a este símbolo, si la hubiera */
   medicionAsociada?: ModuleType;
+  /** Puntos de conexión (anchos) dentro del espacio del símbolo */
+  pins?: SymbolPin[];
 }
 
 export interface SymbolsFile {
@@ -100,8 +114,7 @@ export const loadCustomSymbolsFromStorage = (): DefinicionSimbolo[] => {
     const data = localStorage.getItem(SYMBOLS_KEY);
     if (!data) return [];
     const parsed = JSON.parse(data) as DefinicionSimbolo[];
-    const defaultIds = new Set(getDefaultSymbolsSync().map(s => s.id));
-    return parsed.filter(s => !defaultIds.has(s.id));
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error("Error al cargar símbolos locales:", error);
     return [];
