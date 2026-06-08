@@ -7,6 +7,15 @@ import {
 import type { Project } from '../types/index';
 
 /**
+ * Compara si dos proyectos son idénticos en su contenido, ignorando el campo `updatedAt`.
+ */
+function isProjectContentEqual(p1: Project, p2: Project): boolean {
+  const { updatedAt: _u1, ...rest1 } = p1;
+  const { updatedAt: _u2, ...rest2 } = p2;
+  return JSON.stringify(rest1) === JSON.stringify(rest2);
+}
+
+/**
  * Representa la estructura de un conflicto de sincronización activo.
  */
 export interface SyncConflict {
@@ -130,8 +139,13 @@ export function useCloudSync({ user, projects, setProjects }: UseCloudSyncProps)
               const localChanged = localUp > lastSynced;
 
               if (cloudChanged && localChanged) {
-                // Conflicto: Ambas versiones cambiaron de forma independiente
-                detectedConflict = { local: merged[idx], remote: cp };
+                if (isProjectContentEqual(merged[idx], cp)) {
+                  // Contenido idéntico, no hay conflicto real. Sincronizar timestamp.
+                  setLastSynced(cp.id, Math.max(cloudUp, localUp));
+                } else {
+                  // Conflicto: Ambas versiones cambiaron de forma independiente y con datos distintos
+                  detectedConflict = { local: merged[idx], remote: cp };
+                }
               } else if (cloudChanged) {
                 // Solo la nube cambió: sobrescribir local de forma segura
                 merged[idx] = cp;
@@ -178,6 +192,14 @@ export function useCloudSync({ user, projects, setProjects }: UseCloudSyncProps)
 
   // ─── PUSH A LA NUBE CON DEBOUNCE ───
 
+  // Guardar una referencia al estado de proyectos más reciente para evitar closures desactualizados en callbacks asíncronos
+  const projectsRef = useRef(projects);
+  useEffect(() => {
+    projectsRef.current = projects;
+  }, [projects]);
+
+  // ─── PUSH A LA NUBE CON DEBOUNCE ───
+
   useEffect(() => {
     if (!user || !initialPullDone.current || conflict) return;
 
@@ -197,18 +219,31 @@ export function useCloudSync({ user, projects, setProjects }: UseCloudSyncProps)
 
       syncTimeoutRef.current[p.id] = window.setTimeout(async () => {
         try {
-          // Obtener la versión remota actual para evaluar posibles conflictos
+          // Obtener los datos más recientes del proyecto en el momento de ejecución
+          const currentProject = projectsRef.current.find(proj => proj.id === p.id);
+          if (!currentProject) return;
+
+          const currentLocalUp = currentProject.updatedAt || 0;
+          const currentLastSynced = lastSyncedAtRef.current[p.id] || 0;
+
+          // Si mientras esperábamos el debounce ya se sincronizó una versión igual o más nueva, cancelar
+          if (currentLocalUp <= currentLastSynced) return;
+
+          // Obtener la versión remota actual para evaluar posibles conflictos reales
           const remoteProject = await loadProjectRemote(p.id);
           if (remoteProject) {
             const remoteUp = remoteProject.updatedAt || 0;
-            // Si la nube tiene cambios más nuevos que nuestro registro y distintos al local actual
-            if (remoteUp > lastSynced && remoteUp !== localUp) {
+            const activeLastSynced = lastSyncedAtRef.current[p.id] || 0;
+
+            // Si la nube tiene cambios más nuevos que nuestro registro de sincronización
+            // Y además el contenido remoto es diferente al local actual (evitamos falsos positivos por timestamp)
+            if (remoteUp > activeLastSynced && !isProjectContentEqual(currentProject, remoteProject)) {
               setConflict({
-                localProject: p,
+                localProject: currentProject,
                 remoteProject,
                 resolve: (action: 'local' | 'cloud') => {
                   if (action === 'local') {
-                    forcePush(p);
+                    forcePush(currentProject);
                   } else {
                     setProjects(prev => prev.map(proj => proj.id === p.id ? remoteProject : proj));
                     setLastSynced(p.id, remoteUp);
@@ -221,8 +256,8 @@ export function useCloudSync({ user, projects, setProjects }: UseCloudSyncProps)
           }
 
           // Guardar normalmente si no hay conflictos
-          await saveProjectRemote({ ...p, electricistaId: user.uid });
-          setLastSynced(p.id, localUp);
+          await saveProjectRemote({ ...currentProject, electricistaId: user.uid });
+          setLastSynced(p.id, currentLocalUp);
           delete syncTimeoutRef.current[p.id];
         } catch (e) {
           console.error(`Error saving project ${p.id} to cloud:`, e);
