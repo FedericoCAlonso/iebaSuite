@@ -32,7 +32,7 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
           key={ab.id}
           ab={ab}
           index={i}
-          wallCount={RENDERER.buildSegs(activeAmbiente, project.meta).allSegs.length}
+          wallCount={RENDERER.buildSegs(activeAmbiente, project).allSegs.length}
           ambientes={project.ambientes}
           activeAmbienteId={activeAmbienteId}
           onLinkOpening={onLinkOpening}
@@ -45,7 +45,7 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
         className="btn btn-acc" 
         style={{ width: '100%', marginTop: '16px' }}
         onClick={() => {
-          const { allSegs } = RENDERER.buildSegs(activeAmbiente, project.meta);
+          const { allSegs } = RENDERER.buildSegs(activeAmbiente, project);
           if (allSegs.length === 0) {
             alert("Primero definí las paredes del ambiente.");
             return;

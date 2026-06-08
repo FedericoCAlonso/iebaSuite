@@ -47,23 +47,23 @@ export function calcularLongitudOrtogonal(
   let toPosM: [number, number] | null = null;
 
   if (fromAmbId === toAmbId) {
-    const segs = buildSegs(fromAmb, project.meta).allSegs;
-    fromPosM = getElementPos(fromEl, segs, project.meta.escala, 0, 0);
-    toPosM = getElementPos(toEl, segs, project.meta.escala, 0, 0);
+    const segs = buildSegs(fromAmb, project).allSegs;
+    fromPosM = getElementPos(fromEl, segs, project.escala, 0, 0);
+    toPosM = getElementPos(toEl, segs, project.escala, 0, 0);
   } else {
-    fromPosM = getGlobalElementPos(project, fromAmbId, fromElId, project.meta.escala, ambs);
-    toPosM = getGlobalElementPos(project, toAmbId, toElId, project.meta.escala, ambs);
+    fromPosM = getGlobalElementPos(project, fromAmbId, fromElId, project.escala, ambs);
+    toPosM = getGlobalElementPos(project, toAmbId, toElId, project.escala, ambs);
   }
 
   if (!fromPosM || !toPosM) return null;
 
-  const fromX_M = pxToM(fromPosM[0], project.meta.escala);
-  const fromY_M = pxToM(fromPosM[1], project.meta.escala);
-  const toX_M = pxToM(toPosM[0], project.meta.escala);
-  const toY_M = pxToM(toPosM[1], project.meta.escala);
+  const fromX_M = pxToM(fromPosM[0], project.escala);
+  const fromY_M = pxToM(fromPosM[1], project.escala);
+  const toX_M = pxToM(toPosM[0], project.escala);
+  const toY_M = pxToM(toPosM[1], project.escala);
 
-  const fromZ = getElementHeight(fromEl, fromAmb, project.meta.alturaDefault);
-  const toZ = getElementHeight(toEl, toAmb, project.meta.alturaDefault);
+  const fromZ = getElementHeight(fromEl, fromAmb, project.alturaDefault);
+  const toZ = getElementHeight(toEl, toAmb, project.alturaDefault);
 
   const dX = Math.abs(toX_M - fromX_M);
   const dY = Math.abs(toY_M - fromY_M);

@@ -46,7 +46,7 @@ export function getGlobalElementPos(project: Project, ambienteId: string, elemen
   const el = amb.elementos?.find(e => e.id === elementoId);
   if (!el) return null;
   
-  const { allSegs: segs } = buildSegs(amb, project.meta);
+  const { allSegs: segs } = buildSegs(amb, project);
   const localPos = getElementPos(el, segs, escala, 0, 0);
   
   return GEO.transformPoint(localPos, amb.posX, amb.posY, amb.rotation || 0, escala);

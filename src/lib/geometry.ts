@@ -359,13 +359,13 @@ export function calcularTransformacionEnlace(
  * Genera la malla global utilizando la REGLA ESTRICTA de portales para evitar paredes duplicadas.
  */
 export function buildMasterMesh(project: Project): MasterSegment[] {
-  const escala = project.meta.escala;
+  const escala = project.escala;
   const pool: MasterSegment[] = [];
 
   project.ambientes.forEach(amb => {
     if (amb.posX === undefined || amb.posY === undefined) return;
 
-    const { allSegs } = buildSegs(amb, project.meta);
+    const { allSegs } = buildSegs(amb, project);
 
     allSegs.forEach((seg, indexPared) => {
       // REGLA ESTRICTA: Si la pared tiene un enlace y es secundaria, se omite.

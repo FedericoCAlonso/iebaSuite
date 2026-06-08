@@ -103,7 +103,7 @@ export function useAppActions({
     }
 
     if (activeTab === 'aberturas' && snapSegIdx !== undefined) {
-      const { allSegs: segs } = RENDERER.buildSegs(activeAmbiente, activeProject.meta);
+      const { allSegs: segs } = RENDERER.buildSegs(activeAmbiente, activeProject);
       const seg = segs[snapSegIdx];
       if (!seg) return;
 

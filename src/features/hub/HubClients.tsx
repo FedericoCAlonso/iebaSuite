@@ -51,6 +51,7 @@ export function HubClients() {
   const [modalMode, setModalMode] = useState<ModalMode>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...emptyForm })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const allProjects = useMemo(() => loadProjects(), [clients.length])
 
@@ -94,27 +95,45 @@ export function HubClients() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.razonSocial.trim()) return
+    if (!form.razonSocial.trim() || isSubmitting) return
 
-    const payload = {
-      razonSocial: form.razonSocial.trim(),
-      dniCuit: form.dniCuit.trim() || undefined,
-      telefono: form.telefono.trim() || undefined,
-      email: form.email.trim() || undefined,
-      domicilio: form.domicilio.trim() || undefined,
-      contacto: form.contacto.trim() || undefined,
-      createdAt: Date.now()
+    // Validar duplicados (comparación case-insensitive)
+    const nombreNorm = form.razonSocial.trim().toLowerCase()
+    const duplicate = clients.find(c =>
+      c.id !== selectedId &&
+      c.razonSocial.trim().toLowerCase() === nombreNorm
+    )
+    if (duplicate) {
+      const ok = window.confirm(
+        `Ya existe un cliente con el nombre "${duplicate.razonSocial}".\n\u00bfDeseas crear uno nuevo igualmente?`
+      )
+      if (!ok) return
     }
 
-    if (modalMode === 'create') {
-      await addClient(payload)
-    } else if (modalMode === 'edit' && selectedId) {
-      await editClient(selectedId, payload)
-    }
+    setIsSubmitting(true)
+    try {
+      const payload = {
+        razonSocial: form.razonSocial.trim(),
+        dniCuit: form.dniCuit.trim() || undefined,
+        telefono: form.telefono.trim() || undefined,
+        email: form.email.trim() || undefined,
+        domicilio: form.domicilio.trim() || undefined,
+        contacto: form.contacto.trim() || undefined,
+        createdAt: Date.now()
+      }
 
-    setForm({ ...emptyForm })
-    setModalMode(null)
-    setSelectedId(null)
+      if (modalMode === 'create') {
+        await addClient(payload)
+      } else if (modalMode === 'edit' && selectedId) {
+        await editClient(selectedId, payload)
+      }
+
+      setForm({ ...emptyForm })
+      setModalMode(null)
+      setSelectedId(null)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleDelete = async (c: typeof clients[0]) => {
@@ -204,8 +223,8 @@ export function HubClients() {
               <button type="button" className="btn btn-ghost" onClick={() => { setModalMode(null); setSelectedId(null) }}>
                 Cancelar
               </button>
-              <button type="submit" className="btn btn-acc" form="cliente-form">
-                Guardar
+              <button type="submit" className="btn btn-acc" form="cliente-form" disabled={isSubmitting}>
+                {isSubmitting ? 'Guardando...' : 'Guardar'}
               </button>
             </>
           }

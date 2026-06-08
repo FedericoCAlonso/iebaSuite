@@ -1,22 +1,23 @@
 // Servicio de proyectos Firebase — capa de persistencia en la nube
 import {
   collection, doc, setDoc, getDoc, getDocs, addDoc,
-  query, where, orderBy, deleteDoc
+  query, where, deleteDoc
 } from 'firebase/firestore'
 import { db } from './config'
 import { deepCleanUndefined, assertDb } from './utils'
+import { migrateProjectToV2 } from '../hooks/useProjectMigration'
 import type { Project } from '../types/index'
 
 const COL = 'projects'
 
-// ─── FÁBRICA DE PROYECTO (NUEVO MODELO RELACIONAL) ───
+// ─── FÁBRICA DE PROYECTO (NUEVO MODELO RELACIONAL V2) ───
 
 const generateId = (): string =>
   Date.now().toString() + Math.random().toString(36).slice(2, 9)
 
 /**
- * Crea un nuevo objeto Project que respeta la interfaz relacional.
- * Incluye valores por defecto para inmueble, suministro y estado inicial.
+ * Crea un nuevo objeto Project que respeta la interfaz relacional V2 limpia.
+ * Incluye valores por defecto para inmueble, suministro, configuración de dibujo plana y colecciones vacías.
  */
 export function createProjectRemote(
   nombre = 'Nuevo Proyecto',
@@ -44,25 +45,33 @@ export function createProjectRemote(
     createdAt: now,
     updatedAt: now,
 
-    // Legacy / compatibilidad con el modelo plano anterior
-    meta: {
-      nombre,
-      escala: 50,
-      grosor_pared_default: 0.15,
-      alturaDefault: 2.6
-    },
+    // Configuración de dibujo plana
+    escala: 50,
+    grosor_pared_default: 0.15,
+    alturaDefault: 2.6,
+
+    // Entidades
     ambientes: [],
     circuitos: [],
     conexiones: [],
     tableros: [],
+    diferenciales: [],
+    tramos: [],
+    unifilDiagrams: [],
     hojasMaestras: [],
-    ownerId: electricistaId,
     sharedWith: []
   })
 }
 
 // ─── CRUD REMOTO ───
 
+/**
+ * Guarda o actualiza un proyecto completo en Firestore (sobrescribe todo el documento).
+ * Realiza una limpieza previa de valores `undefined`.
+ * 
+ * @param project Objeto del proyecto con su identificador único.
+ * @returns Promesa que se resuelve al finalizar la escritura.
+ */
 export async function saveProjectRemote(project: Project): Promise<void> {
   assertDb(db)
   const ref = doc(db, COL, project.id)
@@ -71,8 +80,11 @@ export async function saveProjectRemote(project: Project): Promise<void> {
 }
 
 /**
- * Guarda un proyecto nuevo sin necesidad de tener ID previo.
- * Devuelve el ID generado por Firestore.
+ * Guarda un proyecto nuevo sin necesidad de tener ID previo en Firestore.
+ * Genera una marca de tiempo en `updatedAt`.
+ * 
+ * @param project Datos del proyecto sin el identificador.
+ * @returns Promesa que se resuelve con el ID asignado por Firestore.
  */
 export async function addProjectRemote(
   project: Omit<Project, 'id'>
@@ -83,24 +95,44 @@ export async function addProjectRemote(
   return ref.id
 }
 
+/**
+ * Carga un proyecto desde Firestore por su identificador único.
+ * Realiza una limpieza de valores y una migración automática al formato V2.
+ * 
+ * @param id Identificador único del proyecto.
+ * @returns Promesa con el objeto del proyecto o `null` si no existe.
+ */
 export async function loadProjectRemote(id: string): Promise<Project | null> {
   assertDb(db)
   const snap = await getDoc(doc(db, COL, id))
   if (!snap.exists()) return null
-  return deepCleanUndefined(snap.data() as Project)
+  return migrateProjectToV2(deepCleanUndefined(snap.data()))
 }
 
-export async function listProjectsRemote(ownerId: string): Promise<Project[]> {
+/**
+ * Obtiene la lista de proyectos pertenecientes a un electricista específico en Firestore,
+ * ordenados por fecha de última actualización descendente y migrados automáticamente a V2.
+ * 
+ * @param electricistaId Identificador del electricista dueño del proyecto.
+ * @returns Promesa con la lista de proyectos encontrados.
+ */
+export async function listProjectsRemote(electricistaId: string): Promise<Project[]> {
   assertDb(db)
   const q = query(
     collection(db, COL),
-    where('ownerId', '==', ownerId),
-    orderBy('updatedAt', 'desc')
+    where('electricistaId', '==', electricistaId)
   )
   const snap = await getDocs(q)
-  return snap.docs.map(d => deepCleanUndefined(d.data() as Project))
+  const projects = snap.docs.map(d => migrateProjectToV2(deepCleanUndefined(d.data())))
+  return projects.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
+/**
+ * Elimina permanentemente un proyecto de Firestore por su identificador.
+ * 
+ * @param id Identificador único del proyecto a eliminar.
+ * @returns Promesa que se resuelve al finalizar la eliminación.
+ */
 export async function deleteProjectRemote(id: string): Promise<void> {
   assertDb(db)
   const ref = doc(db, COL, id)

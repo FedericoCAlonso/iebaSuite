@@ -45,7 +45,7 @@ export function ProjectPickerScreen() {
               }}
             >
               <span className="project-row__name" style={{ fontWeight: 500, fontSize: 15 }}>
-                {p.nombre || p.meta?.nombre || 'Sin nombre'}
+                {p.nombre || 'Sin nombre'}
               </span>
               <span
                 className="project-row__meta"

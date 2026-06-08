@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { F } from '../../ui/Field';
 import { NumInput } from '../../ui/NumInput';
 import { Modal } from '../../ui/Modal';
+import { useClients } from '../../core/ClientContext';
 import { type Project } from '../../types/index';
 
 interface ProjectConfigDialogProps {
@@ -11,10 +12,22 @@ interface ProjectConfigDialogProps {
 }
 
 export function ProjectConfigDialog({ project, onUpdate, onClose }: ProjectConfigDialogProps) {
-  const [meta, setMeta] = useState(project.meta);
+  const [nombre, setNombre] = useState(project.nombre || '');
+  const [escala, setEscala] = useState(project.escala ?? 50);
+  const [grosorPared, setGrosorPared] = useState(project.grosor_pared_default ?? 0.15);
+  const [alturaDefault, setAlturaDefault] = useState(project.alturaDefault ?? 2.6);
+  const [clienteId, setClienteId] = useState(project.clienteId || '');
+  const { clients } = useClients();
 
   const handleSave = () => {
-    onUpdate(project.id, p => ({ ...p, meta }));
+    onUpdate(project.id, p => ({
+      ...p,
+      nombre,
+      escala,
+      grosor_pared_default: grosorPared,
+      alturaDefault,
+      clienteId
+    }));
     onClose();
   };
 
@@ -32,33 +45,46 @@ export function ProjectConfigDialog({ project, onUpdate, onClose }: ProjectConfi
     >
       <F label="Nombre del proyecto">
         <input
-          value={meta.nombre}
-          onChange={e => setMeta({ ...meta, nombre: e.target.value })}
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
           autoFocus
         />
+      </F>
+
+      <F label="Cliente asignado">
+        <select
+          value={clienteId}
+          onChange={e => setClienteId(e.target.value)}
+        >
+          <option value="">Sin cliente</option>
+          {clients.map(c => (
+            <option key={c.id} value={c.id}>
+              {c.razonSocial}{c.dniCuit ? ` — ${c.dniCuit}` : ''}
+            </option>
+          ))}
+        </select>
       </F>
 
       <div className="field-row">
         <F label="Escala 1:">
           <NumInput
-            value={meta.escala}
-            onChange={v => setMeta({ ...meta, escala: Math.round(v) || 50 })}
+            value={escala}
+            onChange={v => setEscala(Math.round(v) || 50)}
           />
         </F>
         <F label="Grosor pared (m)">
           <NumInput
-            value={meta.grosor_pared_default}
-            onChange={v => setMeta({ ...meta, grosor_pared_default: v })}
+            value={grosorPared}
+            onChange={v => setGrosorPared(v)}
           />
         </F>
         <F label="Altura techo def. (m)">
           <NumInput
-            value={meta.alturaDefault ?? 2.6}
-            onChange={v => setMeta({ ...meta, alturaDefault: v })}
+            value={alturaDefault}
+            onChange={v => setAlturaDefault(v)}
           />
         </F>
       </div>
     </Modal>
   );
 }
-

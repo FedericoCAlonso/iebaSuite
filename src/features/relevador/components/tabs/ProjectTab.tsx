@@ -55,7 +55,7 @@ export const ProjectTab: React.FC<ProjectTabProps> = ({
         <div className="field-row">
           <F label="Altura de techo (m)">
             <NumInput
-              value={activeAmbiente.alturaLocal ?? (project.meta.alturaDefault ?? 2.6)}
+              value={activeAmbiente.alturaLocal ?? (project.alturaDefault ?? 2.6)}
               onChange={(v: any) => onUpdateAmbiente(a => ({ ...a, alturaLocal: v }))}
             />
           </F>

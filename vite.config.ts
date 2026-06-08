@@ -1,9 +1,14 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+  },
   base: '/iebaSuite/',
   plugins: [
     react(),
@@ -73,9 +78,23 @@ export default defineConfig({
     }),
   ],
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         main: './index.html',
+      },
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-firebase',
+              test: /node_modules\/firebase/,
+            },
+            {
+              name: 'vendor-react',
+              test: /node_modules\/(react|react-dom|react-router-dom)/,
+            },
+          ],
+        },
       },
     },
   },

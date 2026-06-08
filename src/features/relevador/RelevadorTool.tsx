@@ -120,9 +120,6 @@ export function RelevadorTool() {
                       activeAmbiente={activeAmbiente}
                       activeAmbienteId={activeAmbienteId}
                       symbolsLib={symbolsLib}
-                      onUpdateMeta={(meta: Project['meta']) => updateProject(
-                        activeProject.id, (p: Project) => ({ ...p, meta })
-                      )}
                       onUpdateAmbiente={updateAmbiente}
                       onUpdateProject={(fn: (p: Project) => Project) => updateProject(activeProject.id, fn)}
                       onAddAmbiente={addAmbiente}
@@ -141,7 +138,7 @@ export function RelevadorTool() {
                     <Preview
                       project={activeProject}
                       ambiente={activeAmbiente}
-                      meta={activeProject.meta}
+                      meta={activeProject}
                       symbolsLib={symbolsLib}
                       onCanvasClick={actions.handleCanvasClick}
                     />

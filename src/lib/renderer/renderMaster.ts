@@ -13,8 +13,8 @@ import { renderAbertura, renderElemento } from './components';
 
 export function renderMaster(project: Project, symbolsLib: DefinicionSimbolo[], ambientesCalculados?: Ambiente[]): string {
   const margin = 50;
-  const meta = project.meta;
-  const escala = meta.escala;
+  const meta = project;
+  const escala = project.escala;
   const ambs = ambientesCalculados || project.ambientes;
   
   const placed = ambs.filter(a => a.posX !== undefined);
@@ -47,8 +47,8 @@ export function renderMaster(project: Project, symbolsLib: DefinicionSimbolo[], 
 }
 
 export function renderMasterContent(project: Project, symbolsLib: DefinicionSimbolo[], ambientesCalculados?: Ambiente[]): string {
-  const meta = project.meta;
-  const escala = meta.escala;
+  const meta = project;
+  const escala = project.escala;
   const ambs = ambientesCalculados || project.ambientes;
   const placed = ambs.filter(a => a.posX !== undefined && a.posY !== undefined);
   
@@ -194,7 +194,7 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
 
 export function renderMasterConnections(project: Project): string {
   const out: string[] = [];
-  const escala = project.meta.escala;
+  const escala = project.escala;
 
   project.ambientes.forEach(amb => {
     if (amb.posX === undefined || amb.posY === undefined) return;
@@ -203,7 +203,7 @@ export function renderMasterConnections(project: Project): string {
       if (ab.ambienteVecinoId) {
         const vecino = project.ambientes.find(a => a.id === ab.ambienteVecinoId);
         if (vecino && vecino.posX !== undefined && vecino.posY !== undefined) {
-          const { allSegs: segs } = buildSegs(amb, project.meta);
+          const { allSegs: segs } = buildSegs(amb, project);
           const seg = segs[ab.pared];
           if (!seg) return;
 
@@ -217,7 +217,7 @@ export function renderMasterConnections(project: Project): string {
           
           const abVecina = vecino.aberturas?.find(ax => ax.ambienteVecinoId === amb.id);
           if (abVecina) {
-             const { allSegs: segsV } = buildSegs(vecino, project.meta);
+             const { allSegs: segsV } = buildSegs(vecino, project);
              const segV = segsV[abVecina.pared];
              if (segV) {
                const distPxV = abVecina.posicion * pxPerM;

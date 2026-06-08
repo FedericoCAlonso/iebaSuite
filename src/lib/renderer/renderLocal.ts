@@ -116,7 +116,7 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
         out.push(`<line x1="${e.x1}" y1="${e.y1}" x2="${e.x2}" y2="${e.y2}" stroke="${e.stroke || 'black'}" stroke-width="${e.strokeWidth || 0.5}"/>`);
       } else if (e.type === 'text') {
         let content = e.text || '';
-        content = content.replace('{PROJECT_NAME}', meta.nombre.toUpperCase())
+        content = content.replace('{PROJECT_NAME}', (meta.nombre || '').toUpperCase())
                         .replace('{AMBIENTE_NAME}', ambiente.nombre.toUpperCase())
                         .replace('{SCALE}', meta.escala.toString())
                         .replace('{FORMAT}', conf.formato)

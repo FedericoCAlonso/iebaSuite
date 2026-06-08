@@ -53,7 +53,7 @@ export function renderConexiones(out: string[], ambiente: Ambiente, project: Pro
           dir = seg.v_int;
         }
 
-        const arrowLen = project.meta.grosor_pared_default * 3;
+        const arrowLen = project.grosor_pared_default * 3;
         const arrowPx = GEO.mToPx(arrowLen, escala);
         const pEnd = GEO.add(pos, GEO.scale(dir, arrowPx));
         

@@ -33,20 +33,20 @@ export function useEditorState(
   // --- Geometría: Cálculo de todos los vértices anclables ---
   const allVertices = useMemo(() => {
     if (!activeAmbiente || !project) return [];
-    const { allSegs } = RENDERER.buildSegs(activeAmbiente, project.meta);
+    const { allSegs } = RENDERER.buildSegs(activeAmbiente, project);
     const result: { x: number, y: number, label: string, ref: unknown }[] = [];
 
     allSegs.forEach((s, si) => {
-      const xM = GEO.pxToM(s.inicio[0], project.meta.escala);
-      const yM = GEO.pxToM(s.inicio[1], project.meta.escala);
+      const xM = GEO.pxToM(s.inicio[0], project.escala);
+      const yM = GEO.pxToM(s.inicio[1], project.escala);
       result.push({
         x: xM, y: yM,
         label: `Pared ${si + 1} · inicio — (${xM.toFixed(2)}m, ${yM.toFixed(2)}m)`,
         ref: { type: 'vertice', ambienteRefId: activeAmbiente.id, verticeRefIdx: si }
       });
       if (si === allSegs.length - 1) {
-        const xF = GEO.pxToM(s.fin[0], project.meta.escala);
-        const yF = GEO.pxToM(s.fin[1], project.meta.escala);
+        const xF = GEO.pxToM(s.fin[0], project.escala);
+        const yF = GEO.pxToM(s.fin[1], project.escala);
         result.push({
           x: xF, y: yF,
           label: `Pared ${si + 1} · fin — (${xF.toFixed(2)}m, ${yF.toFixed(2)}m)`,
@@ -166,7 +166,7 @@ export function useEditorState(
 
       // La maestra es targetAmb, la esclava es currentAmb
       // calcularTransformacionEnlace(A, abA, B, abB) -> posiciona B relativa a A
-      const transform = GEO.calcularTransformacionEnlace(targetAmb, targetOp, currentAmb, opActiva, proj.meta.escala);
+      const transform = GEO.calcularTransformacionEnlace(targetAmb, targetOp, currentAmb, opActiva, proj.escala);
 
       return {
         ...proj,

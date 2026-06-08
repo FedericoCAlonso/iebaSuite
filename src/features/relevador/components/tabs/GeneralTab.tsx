@@ -24,8 +24,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = React.memo(({
             value={project.nombre}
             onChange={e => onUpdateProject(p => ({ 
               ...p, 
-              nombre: e.target.value,
-              meta: { ...p.meta, nombre: e.target.value }
+              nombre: e.target.value
             }))}
           />
         </F>
@@ -59,20 +58,20 @@ export const GeneralTab: React.FC<GeneralTabProps> = React.memo(({
         <div className="field-row">
           <F label="Escala de dibujo">
             <NumInput
-              value={project.meta.escala}
-              onChange={(v: any) => onUpdateProject(p => ({ ...p, meta: { ...p.meta, escala: v } }))}
+              value={project.escala}
+              onChange={(v: any) => onUpdateProject(p => ({ ...p, escala: v }))}
             />
           </F>
           <F label="Grosor pared default (m)">
             <NumInput
-              value={project.meta.grosor_pared_default}
-              onChange={(v: any) => onUpdateProject(p => ({ ...p, meta: { ...p.meta, grosor_pared_default: v } }))}
+              value={project.grosor_pared_default}
+              onChange={(v: any) => onUpdateProject(p => ({ ...p, grosor_pared_default: v }))}
             />
           </F>
           <F label="Altura de techo default (m)">
             <NumInput
-              value={project.meta.alturaDefault ?? 2.6}
-              onChange={(v: any) => onUpdateProject(p => ({ ...p, meta: { ...p.meta, alturaDefault: v } }))}
+              value={project.alturaDefault ?? 2.6}
+              onChange={(v: any) => onUpdateProject(p => ({ ...p, alturaDefault: v }))}
             />
           </F>
         </div>

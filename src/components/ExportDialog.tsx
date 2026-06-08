@@ -25,15 +25,15 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
 
   const exportSVG = () => {
     for (const amb of (project.ambientes||[])) {
-      const svg = RENDERER.render(amb, project.meta, symbolsLib, inclRefs);
-      downloadBlob(svg, `${project.meta.nombre||'planta'}_${amb.nombre||'amb'}.svg`, 'image/svg+xml');
+      const svg = RENDERER.render(amb, project, symbolsLib, inclRefs);
+      downloadBlob(svg, `${project.nombre||'planta'}_${amb.nombre||'amb'}.svg`, 'image/svg+xml');
     }
     onToast(`${project.ambientes?.length||1} SVG exportados`);
   };
 
   const exportYAML = () => {
     for (const amb of (project.ambientes||[])) {
-      let yaml=`proyecto:\n  nombre: "${project.meta.nombre}"\n  escala: "${project.meta.escala}"\n  grosor_pared_default: ${project.meta.grosor_pared_default||0.15}\n  mostrar_cotas: ${amb.mostrar_cotas!==false}\n  sentido: ${amb.sentido||'horario'}\n\nambiente:\n  nombre: "${amb.nombre}"\n  paredes:\n`;
+      let yaml=`proyecto:\n  nombre: "${project.nombre}"\n  escala: "${project.escala}"\n  grosor_pared_default: ${project.grosor_pared_default||0.15}\n  mostrar_cotas: ${amb.mostrar_cotas!==false}\n  sentido: ${amb.sentido||'horario'}\n\nambiente:\n  nombre: "${amb.nombre}"\n  paredes:\n`;
       for (const t of (amb.tramos || [])) {
         for (const w of t.paredes) {
           yaml+=`    - largo: ${w.largo||0}\n`;
@@ -47,7 +47,7 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
         yaml+=`\n  aberturas:\n`;
         for (const ab of amb.aberturas) { yaml+=`    - pared: ${ab.pared}\n      tipo: ${ab.tipo}\n      posicion: ${ab.posicion}\n      ancho: ${ab.ancho}\n`; if (ab.tipo==='puerta') yaml+=`      hojas: ${ab.hojas||1}\n      lado: ${ab.lado||'interior'}\n      sentido: ${ab.sentido||'derecha'}\n`; }
       }
-      downloadBlob(yaml, `${project.meta.nombre}_${amb.nombre}.yaml`, 'text/yaml');
+      downloadBlob(yaml, `${project.nombre}_${amb.nombre}.yaml`, 'text/yaml');
     }
     onToast('YAML exportados');
   };
@@ -58,17 +58,17 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
       for (const el of (amb.elementos||[])) {
         const symDef = symbolsLib.find(s => s.id === el.tipo);
         const label = symDef ? symDef.label : el.tipo;
-        if (!el.datos?.length) rows.push([project.meta.nombre,amb.nombre,label,el.referencia||'','','']);
-        else for (const d of el.datos) rows.push([project.meta.nombre,amb.nombre,label,el.referencia||'',d.clave,d.valor]);
+        if (!el.datos?.length) rows.push([project.nombre,amb.nombre,label,el.referencia||'','','']);
+        else for (const d of el.datos) rows.push([project.nombre,amb.nombre,label,el.referencia||'',d.clave,d.valor]);
       }
     }
     const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
-    downloadBlob(csv, `${project.meta.nombre}_electrico.csv`, 'text/csv');
+    downloadBlob(csv, `${project.nombre}_electrico.csv`, 'text/csv');
     onToast('CSV exportado');
   };
 
   const exportJSON = () => {
-    downloadBlob(JSON.stringify(project,null,2), `${project.meta.nombre}.json`, 'application/json');
+    downloadBlob(JSON.stringify(project,null,2), `${project.nombre}.json`, 'application/json');
     onToast('JSON guardado');
   };
 
@@ -92,7 +92,7 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
       ]);
     });
     const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
-    downloadBlob(csv, `${project.meta.nombre}_netlist.csv`, 'text/csv');
+    downloadBlob(csv, `${project.nombre}_netlist.csv`, 'text/csv');
     onToast('CSV de Netlist exportado');
   };
 

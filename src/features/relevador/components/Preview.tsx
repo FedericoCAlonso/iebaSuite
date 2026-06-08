@@ -182,7 +182,9 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
             style={{
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: '0 0',
-              position: 'absolute'
+              position: 'absolute',
+              touchAction: 'none',
+              userSelect: 'none',
             }}
             dangerouslySetInnerHTML={{ __html: svgContent }}
           />

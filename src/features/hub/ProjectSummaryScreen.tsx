@@ -41,7 +41,7 @@ export function ProjectSummaryScreen() {
       </div>
 
       <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>
-        {p.meta?.nombre || p.nombre || 'Proyecto sin nombre'}
+        {p.nombre || 'Proyecto sin nombre'}
       </h1>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 24, flexWrap: 'wrap' }}>
         <span style={{
@@ -58,7 +58,7 @@ export function ProjectSummaryScreen() {
           {ESTADO_LABELS[estado] || estado}
         </span>
         <span style={{ color: 'var(--text3)', fontSize: 13 }}>
-          Escala 1:{p.meta?.escala || 50} · {p.ambientes?.length || 0} hoja(s)
+          Escala 1:{p.escala || 50} · {p.ambientes?.length || 0} hoja(s)
         </span>
       </div>
 

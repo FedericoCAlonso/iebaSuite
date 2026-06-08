@@ -26,7 +26,7 @@ export function MasterView({
   const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
   const { setActiveTab } = useEditorTab();
 
-  const escala = project.meta.escala;
+  const escala = project.escala;
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -70,27 +70,27 @@ export function MasterView({
             if (vecino && !clusterAmbs.has(vecino.id)) {
               const abVecina = vecino.aberturas.find(v => v.id === ab.aberturaVecinaId);
               if (abVecina) {
-                const { allSegs: sA } = RENDERER.buildSegs(amb, project.meta);
-                const { allSegs: sV } = RENDERER.buildSegs(vecino, project.meta);
+                const { allSegs: sA } = RENDERER.buildSegs(amb, project);
+                const { allSegs: sV } = RENDERER.buildSegs(vecino, project);
                 const segA = sA[ab.pared];
                 const segV = sV[abVecina.pared];
 
                 if (segA && segV) {
-                  const angA = Math.atan2(segA.fin[1] - segA.inicio[1], segA.fin[0] - segA.inicio[0]) * 180 / Math.PI;
-                  const angV = Math.atan2(segV.fin[1] - segV.inicio[1], segV.fin[0] - segV.inicio[0]) * 180 / Math.PI;
-                  const nextRot = (angA + rot + 180) - angV;
+                   const angA = Math.atan2(segA.fin[1] - segA.inicio[1], segA.fin[0] - segA.inicio[0]) * 180 / Math.PI;
+                   const angV = Math.atan2(segV.fin[1] - segV.inicio[1], segV.fin[0] - segV.inicio[0]) * 180 / Math.PI;
+                   const nextRot = (angA + rot + 180) - angV;
 
-                  // El vecino se apoya en la cara EXTERIOR del ambiente actual
-                  const pLocalA = getOpeningPosM(amb, ab, rot, true);
-                  // Y el vecino usa su propia cara INTERIOR para el enlace
-                  const pLocalV = getOpeningPosM(vecino, abVecina, nextRot, false);
+                   // El vecino se apoya en la cara EXTERIOR del ambiente actual
+                   const pLocalA = getOpeningPosM(amb, ab, rot, true);
+                   // Y el vecino usa su propia cara INTERIOR para el enlace
+                   const pLocalV = getOpeningPosM(vecino, abVecina, nextRot, false);
 
-                  queue.push({
-                    id: vecino.id,
-                    x: x + pLocalA.x - pLocalV.x,
-                    y: y + pLocalA.y - pLocalV.y,
-                    rot: nextRot
-                  });
+                   queue.push({
+                     id: vecino.id,
+                     x: x + pLocalA.x - pLocalV.x,
+                     y: y + pLocalA.y - pLocalV.y,
+                     rot: nextRot
+                   });
                 }
               }
             }
@@ -100,10 +100,10 @@ export function MasterView({
       results.push({ rootId: startAmb.id, ambs: clusterAmbs });
     });
     return results;
-  }, [project.ambientes, project.meta, escala]);
+  }, [project.ambientes, project.escala, project.grosor_pared_default, project.alturaDefault, escala]);
 
   function getOpeningPosM(amb: Ambiente, ab: Abertura, rotationDeg: number, useExterior: boolean) {
-    const { allSegs } = RENDERER.buildSegs(amb, project.meta);
+    const { allSegs } = RENDERER.buildSegs(amb, project);
     const s = allSegs[ab.pared];
     if (!s) return { x: 0, y: 0 };
 

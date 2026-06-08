@@ -8,6 +8,7 @@ import { ProjectHeader } from '../../components/projects/ProjectHeader'
 import { ProjectConfigDialog } from '../../components/shared/ProjectConfigDialog'
 import { SymbolManagerDialog } from '../../components/SymbolManagerDialog'
 import { Modal } from '../../ui/Modal'
+import { SyncConflictModal } from '../../components/shared/SyncConflictModal'
 import './HubProjects.css'
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -37,7 +38,8 @@ export function HubProjects() {
     createProject,
     deleteProject,
     addProject,
-    updateProject
+    updateProject,
+    conflict
   } = projectState
 
   const [configProjectId, setConfigProjectId] = useState<string | null>(null)
@@ -58,16 +60,11 @@ export function HubProjects() {
   }
 
   const handleCreate = () => {
-    if (clients.length === 0) {
-      alert('Primero debés registrar al menos un cliente.')
-      return
-    }
-    setSelectedClienteId(clients[0]?.id || '')
+    setSelectedClienteId('')
     setShowClienteModal(true)
   }
 
   const handleConfirmCreate = () => {
-    if (!selectedClienteId) return
     const newProject = createProject(selectedClienteId)
     setShowClienteModal(false)
     navigate(`/proyecto/${newProject.id}/relevador`)
@@ -201,7 +198,7 @@ export function HubProjects() {
       <Modal
         isOpen={showClienteModal}
         onClose={() => setShowClienteModal(false)}
-        title="Asignar cliente al nuevo proyecto"
+        title="Nuevo proyecto"
         footer={
           <>
             <button className="btn btn-ghost" onClick={() => setShowClienteModal(false)}>
@@ -210,13 +207,15 @@ export function HubProjects() {
             <button
               className="btn btn-acc"
               onClick={handleConfirmCreate}
-              disabled={!selectedClienteId}
             >
               Crear proyecto
             </button>
           </>
         }
       >
+        <p style={{ fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--text3)', marginBottom: 12 }}>
+          Podés asignar el cliente ahora o configurarlo más tarde.
+        </p>
         <select
           value={selectedClienteId}
           onChange={e => setSelectedClienteId(e.target.value)}
@@ -231,11 +230,13 @@ export function HubProjects() {
             fontSize: 14
           }}
         >
+          <option value="">Sin cliente (asignar después)</option>
           {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.razonSocial} — {c.dniCuit}</option>
+            <option key={c.id} value={c.id}>{c.razonSocial}{c.dniCuit ? ` — ${c.dniCuit}` : ''}</option>
           ))}
         </select>
       </Modal>
+      <SyncConflictModal conflict={conflict} />
     </div>
   )
 }

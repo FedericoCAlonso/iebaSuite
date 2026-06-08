@@ -30,7 +30,7 @@ export function AppModals() {
           symbolsLib={symbolsLib}
           onConfirm={(el) => actions.handleSymConfirm(el, symDialog)}
           onCancel={() => setSymDialog(null)}
-          escala={activeProject?.meta.escala}
+          escala={activeProject?.escala}
         />
       )}
 

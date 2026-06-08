@@ -30,7 +30,6 @@ interface EditorScreenProps {
   activeAmbiente: Ambiente;
   activeAmbienteId: string;
   symbolsLib: import('../../lib/symbols').DefinicionSimbolo[];
-  onUpdateMeta: (meta: Project['meta']) => void;
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
   onUpdateProject: (fn: (p: Project) => Project) => void;
   onAddAmbiente: () => void;

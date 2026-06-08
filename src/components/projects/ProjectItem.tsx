@@ -31,10 +31,10 @@ export const ProjectItem: React.FC<ProjectItemProps> = React.memo(({
     >
       <div className="project-info" style={{ flex: 1 }}>
         <div className="project-name">
-          {project.meta.nombre || 'Proyecto sin nombre'}
+          {project.nombre || 'Proyecto sin nombre'}
         </div>
         <div className="project-meta">
-          Escala 1:{project.meta.escala} · {project.ambientes.length} hoja(s) de relevamiento
+          Escala 1:{project.escala} · {project.ambientes.length} hoja(s) de relevamiento
         </div>
         <div className="project-ambientes-tags">
           {project.ambientes.map(a => a.nombre).join(' · ')}
@@ -57,7 +57,7 @@ export const ProjectItem: React.FC<ProjectItemProps> = React.memo(({
           title="Eliminar proyecto"
           onClick={(e) => {
             e.stopPropagation(); // Evitamos que se dispare el onSelect al borrar
-            if (window.confirm(`¿Eliminar "${project.meta.nombre}"?`)) {
+            if (window.confirm(`¿Eliminar "${project.nombre}"?`)) {
               onDelete(project.id);
             }
           }}

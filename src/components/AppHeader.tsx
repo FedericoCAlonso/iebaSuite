@@ -26,7 +26,7 @@ export function AppHeader({
       <span className="topbar-logo" onClick={onGoHome}>ieBA</span>
       {screen === 'editor' && activeProject && (
         <span className="topbar-crumb">
-          ▸ <span>{activeProject.meta?.nombre || activeProject.nombre || 'Proyecto'}</span>
+          ▸ <span>{activeProject.nombre || 'Proyecto'}</span>
           {activeAmbienteName && (
             <span style={{ opacity: 0.7 }}> / {activeAmbienteName}</span>
           )}

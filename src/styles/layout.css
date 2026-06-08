@@ -238,6 +238,14 @@ main.main-content {
   gap: 6px;
   z-index: 100; /* Asegurar que esté sobre el plano */
 }
+
+@media (max-width: 768px) {
+  .zoom-controls {
+    bottom: 12px;
+    left: 12px;
+    right: auto;
+  }
+}
 .zoom-btn {
   width: 28px;
   height: 28px;
