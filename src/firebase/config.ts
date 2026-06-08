@@ -32,18 +32,37 @@ const sanitize = (val: string | undefined) => {
 }
 
 /** Configuración de Firebase construida a partir de las variables de entorno Vite. */
-const firebaseConfig = {
-  apiKey: sanitize(import.meta.env.VITE_FIREBASE_API_KEY),
-  authDomain: sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
-  projectId: sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID),
-  storageBucket: sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET),
-  messagingSenderId: sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
-  appId: sanitize(import.meta.env.VITE_FIREBASE_APP_ID),
-  measurementId: sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID),
+let apiKey = sanitize(import.meta.env.VITE_FIREBASE_API_KEY)
+let authDomain = sanitize(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN)
+let projectId = sanitize(import.meta.env.VITE_FIREBASE_PROJECT_ID)
+let storageBucket = sanitize(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET)
+let messagingSenderId = sanitize(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID)
+let appId = sanitize(import.meta.env.VITE_FIREBASE_APP_ID)
+let measurementId = sanitize(import.meta.env.VITE_FIREBASE_MEASUREMENT_ID)
+
+// Auto-corrección si projectId y appId están invertidos (común al configurar secretos en CI/CD como GitHub Secrets)
+if (projectId.includes(':') && !appId.includes(':')) {
+  console.warn('Firebase config: Detectados VITE_FIREBASE_PROJECT_ID y VITE_FIREBASE_APP_ID invertidos. Corrigiendo automáticamente...');
+  const temp = projectId
+  projectId = appId
+  appId = temp
 }
 
-// Solo inicializar si hay configuración real
-const isConfigured = !!firebaseConfig.projectId
+/** Configuración de Firebase construida a partir de las variables de entorno Vite. */
+const firebaseConfig = {
+  apiKey,
+  authDomain,
+  projectId,
+  storageBucket,
+  messagingSenderId,
+  appId,
+  measurementId,
+}
+
+// Solo inicializar si hay configuración real y válida
+const isConfigured = !!firebaseConfig.projectId && 
+                     firebaseConfig.projectId !== 'undefined' && 
+                     firebaseConfig.projectId !== ''
 
 /** Instancia principal de la aplicación Firebase. `null` si no está configurada. */
 export let app: FirebaseApp | null = null
