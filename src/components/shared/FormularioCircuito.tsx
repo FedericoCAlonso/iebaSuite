@@ -4,7 +4,7 @@ import type { Circuito, Tablero, TipoCircuito } from '../../types/index'
 
 interface FormularioCircuitoProps {
   tableros: Tablero[]
-  circuitoEdit?: Circuito | null
+  circuitoEdit?: Partial<Circuito> | null
   onSave: (data: Omit<Circuito, 'id'>) => void
   onCancel: () => void
 }
@@ -40,37 +40,23 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
     nombre: '',
     tipo: 'TUG' as TipoCircuito,
     tableroId: tableros[0]?.id || '',
-    seccion: 2.5,
-    corrienteNominal: 16,
-    sensibilidadDR: 0,
-    proteccion: '',
-    descripcion: '',
-    curvaDisparo: 'C' as Circuito['curvaDisparo'],
-    polos: 2 as Circuito['polos'],
-    cantConductores: 2,
-    tipoConducto: 'cano_rigido' as Circuito['tipoConducto'],
-    longitudDeclarada: 0
+    seccionBase: 2.5,
+    conductoresBase: 3,
+    descripcion: ''
   })
 
   useEffect(() => {
     if (circuitoEdit) {
       setForm({
-        nombre: circuitoEdit.nombre,
-        tipo: circuitoEdit.tipo,
-        tableroId: circuitoEdit.tableroId,
-        seccion: circuitoEdit.seccion,
-        corrienteNominal: circuitoEdit.corrienteNominal || 16,
-        sensibilidadDR: circuitoEdit.sensibilidadDR || 0,
-        proteccion: circuitoEdit.proteccion || '',
-        descripcion: circuitoEdit.descripcion || '',
-        curvaDisparo: circuitoEdit.curvaDisparo || 'C',
-        polos: circuitoEdit.polos || 2,
-        cantConductores: circuitoEdit.cantConductores || 2,
-        tipoConducto: circuitoEdit.tipoConducto || 'cano_rigido',
-        longitudDeclarada: circuitoEdit.longitudDeclarada || 0
+        nombre: circuitoEdit.nombre || '',
+        tipo: circuitoEdit.tipo || 'TUG',
+        tableroId: circuitoEdit.tableroId || tableros[0]?.id || '',
+        seccionBase: circuitoEdit.seccionBase || 2.5,
+        conductoresBase: circuitoEdit.conductoresBase || 3,
+        descripcion: circuitoEdit.descripcion || ''
       })
     }
-  }, [circuitoEdit])
+  }, [circuitoEdit, tableros])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,13 +87,14 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
       }
     >
       <form id="circuito-form" onSubmit={handleSubmit}>
-        <label style={labelStyle}>Nombre</label>
+        <label style={labelStyle}>Nombre Local</label>
         <input
-          placeholder="Ej: TS1.C1"
+          placeholder="Ej: C1"
           value={form.nombre}
           onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
           required
           style={inputStyle}
+          title="Solo el identificador local. El sistema agregará el tablero automáticamente (ej: TS1.C1)"
         />
 
         <label style={labelStyle}>Tipo</label>
@@ -121,7 +108,7 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
           ))}
         </select>
 
-        <label style={labelStyle}>Tablero</label>
+        <label style={labelStyle}>Tablero al que pertenece</label>
         <select
           value={form.tableroId}
           onChange={e => setForm(f => ({ ...f, tableroId: e.target.value }))}
@@ -138,96 +125,27 @@ export function FormularioCircuito({ tableros, circuitoEdit, onSave, onCancel }:
 
         <div style={{ display: 'flex', gap: 10 }}>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Sección (mm²)</label>
+            <label style={labelStyle}>Sección Base (mm²)</label>
             <input
               type="number"
               step="0.5"
-              value={form.seccion}
-              onChange={e => setForm(f => ({ ...f, seccion: parseFloat(e.target.value) || 0 }))}
+              value={form.seccionBase}
+              onChange={e => setForm(f => ({ ...f, seccionBase: parseFloat(e.target.value) || 0 }))}
               required
               style={inputStyle}
+              title="Sección de los conductores troncales"
             />
           </div>
           <div style={{ flex: 1 }}>
-            <label style={labelStyle}>In (A)</label>
+            <label style={labelStyle}>Conductores Base</label>
             <input
               type="number"
-              value={form.corrienteNominal}
-              onChange={e => setForm(f => ({ ...f, corrienteNominal: parseInt(e.target.value) || 0 }))}
+              value={form.conductoresBase}
+              onChange={e => setForm(f => ({ ...f, conductoresBase: parseInt(e.target.value) || 0 }))}
+              required
               style={inputStyle}
+              title="Cantidad de conductores (ej: 3 para F+N+PE)"
             />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Sensibilidad DR (mA)</label>
-            <select
-              value={form.sensibilidadDR}
-              onChange={e => setForm(f => ({ ...f, sensibilidadDR: Number(e.target.value) }))}
-              style={inputStyle}
-            >
-              <option value={0}>Sin DR asociado / Compartido</option>
-              <option value={10}>10 mA</option>
-              <option value={30}>30 mA</option>
-              <option value={300}>300 mA</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Polos (Aparato)</label>
-            <select
-              value={form.polos}
-              onChange={e => setForm(f => ({ ...f, polos: Number(e.target.value) as 2 | 3 | 4 }))}
-              style={inputStyle}
-            >
-              <option value={2}>Bipolar (2P)</option>
-              <option value={3}>Tripolar (3P)</option>
-              <option value={4}>Tetrapolar (4P)</option>
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Curva de Disparo</label>
-            <select
-              value={form.curvaDisparo}
-              onChange={e => setForm(f => ({ ...f, curvaDisparo: e.target.value as Circuito['curvaDisparo'] }))}
-              style={inputStyle}
-            >
-              <option value="B">B (Rápida)</option>
-              <option value="C">C (Estándar)</option>
-              <option value="D">D (Lenta)</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Conductores Activos</label>
-            <select
-              value={form.cantConductores}
-              onChange={e => setForm(f => ({ ...f, cantConductores: Number(e.target.value) }))}
-              style={inputStyle}
-            >
-              <option value={2}>2 (F+N)</option>
-              <option value={3}>3 (2F+N)</option>
-              <option value={4}>4 (3F+N)</option>
-            </select>
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={labelStyle}>Tipo Conducción</label>
-            <select
-              value={form.tipoConducto}
-              onChange={e => setForm(f => ({ ...f, tipoConducto: e.target.value as Circuito['tipoConducto'] }))}
-              style={inputStyle}
-            >
-              <option value="cano_rigido">Caño Rígido</option>
-              <option value="bandeja">Bandeja</option>
-              <option value="enterrado">Enterrado</option>
-              <option value="canaleta">Canaleta</option>
-              <option value="otro">Otro</option>
-            </select>
           </div>
         </div>
 

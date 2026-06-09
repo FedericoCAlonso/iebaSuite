@@ -157,8 +157,8 @@ main.main-content {
 .panel-feed-inner {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 0 8px 8px;
+  gap: 12px;
+  padding: 0 16px 16px;
 }
 
 /* ── Panel derecho (preview/plano) ── */

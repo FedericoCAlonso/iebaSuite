@@ -1,5 +1,7 @@
 import type { Project } from '../types/index';
 import { calcularLongitudOrtogonal } from './electrical/calculations';
+import { isBocaElectrica } from './circuitUtils';
+import { getDefaultSymbolsSync } from './symbols';
 
 /**
  * Descarga un archivo en el navegador.
@@ -49,7 +51,8 @@ export function exportToMarkdown(project: Project) {
 
   md += `## Resumen de Hojas (Ambientes)\n`;
   project.ambientes.forEach((a) => {
-    md += `- **${a.nombre}**: ${a.elementos.length} bocas, ${a.aberturas.length} aberturas.\n`;
+    const bocasCount = a.elementos.filter(el => isBocaElectrica(el, getDefaultSymbolsSync())).length;
+    md += `- **${a.nombre}**: ${bocasCount} bocas, ${a.aberturas.length} aberturas.\n`;
   });
   md += '\n';
 
@@ -58,13 +61,13 @@ export function exportToMarkdown(project: Project) {
     md += `*No hay circuitos definidos.*\n`;
   } else {
     project.circuitos.forEach(c => {
-      md += `- **${c.nombre}** (${c.tipo}): ${c.seccion}mm² - Protec: ${c.proteccion || 'N/A'}\n`;
+      md += `- **${c.nombre}** (${c.tipo}): ${c.seccionBase ? `${c.seccionBase}mm²` : 'N/A'}\n`;
     });
   }
   md += '\n';
 
   md += `## Bocas e Infraestructura\n`;
-  const totalBocas = project.ambientes.reduce((acc, a) => acc + a.elementos.length, 0);
+  const totalBocas = project.ambientes.reduce((acc, a) => acc + a.elementos.filter(el => isBocaElectrica(el, getDefaultSymbolsSync())).length, 0);
   md += `**Total de Bocas:** ${totalBocas}\n\n`;
 
   project.ambientes.forEach(a => {

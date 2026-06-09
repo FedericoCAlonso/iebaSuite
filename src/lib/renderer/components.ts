@@ -191,7 +191,18 @@ export function renderCotas(out: string[], ambiente: Ambiente, segs: Segmento[],
   }
 }
 
-export function renderElemento(out: string[], el: ElementoElectrico, segs: Segmento[], escala: number, dx: number, dy: number, exportMode: boolean, symbolsLib: DefinicionSimbolo[], columnas?: ElementoEstructural[]): void {
+export function renderElemento(
+  out: string[], 
+  el: ElementoElectrico, 
+  segs: Segmento[], 
+  escala: number, 
+  dx: number, 
+  dy: number, 
+  _exportMode: boolean,
+  symbolsLib: DefinicionSimbolo[], 
+  columnas?: ElementoEstructural[],
+  conexiones?: any[]
+): void {
   let [ex, ey] = getElementPos(el, segs, escala, dx, dy);
 
   if (el.columnaId && columnas) {
@@ -214,7 +225,7 @@ export function renderElemento(out: string[], el: ElementoElectrico, segs: Segme
     }
   }
 
-  const k = GEO.mToPx(0.22, escala);
+  const k = GEO.mToPx(0.30, escala); // El símbolo representa ~30cm físicos
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   
   out.push(`<g transform="translate(${f(ex)},${f(ey)}) rotate(${f(angRot)})" data-elec-id="${el.id}" style="cursor:pointer" color="${C.ELEC}">`);
@@ -228,8 +239,35 @@ export function renderElemento(out: string[], el: ElementoElectrico, segs: Segme
     out.push(`<circle cx="0" cy="0" r="${f(k * 0.4)}" fill="none" stroke="currentColor" stroke-width="0.8"/>`);
   }
 
-  if (exportMode && el.referencia) {
-    out.push(txt([k * 0.8, -k * 0.8], el.referencia, -angRot, C.ELEC, 9, 'start'));
+  let labelText = el.referencia || '';
+
+  if (conexiones) {
+    const returnRefs = new Set<string>();
+    conexiones.forEach(con => {
+      const isFrom = con.from?.elementoId === el.id;
+      const isTo = con.to?.elementoId === el.id;
+      if (isFrom || isTo) {
+        con.cables?.forEach((cab: any) => {
+          if ((cab.tipo === 'retorno' || cab.tipo === 'comando') && cab.referencia) {
+            returnRefs.add(cab.referencia);
+          }
+        });
+      }
+    });
+    
+    if (returnRefs.size > 0) {
+      const additionalRefs = Array.from(returnRefs).join(',');
+      if (labelText && !labelText.includes(additionalRefs)) {
+        labelText += ',' + additionalRefs;
+      } else if (!labelText) {
+        labelText = additionalRefs;
+      }
+    }
+  }
+
+  if (labelText) {
+    const fontSize = Math.max(k * 0.9, GEO.mToPx(0.15, escala));
+    out.push(txt([k * 0.8, -k * 0.8], labelText, -angRot, C.ELEC, fontSize, 'start'));
   }
   out.push('</g>');
 }

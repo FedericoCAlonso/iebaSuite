@@ -259,14 +259,8 @@ export const createCircuito = (overide: Partial<Circuito> = {}): Circuito => ({
   nombre: 'TS1.C1',
   tipo: 'TUG' as TipoCircuito,
   tableroId: '',
-  seccion: 2.5,
-  material: 'cobre',
-  aislacion: 'PVC',
-  temperaturaAmbiente: 30,
-  caidaTensionMax: 3,
-  proteccion: '16A TM',
-  cantConductores: 2,
-  conducto: 'PVC 20mm',
+  seccionBase: 2.5,
+  conductoresBase: 3,
   color: '#4A90D9',
   ...overide
 });

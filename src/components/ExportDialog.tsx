@@ -6,6 +6,8 @@ import React from "react";
 import { type Project, type Conexion } from '../types/index';
 import type { DefinicionSimbolo } from '../lib/symbols';
 import { RENDERER } from '../lib/renderer';
+import { ReportGenerator } from '../lib/export/ReportGenerator';
+import { DxfGenerator } from '../lib/export/DxfGenerator';
 
 interface ExportDialogProps {
   project: Project;
@@ -25,10 +27,16 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
 
   const exportSVG = () => {
     for (const amb of (project.ambientes||[])) {
-      const svg = RENDERER.render(amb, project, symbolsLib, inclRefs);
+      const svg = RENDERER.render(amb, project, symbolsLib, inclRefs, project);
       downloadBlob(svg, `${project.nombre||'planta'}_${amb.nombre||'amb'}.svg`, 'image/svg+xml');
     }
     onToast(`${project.ambientes?.length||1} SVG exportados`);
+  };
+
+  const exportDxf = () => {
+    const generator = new DxfGenerator(project, symbolsLib);
+    generator.generateDxf();
+    onToast('DXF exportado');
   };
 
   const exportYAML = () => {
@@ -96,24 +104,87 @@ export function ExportDialog({ project, symbolsLib, onClose, onToast }: ExportDi
     onToast('CSV de Netlist exportado');
   };
 
+  const exportBOMPdf = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateBOMPdf();
+    onToast('BOM PDF exportado');
+  };
+
+  const exportCircuitsPdf = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateCircuitsPdf();
+    onToast('Circuitos PDF exportado');
+  };
+
+  const exportLoadSchedulePdf = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateLoadSchedulePdf();
+    onToast('Cuadro de Cargas PDF exportado');
+  };
+
+  const exportBOMCsv = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateBOMCsv();
+    onToast('BOM CSV exportado');
+  };
+
+  const exportCircuitsCsv = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateCircuitsCsv();
+    onToast('Circuitos CSV exportado');
+  };
+
+  const exportLoadScheduleCsv = () => {
+    const generator = new ReportGenerator(project, symbolsLib);
+    generator.generateLoadScheduleCsv();
+    onToast('Cuadro de Cargas CSV exportado');
+  };
+
   return (
     <div className="overlay" onClick={onClose}>
       <div className="dialog" onClick={e=>e.stopPropagation()}>
-        <div className="dialog-title">Exportar proyecto</div>
+        <div className="dialog-title">Exportar Proyecto y Reportes</div>
+        
         <div>
-          <div className="sec-hdr">SVG — un archivo por hoja</div>
+          <div className="sec-hdr">Documentos Gráficos (Planos)</div>
           <label style={{display:'flex',alignItems:'center',gap:8,marginTop:8,cursor:'pointer',fontSize:12}}>
             <input type="checkbox" checked={inclRefs} onChange={e=>setInclRefs(e.target.checked)}/>
-            Incluir referencias y datos eléctricos
+            Incluir referencias y datos eléctricos en SVG
           </label>
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:4}}>
           <button className="btn btn-acc" onClick={exportSVG}>↓ SVG ({project.ambientes?.length||1} arch.)</button>
-          <button className="btn btn-ghost" onClick={exportYAML}>↓ YAML</button>
+          <button className="btn btn-acc" onClick={exportDxf}>↓ DXF (AutoCAD)</button>
+        </div>
+
+        <div style={{marginTop: 16}}>
+          <div className="sec-hdr">Reportes en PDF</div>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:4}}>
+          <button className="btn btn-ghost" onClick={exportBOMPdf}>↓ Cómputo de Materiales</button>
+          <button className="btn btn-ghost" onClick={exportCircuitsPdf}>↓ Detalle de Circuitos</button>
+          <button className="btn btn-ghost" onClick={exportLoadSchedulePdf}>↓ Cuadro de Cargas</button>
+        </div>
+
+        <div style={{marginTop: 16}}>
+          <div className="sec-hdr">Reportes en CSV (Excel)</div>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:4}}>
+          <button className="btn btn-ghost" onClick={exportBOMCsv}>↓ Cómputo de Materiales</button>
+          <button className="btn btn-ghost" onClick={exportCircuitsCsv}>↓ Detalle de Circuitos</button>
+          <button className="btn btn-ghost" onClick={exportLoadScheduleCsv}>↓ Cuadro de Cargas</button>
+        </div>
+
+        <div style={{marginTop: 16}}>
+          <div className="sec-hdr">Datos Crudos / Backups</div>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',paddingTop:4}}>
           <button className="btn btn-ghost" onClick={exportCSV}>↓ CSV (Símbolos)</button>
           <button className="btn btn-ghost" onClick={exportNetlistCSV}>↓ CSV (Netlist)</button>
-          <button className="btn btn-ghost" onClick={exportJSON}>↓ JSON (backup)</button>
+          <button className="btn btn-ghost" onClick={exportYAML}>↓ YAML (Geometría)</button>
+          <button className="btn btn-ghost" onClick={exportJSON}>↓ JSON (Backup)</button>
         </div>
+
         <div className="dialog-actions">
           <button className="btn btn-ghost" onClick={onClose}>Cerrar</button>
         </div>

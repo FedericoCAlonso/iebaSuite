@@ -30,9 +30,11 @@ export function AppHeader({
           {activeAmbienteName && (
             <span style={{ opacity: 0.7 }}> / {activeAmbienteName}</span>
           )}
-          {modeSelector && (
-            <span style={{ marginLeft: 8 }}>{modeSelector}</span>
-          )}
+        </span>
+      )}
+      {modeSelector && (
+        <span className="topbar-mode-container" style={{ display: 'flex', alignItems: 'center', marginLeft: '12px' }}>
+          {modeSelector}
         </span>
       )}
       <span className="topbar-sep"/>

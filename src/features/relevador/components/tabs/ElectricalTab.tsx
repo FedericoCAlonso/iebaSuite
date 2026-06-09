@@ -21,6 +21,7 @@ interface ElectricalTabProps {
   onCancelConnecting?: () => void;
   globalMeasurements?: import('../../../../types/index').Measurement[];
   onNewMeasurementModal?: (elementoId: string, moduleType: import('../../../../types/index').ModuleType) => void;
+  onStartCircuitForBoca?: (bocaId: string) => void;
 }
 
 /**
@@ -39,7 +40,8 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
   onFinishConnecting,
   onCancelConnecting,
   globalMeasurements,
-  onNewMeasurementModal
+  onNewMeasurementModal,
+  onStartCircuitForBoca
 }) => {
   return (
     <>
@@ -72,6 +74,7 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
           onCancelConnecting={onCancelConnecting}
           globalMeasurements={globalMeasurements}
           onNewMeasurementModal={onNewMeasurementModal}
+          onStartCircuitForBoca={onStartCircuitForBoca}
         />
       ))}
     </>

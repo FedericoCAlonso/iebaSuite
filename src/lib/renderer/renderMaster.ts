@@ -149,7 +149,7 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
 
     amb.elementos?.forEach(el => {
       const symOut: string[] = [];
-      renderElemento(symOut, el, allSegs, escala, 0, 0, false, symbolsLib, amb.elementosEstructurales);
+      renderElemento(symOut, el, allSegs, escala, 0, 0, false, symbolsLib, amb.elementosEstructurales, project?.conexiones);
       symbols.push(`<g transform="translate(${f(dx)},${f(dy)}) rotate(${f(rot)})">${symOut.join('\n')}</g>`);
     });
 
@@ -161,6 +161,7 @@ export function renderMasterContent(project: Project, symbolsLib: DefinicionSimb
 
   if (project.conexiones) {
     project.conexiones.forEach(con => {
+      if (!con.from || !con.to) return;
       const p1 = getGlobalElementPos(project, con.from.ambienteId, con.from.elementoId, escala, ambs);
       const p2 = getGlobalElementPos(project, con.to.ambienteId, con.to.elementoId, escala, ambs);
       if (p1 && p2) {

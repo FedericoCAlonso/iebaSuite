@@ -5,12 +5,12 @@
 
 import { Card } from '../../../ui/Card';
 import { F } from '../../../ui/Field';
-import { NumInput } from '../../../ui/NumInput';
 import type { Circuito, TipoCircuito } from '../../../types/index';
 
 interface CircuitoCardProps {
   circuito: Circuito;
   index: number;
+  tableroNombre?: string;
   onChange: (c: Circuito) => void;
   onRemove: () => void;
 }
@@ -40,7 +40,7 @@ const COLOR_DEFAULT: Partial<Record<TipoCircuito, string>> = {
   OTRO: '#7F8C8D',
 };
 
-export function CircuitoCard({ circuito: c, index, onChange, onRemove }: CircuitoCardProps) {
+export function CircuitoCard({ circuito: c, index, tableroNombre, onChange, onRemove }: CircuitoCardProps) {
   const badgeStyle: React.CSSProperties = {
     display: 'inline-block',
     width: 10,
@@ -51,23 +51,25 @@ export function CircuitoCard({ circuito: c, index, onChange, onRemove }: Circuit
     verticalAlign: 'middle',
   };
 
+  const fullName = tableroNombre ? `${tableroNombre}.${c.nombre}` : c.nombre;
+
   return (
     <Card
       idx={`C${index + 1}`}
       idxColor="var(--accent)"
-      title={c.nombre}
+      title={fullName}
       badge={c.tipo}
       onRemove={onRemove}
       defaultOpen={false}
     >
       <div className="field-row">
-        <F label="Nombre / ID">
+        <F label="Nombre Local">
           <input
             type="text"
             value={c.nombre}
             onChange={e => onChange({ ...c, nombre: e.target.value })}
-            placeholder="TS1.C1"
-            title="Convenio: {tablero}.{número} – ej: TS1.C1, TD1.C3"
+            placeholder="C1"
+            title="Solo el identificador local (ej: C1)"
           />
         </F>
         <F label="Tipo AEA">
@@ -82,45 +84,6 @@ export function CircuitoCard({ circuito: c, index, onChange, onRemove }: Circuit
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
-        </F>
-      </div>
-
-      <div className="field-row">
-        <F label="Sección conductor (mm²)">
-          <select
-            value={String(c.seccion)}
-            onChange={e => onChange({ ...c, seccion: parseFloat(e.target.value) })}
-          >
-            {[1.5, 2.5, 4, 6, 10, 16, 25].map(s => (
-              <option key={s} value={String(s)}>{s} mm²</option>
-            ))}
-          </select>
-        </F>
-        <F label="Cant. conductores">
-          <NumInput
-            value={c.cantConductores ?? 2}
-            onChange={(v: number) => onChange({ ...c, cantConductores: Math.max(1, Math.round(v)) })}
-          />
-        </F>
-      </div>
-
-      <div className="field-row">
-        <F label="Protección">
-          <input
-            type="text"
-            value={c.proteccion}
-            onChange={e => onChange({ ...c, proteccion: e.target.value })}
-            placeholder="16A TM"
-            title="Ej: 10A TM, 16A TM+DR, 20A IA"
-          />
-        </F>
-        <F label="Conducto">
-          <input
-            type="text"
-            value={c.conducto || ''}
-            onChange={e => onChange({ ...c, conducto: e.target.value })}
-            placeholder="Ej: Caño PVC 20mm"
-          />
         </F>
       </div>
 

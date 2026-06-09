@@ -14,9 +14,21 @@ export function getLayout(ambiente: Ambiente, meta: Meta) {
   const margin = 10;
   const rotuloH = 35;
   
-  let pageW = conf.formato === 'A3' ? 420 : 297;
-  let pageH = conf.formato === 'A3' ? 297 : 210;
-  if (conf.orientacion === 'vertical') [pageW, pageH] = [pageH, pageW];
+  const ISO_A: Record<string, [number, number]> = {
+    A0: [841, 1189],
+    A1: [594, 841],
+    A2: [420, 594],
+    A3: [297, 420],
+    A4: [210, 297],
+    A5: [148, 210]
+  };
+  
+  let [pageW, pageH] = ISO_A[conf.formato] || ISO_A['A4'];
+  if (conf.orientacion === 'vertical') {
+    [pageW, pageH] = [Math.min(pageW, pageH), Math.max(pageW, pageH)];
+  } else {
+    [pageW, pageH] = [Math.max(pageW, pageH), Math.min(pageW, pageH)];
+  }
 
   if (!segs.length) {
     return { dx: margin, dy: margin, pageW, pageH, margin, rotuloH };

@@ -27,6 +27,7 @@ interface ElectricalCardProps {
   onCancelConnecting?: () => void;
   globalMeasurements?: import('../../../types/index').Measurement[];
   onNewMeasurementModal?: (elementoId: string, moduleType: import('../../../types/index').ModuleType) => void;
+  onStartCircuitForBoca?: (bocaId: string) => void;
 }
 
 export function ElectricalCard({
@@ -46,7 +47,8 @@ export function ElectricalCard({
   onFinishConnecting,
   onCancelConnecting,
   globalMeasurements = [],
-  onNewMeasurementModal
+  onNewMeasurementModal,
+  onStartCircuitForBoca
 }: ElectricalCardProps) {
 
   const symDef = symbolsLib.find(s => s.id === el.tipo);
@@ -143,17 +145,33 @@ export function ElectricalCard({
           </F>
         ) : (
           <F label="Circuito">
-            <select
-              value={el.circuitoId || ''}
-              onChange={e => onChange({ ...el, circuitoId: e.target.value || undefined })}
-            >
-              <option value="">— Sin circuito —</option>
-              {circuitos.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre} ({c.tipo})
-                </option>
-              ))}
-            </select>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <select
+                style={{ flex: 1 }}
+                value={el.circuitoId || ''}
+                onChange={e => onChange({ ...el, circuitoId: e.target.value || undefined })}
+              >
+                <option value="">— Sin circuito —</option>
+                {circuitos.map(c => {
+                  const fullName = tableros ? (() => {
+                    const t = tableros.find(x => x.id === c.tableroId);
+                    return t ? `${t.nombre}.${c.nombre}` : c.nombre;
+                  })() : c.nombre;
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {fullName} ({c.tipo})
+                    </option>
+                  );
+                })}
+              </select>
+              <button 
+                className="btn btn-ghost btn-sm" 
+                onClick={() => onStartCircuitForBoca?.(el.id)} 
+                title="Crear nuevo circuito"
+              >
+                ＋ Nuevo
+              </button>
+            </div>
           </F>
         )}
         <F label="Mostrar dato en SVG">
@@ -331,7 +349,7 @@ export function ElectricalCard({
       {circuito && (
         <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, display: 'flex', alignItems: 'center' }}>
           {circuitoDot}
-          {circuito.nombre} — {circuito.tipo} — {circuito.seccion}mm² — {circuito.proteccion}
+          {circuito.nombre} — {circuito.tipo}{circuito.seccionBase ? ` — ${circuito.seccionBase}mm²` : ''}
         </div>
       )}
     </Card>

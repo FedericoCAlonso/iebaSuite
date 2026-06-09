@@ -9,7 +9,9 @@ import { f, ptsAttr, line, txt, getElementPos } from './utils';
 
 export function renderConexiones(out: string[], ambiente: Ambiente, project: Project | undefined, segs: Segmento[], escala: number, dx: number, dy: number): void {
   if (!project?.conexiones) return;
-  project.conexiones.forEach(con => {
+  project.conexiones.forEach((con, idx) => {
+    if (!con.from || !con.to) return;
+    
     const isFrom = con.from.ambienteId === ambiente.id;
     const isTo = con.to.ambienteId === ambiente.id;
     const isInterSheet = con.from.ambienteId !== con.to.ambienteId;
@@ -37,6 +39,10 @@ export function renderConexiones(out: string[], ambiente: Ambiente, project: Pro
             if (circ && circ.color) color = circ.color;
           }
           out.push(`<path d="M ${f(p1[0])} ${f(p1[1])} Q ${f(cx)} ${f(cy)}, ${f(p2[0])} ${f(p2[1])}" fill="none" stroke="${color}" stroke-width="0.8" stroke-dasharray="2,2" opacity="0.8"/>`);
+          const labelText = con.referencia || `C${idx + 1}`;
+          const qX = 0.25 * p1[0] + 0.5 * cx + 0.25 * p2[0];
+          const qY = 0.25 * p1[1] + 0.5 * cy + 0.25 * p2[1];
+          out.push(txt([qX, qY - 4], labelText, 0, color, 4, 'middle'));
         }
       } else {
         const elId = isFrom ? con.from.elementoId : con.to.elementoId;
@@ -70,7 +76,8 @@ export function renderConexiones(out: string[], ambiente: Ambiente, project: Pro
 
         const targetAmb = project.ambientes.find(a => a.id === targetAmbId);
         const targetEl = targetAmb?.elementos?.find(e => e.id === targetElId);
-        const label = `${isFrom ? '→' : '←'} ${targetEl?.referencia || 'S/R'} (${targetAmb?.nombre || '?'})`;
+        const refConexion = con.referencia || `C${idx + 1}`;
+        const label = `${refConexion} ${isFrom ? '→' : '←'} ${targetEl?.referencia || 'S/R'} (${targetAmb?.nombre || '?'})`;
         out.push(txt(GEO.add(pEnd, GEO.scale(dir, 5)), label, 0, color, 3.5, 'middle'));
       }
     }

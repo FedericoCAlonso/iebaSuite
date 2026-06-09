@@ -18,9 +18,11 @@ interface SymbolDialogProps {
   /** Escala necesaria para mostrar la posición de snap en metros */
   escala?: number; 
   symbolsLib: DefinicionSimbolo[];
+  /** Altura del techo o altura por defecto del proyecto para luces de techo */
+  ambienteAltura?: number;
 }
 
-export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escala = 50 }: SymbolDialogProps) {
+export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escala = 50, ambienteAltura = 2.6 }: SymbolDialogProps) {
   // Identificamos si estamos en modo edición o creación
   const isEdit = clickData.mode === 'edit';
   const existing = isEdit ? clickData.existing : null;
@@ -85,6 +87,19 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
         el.x = 0; 
         el.y = 0;
       }
+
+      // Alturas por defecto
+      const def = symbolsLib.find(s => s.id === tipo);
+      const isTecho = tipo.includes('techo') || def?.label.toLowerCase().includes('techo');
+      const isTablero = tipo.includes('tablero') || def?.categoria === 'tableros';
+      const isLlave = tipo.includes('llave') || def?.categoria === 'llaves';
+
+      if (isTecho) {
+        el.altura = ambienteAltura;
+      } else if (isTablero || isLlave) {
+        el.altura = 1.0;
+      }
+
       onConfirm(el);
     }
   };

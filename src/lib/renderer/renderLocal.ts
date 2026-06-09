@@ -90,7 +90,7 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
 
   // 7. Elementos Eléctricos
   ambiente.elementos?.forEach(el => {
-    renderElemento(out, el, segs, meta.escala, dx, dy, exportMode, symbolsLib, ambiente.elementosEstructurales);
+    renderElemento(out, el, segs, meta.escala, dx, dy, exportMode, symbolsLib, ambiente.elementosEstructurales, project?.conexiones);
   });
 
   // 8. Textos libres

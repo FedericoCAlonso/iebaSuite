@@ -1,3 +1,4 @@
+import { useState } from 'react';
 // Layout y Composición
 import { EditorLayout } from './components/EditorLayout';
 import { CreationFlowOverlay } from './components/CreationFlowOverlay';
@@ -70,6 +71,28 @@ export function EditorScreen(props: EditorScreenProps) {
     onUpdateAmbiente, 
     onUpdateProject
   );
+
+  const [pendingBocaForCircuit, setPendingBocaForCircuit] = useState<string | null>(null);
+
+  const handleStartCircuitForBoca = (bocaId: string) => {
+    setPendingBocaForCircuit(bocaId);
+    setActiveTab('circuitos');
+  };
+
+  const handleCircuitCreated = (circuitoId: string) => {
+    if (pendingBocaForCircuit) {
+      state.updateElectrical(ps => ps.map(x => x.id === pendingBocaForCircuit ? { ...x, circuitoId } : x));
+      setPendingBocaForCircuit(null);
+      setActiveTab('electrico');
+    }
+  };
+
+  const handleCircuitCreationCanceled = () => {
+    if (pendingBocaForCircuit) {
+      setPendingBocaForCircuit(null);
+      setActiveTab('electrico');
+    }
+  };
 
   const tabConfig: Record<EditorTab, { label: string, icon: string }> = {
     resumen:    { label: 'Resumen', icon: '📊' },
@@ -224,11 +247,16 @@ export function EditorScreen(props: EditorScreenProps) {
           onCancelConnecting={state.cancelConnecting}
           globalMeasurements={globalMeasurements}
           onNewMeasurementModal={onNewMeasurementModal}
+          onStartCircuitForBoca={handleStartCircuitForBoca}
         />
       )}
 
       {mode === 'electrico' && activeTab === 'circuitos' && (
-        <CircuitsTab />
+        <CircuitsTab 
+          onCircuitCreated={handleCircuitCreated}
+          onCancelCircuitRequest={handleCircuitCreationCanceled}
+          pendingBoca={pendingBocaForCircuit}
+        />
       )}
 
       {mode === 'electrico' && activeTab === 'conexiones' && (

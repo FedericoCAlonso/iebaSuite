@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProjectInstallation } from '../../../../hooks/useProjectInstallation'
 import { FormularioCircuito } from '../../../../components/shared/FormularioCircuito'
 import { CircuitoCard } from '../CircuitoCard'
 import type { Circuito, Tablero } from '../../../../types/index'
 
-export function CircuitsTab() {
+interface CircuitsTabProps {
+  onCircuitCreated?: (circuitoId: string) => void;
+  onCancelCircuitRequest?: () => void;
+  pendingBoca?: string | null;
+}
+
+export function CircuitsTab({ onCircuitCreated, onCancelCircuitRequest, pendingBoca }: CircuitsTabProps) {
   const {
     tableros,
     circuitos,
@@ -26,17 +32,36 @@ export function CircuitsTab() {
     ubicacion: ''
   })
 
+  // Auto-open form if we came here specifically to create a circuit and have tableros
+  useEffect(() => {
+    if (pendingBoca && tableros.length > 0 && !formularioAbierto && !circuitoEdit) {
+      setFormularioAbierto(true)
+    }
+  }, [pendingBoca, tableros.length, formularioAbierto, circuitoEdit])
+
   const handleGuardarCircuito = (data: Omit<Circuito, 'id'>) => {
     if (circuitoEdit) {
       updateCircuito(circuitoEdit.id, data)
     } else {
-      addCircuito(data)
+      const nuevo = addCircuito(data)
+      if (pendingBoca && onCircuitCreated) {
+        onCircuitCreated(nuevo.id)
+        return // Return early to let EditorScreen handle the state and tab change
+      }
     }
     setFormularioAbierto(false)
     setCircuitoEdit(null)
   }
 
-    const handleNuevoCircuito = () => {
+  const handleCancelarCircuito = () => {
+    setFormularioAbierto(false)
+    setCircuitoEdit(null)
+    if (pendingBoca && onCancelCircuitRequest) {
+      onCancelCircuitRequest()
+    }
+  }
+
+  const handleNuevoCircuito = () => {
     setCircuitoEdit(null)
     setFormularioAbierto(true)
   }
@@ -64,6 +89,18 @@ export function CircuitsTab() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {pendingBoca && (
+        <div style={{ background: 'var(--blue)', color: '#fff', padding: 12, borderRadius: 'var(--r)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <strong>Creando Circuito para Boca</strong>
+            {tableros.length === 0 && <div style={{ fontSize: 13, marginTop: 4 }}>Por favor, crea un tablero primero.</div>}
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={handleCancelarCircuito} style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}>
+            ✕ Cancelar
+          </button>
+        </div>
+      )}
+
       <div className="info-helper">
         Definí los <strong>tableros</strong> del proyecto y luego los <strong>circuitos</strong> asociados a cada uno.<br />
         Nomenclatura AEA: <strong>TS1.C1</strong> = Circuito C1 del Tablero Seccional 1.
@@ -131,6 +168,7 @@ export function CircuitsTab() {
                   <CircuitoCard
                     circuito={c}
                     index={i}
+                    tableroNombre={t.nombre}
                     onChange={(nc) => updateCircuito(c.id, nc)}
                     onRemove={() => deleteCircuito(c.id)}
                   />
@@ -255,10 +293,7 @@ export function CircuitsTab() {
           tableros={tableros}
           circuitoEdit={circuitoEdit}
           onSave={handleGuardarCircuito}
-          onCancel={() => {
-            setFormularioAbierto(false)
-            setCircuitoEdit(null)
-          }}
+          onCancel={handleCancelarCircuito}
         />
       )}
     </div>

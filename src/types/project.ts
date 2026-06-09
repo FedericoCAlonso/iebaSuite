@@ -173,29 +173,11 @@ export interface Circuito {
   nombre: string;
   tipo: TipoCircuito;
   tableroId: string;           // ID del tablero al que pertenece (obligatorio)
-  seccion: number;             // Sección del conductor en mm²
-  material?: 'cobre' | 'aluminio';               // default 'cobre'
-  aislacion?: 'PVC' | 'XLPE' | 'EPR';            // default 'PVC'
-  /**
-   * Método de instalación según IEC 60364-5-52 (tabla de factores de corrección).
-   * Determina la capacidad de corriente admisible del conductor.
-   */
-  metodoInstalacion?: 'A1'|'A2'|'B1'|'B2'|'C'|'D'|'E'|'F'|'G';
-  temperaturaAmbiente?: number;                  // °C, default 30
-  longitudDeclarada?: number;                    // metros, prioridad sobre calculada
-  caidaTensionMax?: number;                      // %, default 3
-  /** Curva de disparo del termomagnético (B=baja, C=media, D=alta corriente de arranque). */
-  curvaDisparo?: 'B' | 'C' | 'D';
-  proteccion?: string;         // Legacy: Ej: "10A TM"
-  corrienteNominal?: number;   // In del protector en A
-  sensibilidadDR?: number;     // mA del diferencial (30, 300, etc.)
-  cantConductores?: number;    // Cantidad de conductores activos (default: 2)
-  conducto?: string;           // Descripción libre del conducto
-  tipoConducto?: TipoConducto;
+  seccionBase?: number;        // Sección troncal del cable en mm² (ej: 2.5)
+  conductoresBase?: number;    // Cantidad de conductores troncales (ej: 3)
   color?: string;              // Color para visualización
   descripcion?: string;
   parentId?: string;           // ID del elemento aguas arriba (ej: Diferencial u otro circuito)
-  polos?: 2 | 3 | 4;           // Cantidad de polos (para gráficas de conductores)
 }
 
 // ─── TABLERO ───
@@ -283,6 +265,7 @@ export interface Cable {
   tipo: 'fase' | 'neutro' | 'pe' | 'comando' | 'retorno';
   seccion: number;             // mm²
   color?: string;
+  referencia?: string;         // Ej: "a", "b" para enlazar retornos con llaves y bocas
 }
 
 /**
@@ -308,10 +291,12 @@ export interface Conexion {
   cables: Cable[];
   conducto?: string;
   tipoConducto?: TipoConducto;
+  normaCable?: string;         // Norma del conductor para este tramo (ej: IRAM 247-3, IRAM 2178)
   origenLongitud?: OrigenLongitud;
   /** Sección de conducción del conducto (diámetro interior) en milímetros. */
   seccionConduccion?: number;  // mm
   descripcion?: string;
+  referencia?: string;         // Etiqueta en plano (ej: C1, X1)
 }
 
 // ─── AMBIENTE ───
@@ -417,7 +402,7 @@ export interface ElementoEstructural {
  * Configuración de la hoja de impresión asociada a un ambiente.
  */
 export interface ConfigHoja {
-  formato: 'A4' | 'A3'
+  formato: 'A5' | 'A4' | 'A3' | 'A2' | 'A1' | 'A0'
   orientacion: 'vertical' | 'horizontal'
 }
 

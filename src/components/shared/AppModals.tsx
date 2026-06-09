@@ -31,6 +31,7 @@ export function AppModals() {
           onConfirm={(el) => actions.handleSymConfirm(el, symDialog)}
           onCancel={() => setSymDialog(null)}
           escala={activeProject?.escala}
+          ambienteAltura={activeAmbiente?.alturaLocal ?? activeProject?.alturaDefault ?? 2.6}
         />
       )}
 

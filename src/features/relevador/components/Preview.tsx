@@ -71,17 +71,19 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       }
       return RENDERER.render(ambiente, meta, symbolsLib, false, project);
     } catch (err) {
-      console.error("Error en el renderizado SVG:", err);
-      return '__ERROR__';
+      return '__ERROR__:' + (err as Error).stack;
     }
   }, [ambiente, meta, symbolsLib, activeTab, project]);
 
-  if (svgContent === '__ERROR__') {
+  if (svgContent.startsWith('__ERROR__:')) {
     return (
       <div className="preview-area" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', background: '#fff' }}>
         <div style={{ textAlign: 'center', padding: '20px' }}>
           <strong>⚠️ Error en el motor de dibujo</strong><br/>
           <small>Los datos de geometría contienen valores inválidos.</small>
+          <pre style={{ textAlign: 'left', marginTop: 10, fontSize: 10, color: '#333' }}>
+            {svgContent.substring(10)}
+          </pre>
         </div>
       </div>
     );

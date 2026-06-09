@@ -12,7 +12,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "dxf-writer": "^1.18.4",
     "firebase": "^12.13.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "makerjs": "^0.19.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0"

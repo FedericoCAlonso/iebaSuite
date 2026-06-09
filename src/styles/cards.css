@@ -6,63 +6,66 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  overflow: visible;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
 
 .card-hdr {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  background: var(--bg2);
+  padding: 14px 16px;
   cursor: pointer;
   user-select: none;
+  background: var(--bg);
   border-bottom: 1px solid transparent;
   transition: background .15s;
 }
-.card-hdr:hover         { background: var(--bg3); }
+.card-hdr:hover         { background: var(--bg2); }
 .card-hdr.open          { border-bottom-color: var(--border); }
 
 .card-idx {
-  font-family: var(--mono);
-  font-size: 11px;
+  font-family: var(--sans);
+  font-size: 14px;
   font-weight: 600;
-  color: var(--acc);
-  background: var(--acc-bg);
-  border: 1px solid var(--acc-border);
-  padding: 2px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
+  color: var(--text3);
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg2);
+  border-radius: 8px;
 }
 
 .card-title-main {
-  font-family: var(--sans);
+  font-family: var(--heading);
   font-size: 15px;
   font-weight: 600;
   color: var(--text-h);
   flex: 1;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: -0.3px;
 }
 
 .card-badge {
-  font-family: var(--mono);
+  font-family: var(--sans);
   font-size: 11px;
-  color: var(--text3);
+  font-weight: 600;
   background: var(--bg2);
-  border: 1px solid var(--border);
-  padding: 2px 8px;
+  color: var(--text2);
+  padding: 3px 8px;
   border-radius: 12px;
-  flex-shrink: 0;
+  margin-right: 12px;
 }
 
 .card-body {
-  padding: 10px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .card-chevron {

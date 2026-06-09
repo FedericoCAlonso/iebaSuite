@@ -69,14 +69,20 @@ export function RelevadorTool() {
   const showMasterView = isPlanta && ui.activeTab === 'maestro'
 
   const modeSelector = (
-    <select
-      value={editorMode}
-      onChange={e => handleModeChange(e.target.value as 'planta' | 'electrico')}
-      style={{ fontSize: 12, padding: '1px 4px', marginLeft: 6 }}
-    >
-      <option value="planta">🏗️ Planta</option>
-      <option value="electrico">⚡ Eléctrico</option>
-    </select>
+    <div className="mode-segmented-control" style={{ display: 'flex', background: 'var(--bg)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border)' }}>
+      <button 
+        onClick={() => handleModeChange('planta')}
+        style={{ padding: '4px 8px', fontSize: 12, borderRadius: '4px', background: isPlanta ? 'var(--primary)' : 'transparent', color: isPlanta ? 'white' : 'var(--text)', border: 'none', cursor: 'pointer', fontWeight: isPlanta ? 600 : 400 }}
+      >
+        🏗️ Planta
+      </button>
+      <button 
+        onClick={() => handleModeChange('electrico')}
+        style={{ padding: '4px 8px', fontSize: 12, borderRadius: '4px', background: !isPlanta ? 'var(--primary)' : 'transparent', color: !isPlanta ? 'white' : 'var(--text)', border: 'none', cursor: 'pointer', fontWeight: !isPlanta ? 600 : 400 }}
+      >
+        ⚡ Eléctrico
+      </button>
+    </div>
   )
 
   return (

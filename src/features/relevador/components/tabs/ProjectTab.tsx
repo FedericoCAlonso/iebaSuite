@@ -53,6 +53,30 @@ export const ProjectTab: React.FC<ProjectTabProps> = ({
           </F>
         </div>
         <div className="field-row">
+          <F label="Formato de papel">
+            <select
+              value={activeAmbiente.configHoja?.formato || 'A4'}
+              onChange={e => onUpdateAmbiente(a => ({ ...a, configHoja: { ...(a.configHoja || { orientacion: 'horizontal' }), formato: e.target.value as any } }))}
+            >
+              <option value="A5">A5</option>
+              <option value="A4">A4</option>
+              <option value="A3">A3</option>
+              <option value="A2">A2</option>
+              <option value="A1">A1</option>
+              <option value="A0">A0</option>
+            </select>
+          </F>
+          <F label="Orientación">
+            <select
+              value={activeAmbiente.configHoja?.orientacion || 'horizontal'}
+              onChange={e => onUpdateAmbiente(a => ({ ...a, configHoja: { ...(a.configHoja || { formato: 'A4' }), orientacion: e.target.value as any } }))}
+            >
+              <option value="horizontal">Horizontal</option>
+              <option value="vertical">Vertical</option>
+            </select>
+          </F>
+        </div>
+        <div className="field-row">
           <F label="Altura de techo (m)">
             <NumInput
               value={activeAmbiente.alturaLocal ?? (project.alturaDefault ?? 2.6)}

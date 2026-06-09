@@ -3,6 +3,8 @@ import { F } from '../../../../ui/Field';
 import { calcularLongitudOrtogonal } from '../../../../lib/electrical/calculations';
 import type { Project, Ambiente } from '../../../../types/index';
 import { exportToCSV, exportToMarkdown } from '../../../../lib/exporters';
+import { getFullCircuitName, isBocaElectrica } from '../../../../lib/circuitUtils';
+import { useSymbols } from '../../../../core/SymbolsContext';
 
 interface ResumenTabProps {
   project: Project;
@@ -42,9 +44,11 @@ function StatCard({ icon, value, label, accent }: StatCardProps) {
 }
 
 export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
+  const { symbolsLib } = useSymbols();
+  
   // Métricas globales del proyecto
   const totalHojas = project.ambientes?.length ?? 0;
-  const totalElecs = project.ambientes?.reduce((sum: number, a: Ambiente) => sum + (a.elementos?.length ?? 0), 0) ?? 0;
+  const totalElecs = project.ambientes?.reduce((sum: number, a: Ambiente) => sum + (a.elementos?.filter(el => isBocaElectrica(el, symbolsLib)).length ?? 0), 0) ?? 0;
   const totalAberturas = project.ambientes?.reduce((sum: number, a: Ambiente) => sum + (a.aberturas?.length ?? 0), 0) ?? 0;
   const totalCircuitos = project.circuitos?.length ?? 0;
   const totalConexiones = project.conexiones?.length ?? 0;
@@ -52,7 +56,7 @@ export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
   // Métricas de la hoja activa
   const tramosCount = activeAmbiente.tramos?.length ?? 0;
   const segCount = activeAmbiente.tramos?.reduce((sum: number, t: import('../../../../types/index').Tramo) => sum + (t.paredes?.length ?? 0), 0) ?? 0;
-  const elecCount = activeAmbiente.elementos?.length ?? 0;
+  const elecCount = activeAmbiente.elementos?.filter(el => isBocaElectrica(el, symbolsLib)).length ?? 0;
   const abertCount = activeAmbiente.aberturas?.length ?? 0;
 
   const estadoLabels: Record<NonNullable<Project['estado']>, string> = {
@@ -141,12 +145,13 @@ export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
               const dataBocas = project.ambientes.flatMap(a => 
                 a.elementos.map(el => {
                   const circ = project.circuitos?.find(c => c.id === el.circuitoId);
+                  const circName = circ ? getFullCircuitName(circ, project.tableros || []) : 'N/A';
                   return {
                     Hoja: a.nombre,
                     Referencia: el.referencia || 'S/R',
                     Tipo: el.tipo,
                     Altura: el.altura || 0,
-                    Circuito: circ ? circ.nombre : 'N/A'
+                    Circuito: circName
                   };
                 })
               );
@@ -156,7 +161,7 @@ export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
               const dataCirc = (project.circuitos || []).map(c => {
                 let bocasCount = 0;
                 project.ambientes.forEach(a => {
-                  bocasCount += a.elementos.filter(el => el.circuitoId === c.id || c.id === el.datos.find(d=>d.clave==='circuitoId')?.valor).length;
+                  bocasCount += a.elementos.filter(el => isBocaElectrica(el, symbolsLib) && (el.circuitoId === c.id || c.id === el.datos.find(d=>d.clave==='circuitoId')?.valor)).length;
                 });
 
                 let longitudSum = 0;
@@ -176,11 +181,8 @@ export function ResumenTab({ project, activeAmbiente }: ResumenTabProps) {
                 });
 
                 return {
-                  Nombre: c.nombre,
+                  Nombre: getFullCircuitName(c, project.tableros || []),
                   Tipo: c.tipo,
-                  Seccion_mm2: c.seccion,
-                  Polos: c.polos || 2,
-                  Proteccion: c.proteccion || 'N/A',
                   Bocas: bocasCount,
                   Longitud_m: longitudSum > 0 ? `${longitudSum.toFixed(2)}${longitudEstimada ? ' (estimada)' : ''}` : '0'
                 };
