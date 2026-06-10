@@ -28,10 +28,18 @@ interface Vector2 {
 }
 
 /**
+ * Umbral en píxeles para distinguir un tap de un arrastre en pantallas táctiles.
+ * Si el dedo se movió más de este valor, el touchend se trata como pan (no como tap).
+ */
+const TOUCH_DRAG_THRESHOLD = 8;
+
+/**
  * Hook que agrega zoom y pan sobre un elemento HTML arbitrario.
  *
  * @param containerRef Referencia al elemento DOM sobre el que se escuchan los eventos.
- * @returns Objeto con el estado actual de zoom/pan y funciones de control.
+ * @returns Objeto con el estado actual de zoom/pan, funciones de control,
+ *          y `wasTouchDrag` (ref) para que el caller pueda ignorar onClick sintéticos
+ *          que React dispara tras un arrastre táctil.
  */
 export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
   const [zoom, setZoom] = useState<number>(1);
@@ -42,6 +50,11 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
   const lastPos = useRef<Vector2>({ x: 0, y: 0 });
   // Distancia entre dedos en el frame anterior del gesto pinch-to-zoom
   const lastDist = useRef<number | null>(null);
+  // Posición inicial del touch para calcular distancia recorrida
+  const touchStartPos = useRef<Vector2>({ x: 0, y: 0 });
+  // Indica si el último gesto táctil fue un arrastre (no un tap)
+  // Expuesto para que Preview pueda ignorar el onClick sintético
+  const wasTouchDrag = useRef<boolean>(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -78,12 +91,13 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
 
     const onMouseUp = () => {
       dragging.current = false;
-      if (el) el.style.cursor = 'crosshair';
+      if (el) el.style.cursor = '';
     };
 
     // ─── TOUCH EVENTS (MOBILE) ───
 
     const onTouchStart = (e: TouchEvent) => {
+      wasTouchDrag.current = false;
       if (e.touches.length === 2) {
         // Pinch-to-zoom: calculamos distancia inicial entre dedos
         lastDist.current = Math.hypot(
@@ -93,13 +107,16 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
       } else if (e.touches.length === 1) {
         // Pan táctil con un dedo
         dragging.current = true;
-        lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const pos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        lastPos.current = pos;
+        touchStartPos.current = pos;
       }
     };
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && lastDist.current !== null) {
         e.preventDefault(); // Evitar scroll de página durante pinch-zoom
+        wasTouchDrag.current = true;
         const d = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -108,11 +125,21 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
         setZoom(z => Math.max(0.1, Math.min(10, z * (d / (lastDist.current as number)))));
         lastDist.current = d;
       } else if (e.touches.length === 1 && dragging.current) {
-        e.preventDefault(); // Evitar scroll de página mientras se arrastra
         const dx = e.touches[0].clientX - lastPos.current.x;
         const dy = e.touches[0].clientY - lastPos.current.y;
         
-        setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+        // Verificar si ya supera el umbral de arrastre
+        const totalDx = e.touches[0].clientX - touchStartPos.current.x;
+        const totalDy = e.touches[0].clientY - touchStartPos.current.y;
+        const totalDist = Math.hypot(totalDx, totalDy);
+        
+        if (totalDist > TOUCH_DRAG_THRESHOLD) {
+          // Es un arrastre: activar pan y marcar para suprimir el click sintético
+          e.preventDefault();
+          wasTouchDrag.current = true;
+          setPan(p => ({ x: p.x + dx, y: p.y + dy }));
+        }
+        
         lastPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       }
     };
@@ -120,6 +147,8 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
     const onTouchEnd = () => {
       dragging.current = false;
       lastDist.current = null;
+      // wasTouchDrag se mantiene hasta el próximo touchstart para que
+      // el onClick sintético que dispara React (unos ms después) pueda ignorarse
     };
 
     // ─── SUSCRIPCIÓN DE EVENTOS ───
@@ -130,7 +159,7 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     
-    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd);
 
@@ -161,5 +190,5 @@ export function useZoomPan(containerRef: React.RefObject<HTMLElement | null>) {
   /** Reduce el zoom en un 20%, con límite inferior de 0.1×. */
   const zoomOut = useCallback(() => setZoom(z => Math.max(0.1, z * 0.8)), []);
 
-  return { zoom, pan, resetZoom, zoomIn, zoomOut };
+  return { zoom, pan, resetZoom, zoomIn, zoomOut, wasTouchDrag };
 }

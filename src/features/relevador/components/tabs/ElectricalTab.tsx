@@ -22,6 +22,8 @@ interface ElectricalTabProps {
   globalMeasurements?: import('../../../../types/index').Measurement[];
   onNewMeasurementModal?: (elementoId: string, moduleType: import('../../../../types/index').ModuleType) => void;
   onStartCircuitForBoca?: (bocaId: string) => void;
+  selectedElement?: import('../../../../types/index').SelectedElement;
+  onSelectElement?: (el: import('../../../../types/index').SelectedElement) => void;
 }
 
 /**
@@ -41,7 +43,9 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
   onCancelConnecting,
   globalMeasurements,
   onNewMeasurementModal,
-  onStartCircuitForBoca
+  onStartCircuitForBoca,
+  selectedElement,
+  onSelectElement
 }) => {
   return (
     <>
@@ -64,6 +68,8 @@ export const ElectricalTab: React.FC<ElectricalTabProps> = React.memo(({
           symbolsLib={symbolsLib}
           circuitos={circuitos}
           tableros={project.tableros}
+          isSelected={selectedElement?.type === 'elemento' && selectedElement.id === el.id}
+          onSelect={() => onSelectElement?.({ type: 'elemento', id: el.id })}
           onChange={(nel) => updateElectrical(ps => ps.map((x, j) => j === i ? nel : x))}
           onRemove={() => updateElectrical(ps => ps.filter((_, j) => j !== i))}
           onEdit={() => onSymbolDialog({ mode: 'edit', existing: el })}

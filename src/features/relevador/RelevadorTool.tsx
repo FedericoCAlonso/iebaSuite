@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCurrentProject } from '../../core/ProjectContext'
 import { useSymbols } from '../../core/SymbolsContext'
@@ -13,7 +13,7 @@ import { useMeasurementForm } from '../measurements/hooks/useMeasurementForm'
 import { useEntityOptions } from '../measurements/hooks/useEntityOptions'
 import { MeasurementForm } from '../measurements/components/MeasurementForm'
 import { MEDICION_CONFIG } from '../measurements/constants'
-import type { Project, EditorTab, ModuleType } from '../../types/index'
+import type { Project, EditorTab, ModuleType, SelectedElement } from '../../types/index'
 
 const PLANTA_TABS = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'maestro', 'cobertura'] as const
 const ELECTRICO_TABS = ['resumen', 'electrico', 'circuitos', 'conexiones'] as const
@@ -41,8 +41,13 @@ export function RelevadorTool() {
   const operador = profile?.displayName || profile?.email || 'Sin operador'
   const { measurements, addMeasurement, updateMeasurement } = useMeasurements(activeProject?.id || '')
   
-  const [measurementModal, setMeasurementModal] = useState<{ elementoId: string; moduleType: ModuleType } | null>(null)
-  
+  const [measurementModal, setMeasurementModal] = useState<{ elementoId?: string; moduleType?: ModuleType } | null>(null)
+  const [selectedElement, setSelectedElement] = useState<SelectedElement>(null)
+
+  useEffect(() => {
+    setSelectedElement(null)
+  }, [activeAmbienteId])
+
   const entityOptions = useEntityOptions()
   const measurementForm = useMeasurementForm({
     projectId: activeProject?.id || '',
@@ -52,7 +57,7 @@ export function RelevadorTool() {
   })
 
   const handleMeasurementSubmit = async (formElement: HTMLFormElement) => {
-    if (!measurementModal) return
+    if (!measurementModal || !measurementModal.moduleType) return
     await measurementForm.submit(measurementModal.moduleType, formElement)
     setMeasurementModal(null)
   }
@@ -138,6 +143,8 @@ export function RelevadorTool() {
                         measurementForm.startNew(moduleType)
                         setMeasurementModal({ elementoId, moduleType })
                       }}
+                      selectedElement={selectedElement}
+                      onSelectElement={setSelectedElement}
                     />
                   </div>
                   <div className="panel-right">
@@ -147,6 +154,8 @@ export function RelevadorTool() {
                       meta={activeProject}
                       symbolsLib={symbolsLib}
                       onCanvasClick={actions.handleCanvasClick}
+                      selectedElement={selectedElement}
+                      onSelectElement={setSelectedElement}
                     />
                   </div>
                 </>
@@ -157,7 +166,7 @@ export function RelevadorTool() {
       </main>
 
       {/* MODAL DE MEDICIÓN EN EL RELEVADOR */}
-      {measurementModal && (
+      {measurementModal?.moduleType && measurementModal?.elementoId && (
         <div className="measurement-form-modal-overlay" style={{ zIndex: 9999 }}>
           <div className="measurement-form-modal-header" style={{ background: 'var(--bg-elevated)', padding: '16px', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)' }}>
             <h3 className="measurement-form-modal-title" style={{ margin: 0 }}>

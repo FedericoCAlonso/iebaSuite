@@ -1,19 +1,26 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // MODULE: components/OpeningCard.tsx
 // ═══════════════════════════════════════════════════════════════════════════
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { NumInput } from '../../../ui/NumInput';
 import { Card } from '../../../ui/Card';
 import { F } from '../../../ui/Field';
-import { type Abertura, type Ambiente, type SubtipoPuerta, type SubtipoVentana } from '../../../types/index';
+import { type Abertura, type Ambiente, type SubtipoPuerta, type SubtipoVentana, type Pared } from '../../../types/index';
+import type { Segmento } from '../../../lib/geometry';
 
 interface OpeningCardProps {
   ab: Abertura;
   index: number;
   wallCount: number;
+  /** Segmentos calculados del ambiente (para referencia relativa) */
+  segs: Segmento[];
+  /** Paredes del ambiente (para construir lista de puntos de referencia) */
+  paredes: Pared[];
   /** Lista de ambientes del proyecto para vincular abertura al ambiente vecino */
   ambientes: Ambiente[];
   activeAmbienteId: string;
+  isSelected?: boolean;
+  onSelect?: () => void;
   onLinkOpening?: (targetAmbId: string, targetOpeningId: string, currentOpeningId: string) => void;
   onChange: (ab: Abertura) => void;
   onRemove: () => void;
@@ -42,17 +49,72 @@ function buildTitle(ab: Abertura): string {
 }
 
 export function OpeningCard({ 
-  ab, index, wallCount, ambientes, activeAmbienteId, onLinkOpening, onChange, onRemove 
+  ab, index, wallCount, segs, paredes, ambientes, activeAmbienteId, isSelected, onSelect, onLinkOpening, onChange, onRemove 
 }: OpeningCardProps) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  
+  React.useEffect(() => {
+    if (isSelected && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isSelected]);
+
   // Ambientes disponibles para vincular (todos excepto el actual)
   const otrosAmbientes = ambientes.filter(a => a.id !== activeAmbienteId);
 
+  // ── Referencia relativa ──
+  // 'abs' = posición absoluta desde inicio del segmento (comportamiento clásico)
+  // Cualquier otro valor = key de un punto de referencia calculado
+  const [refKey, setRefKey] = useState('abs');
+
+  /** Lista de puntos de referencia disponibles para la pared actual */
+  const puntosRef = useMemo(() => {
+    const pts: { key: string; label: string; offsetM: number }[] = [
+      { key: 'abs', label: 'Inicio de pared (por defecto)', offsetM: 0 },
+    ];
+    const seg = segs[ab.pared];
+    if (!seg) return pts;
+
+    // Buscamos ramas que tienen como refParedIdx == ab.pared
+    paredes.forEach((p, i) => {
+      if (p.refParedIdx === ab.pared && p.refDistancia !== undefined) {
+        pts.push({
+          key: `rama_${i}`,
+          label: `Punto de ramificación (Pared ${i + 1})`,
+          offsetM: p.refDistancia,
+        });
+      }
+    });
+
+    // Fin de la pared: leemos la posición relativa del fin desde los segmentos previos en la misma cadena
+    // La posición del fin en metros la tomamos del campo largo de la pared si está disponible
+    const paredDef = paredes[ab.pared];
+    if (paredDef && typeof paredDef.largo === 'number' && paredDef.largo > 0) {
+      pts.push({ key: 'fin', label: 'Fin de esta pared', offsetM: paredDef.largo });
+    }
+
+    return pts;
+  }, [ab.pared, segs, paredes]);
+
+
+  const selectedRef = puntosRef.find(p => p.key === refKey) ?? puntosRef[0];
+
+  /** Posición relativa al punto de referencia elegido */
+  const posRelativa = ab.posicion - selectedRef.offsetM;
+
+  const handlePosRelativaChange = (v: number) => {
+    onChange({ ...ab, posicion: parseFloat((selectedRef.offsetM + v).toFixed(3)) });
+  };
+
   return (
+    <div ref={ref}>
     <Card
+      className={isSelected ? 'card-selected card-selected-flash' : ''}
       idx={`A${index}`} idxColor="var(--blue)"
       title={buildTitle(ab)}
       badge={`${ab.ancho || '?'}m`}
       onRemove={onRemove}
+      onSelect={onSelect}
     >
       <div style={{ marginBottom: '12px', borderBottom: '1px solid var(--border-dim)', paddingBottom: '8px' }}>
          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
@@ -109,10 +171,25 @@ export function OpeningCard({
         </F>
       </div>
 
-      {/* Fila: posición + ancho */}
+      {/* Fila: posición (con referencia relativa) + ancho */}
       <div className="field-row">
-        <F label="Posición (m)">
-          <NumInput value={ab.posicion || 0} onChange={(v: number) => onChange({ ...ab, posicion: v })} />
+        <F label="Desde">
+          <select
+            className="input-base"
+            style={{ fontSize: '11px' }}
+            value={refKey}
+            onChange={e => setRefKey(e.target.value)}
+          >
+            {puntosRef.map(p => (
+              <option key={p.key} value={p.key}>{p.label}</option>
+            ))}
+          </select>
+        </F>
+        <F label="Dist. jamba (m)">
+          <NumInput
+            value={parseFloat(posRelativa.toFixed(3))}
+            onChange={handlePosRelativaChange}
+          />
         </F>
         <F label="Ancho (m)">
           <NumInput value={ab.ancho || 0.9} onChange={(v: number) => onChange({ ...ab, ancho: v })} />
@@ -195,5 +272,6 @@ export function OpeningCard({
         </div>
       )}
     </Card>
+    </div>
   );
 }

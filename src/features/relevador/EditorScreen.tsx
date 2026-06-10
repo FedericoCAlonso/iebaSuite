@@ -22,7 +22,7 @@ import { useEditorState } from '../../hooks/useEditorState';
 // Tipos
 import {
   type Project, type Ambiente, type SymbolDialogData,
-  type EditorTab
+  type EditorTab, type SelectedElement
 } from '../../types/index';
 
 interface EditorScreenProps {
@@ -40,6 +40,8 @@ interface EditorScreenProps {
   onShowNetlist: () => void;
   globalMeasurements?: import('../../types/index').Measurement[];
   onNewMeasurementModal?: (elementoId: string, moduleType: import('../../types/index').ModuleType) => void;
+  selectedElement: SelectedElement;
+  onSelectElement: (el: SelectedElement) => void;
 }
 
 const PLANTA_TABS: EditorTab[] = ['resumen', 'general', 'hoja', 'paredes', 'aberturas', 'escaleras', 'maestro', 'cobertura'];
@@ -60,7 +62,9 @@ export function EditorScreen(props: EditorScreenProps) {
     onSymbolDialog, 
     onShowNetlist,
     globalMeasurements,
-    onNewMeasurementModal
+    onNewMeasurementModal,
+    selectedElement,
+    onSelectElement
   } = props;
 
   const { activeTab, setActiveTab } = useEditorTab();
@@ -145,7 +149,10 @@ export function EditorScreen(props: EditorScreenProps) {
             <button
               key={k}
               className={`panel-tab ${activeTab === k ? 'active' : ''}`}
-              onClick={() => setActiveTab(k)}
+              onClick={() => {
+                onSelectElement(null);
+                setActiveTab(k);
+              }}
             >
               <span style={{ fontSize: 16 }}>{tabConfig[k].icon}</span>
               <span>{tabConfig[k].label}</span>
@@ -153,16 +160,7 @@ export function EditorScreen(props: EditorScreenProps) {
           ))}
         </div>
       }
-      footer={
-        activeTab === 'paredes' && !state.creationFlow.active && (
-          <button 
-            className="btn btn-acc btn-full" 
-            onClick={() => state.startCreation('tramo')}
-          >
-            + Nuevo Tramo
-          </button>
-        )
-      }
+
     >
       <CreationFlowOverlay 
         creationFlow={state.creationFlow}
@@ -195,6 +193,8 @@ export function EditorScreen(props: EditorScreenProps) {
         <WallsTab 
           activeAmbiente={activeAmbiente}
           onUpdateAmbiente={onUpdateAmbiente}
+          selectedElement={selectedElement}
+          onSelectElement={onSelectElement}
         />
       )}
 
@@ -205,6 +205,8 @@ export function EditorScreen(props: EditorScreenProps) {
           activeAmbienteId={activeAmbienteId}
           updateOpenings={state.updateOpenings}
           onLinkOpening={state.linkOpening}
+          selectedElement={selectedElement}
+          onSelectElement={onSelectElement}
         />
       )}
 
@@ -248,6 +250,8 @@ export function EditorScreen(props: EditorScreenProps) {
           globalMeasurements={globalMeasurements}
           onNewMeasurementModal={onNewMeasurementModal}
           onStartCircuitForBoca={handleStartCircuitForBoca}
+          selectedElement={selectedElement}
+          onSelectElement={onSelectElement}
         />
       )}
 

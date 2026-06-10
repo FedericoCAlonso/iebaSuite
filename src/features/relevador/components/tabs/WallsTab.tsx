@@ -7,11 +7,15 @@ import { type Ambiente, type Pared } from '../../../../types/index';
 interface WallsTabProps {
   activeAmbiente: Ambiente;
   onUpdateAmbiente: (updateFn: (amb: Ambiente) => Ambiente) => void;
+  selectedElement?: import('../../../../types/index').SelectedElement;
+  onSelectElement?: (el: import('../../../../types/index').SelectedElement) => void;
 }
 
 export const WallsTab: React.FC<WallsTabProps> = React.memo(({
   activeAmbiente,
   onUpdateAmbiente,
+  selectedElement,
+  onSelectElement
 }) => {
   const [fastMode, setFastMode] = useState(false);
   const [showBranchPicker, setShowBranchPicker] = useState(false);
@@ -101,6 +105,8 @@ export const WallsTab: React.FC<WallsTabProps> = React.memo(({
               pared={w}
               index={i}
               isLast={i === paredes.length - 1}
+              isSelected={selectedElement?.type === 'pared' && selectedElement.idx === i}
+              onSelect={() => onSelectElement?.({ type: 'pared', idx: i })}
               onChange={(nw: Pared) => onUpdateAmbiente(a => {
                 const np = [...(a.paredes || [])];
                 np[i] = nw;

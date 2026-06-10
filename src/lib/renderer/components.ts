@@ -16,8 +16,13 @@ export function renderIrregularidad(out: string[], seg: Segmento, irr: Irregular
   
   const bI = GEO.add(seg.inicio, GEO.scale(seg.dir, posPx));
   const bF = GEO.add(bI, GEO.scale(seg.dir, aPx));
+
+  // Si hay campo lado explícito lo usamos; si no, el signo de profundidad (compatibilidad legacy)
+  const haciaInterior = irr.lado !== undefined
+    ? irr.lado === 'interior'
+    : irr.profundidad > 0;
   
-  if (irr.profundidad > 0) { // Columna hacia el interior del ambiente
+  if (haciaInterior) { // Columna/resalto hacia el interior del ambiente
     const p1 = GEO.add(bI, GEO.scale(seg.v_int, pPx));
     const p2 = GEO.add(bF, GEO.scale(seg.v_int, pPx));
     const pts = [bI, bF, p2, p1].map(p => GEO.add(p, [dx, dy]));
@@ -100,7 +105,7 @@ export function renderAbertura(out: string[], ab: Abertura, segs: Segmento[], es
   const hE2 = GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx + buf));
 
   const ptsH = [hI1, hI2, hE2, hE1].map(p => GEO.add(p, [dx, dy]));
-  out.push(`<polygon points="${ptsAttr(ptsH)}" fill="white" stroke="none"/>`);
+  out.push(`<polygon points="${ptsAttr(ptsH)}" fill="white" stroke="none" data-abertura-id="${ab.id}" cursor="pointer"/>`);
   
   if (onlyHueco) return;
 

@@ -5,6 +5,7 @@
 import type { ElementoElectrico, Circuito } from '../../../types/index';
 import type { DefinicionSimbolo } from '../../../lib/symbols';
 
+import { useRef, useEffect } from 'react';
 import { NumInput } from '../../../ui/NumInput';
 import { Card } from '../../../ui/Card';
 import { F } from '../../../ui/Field';
@@ -21,6 +22,8 @@ interface ElectricalCardProps {
   onEdit: () => void;
   //columnas?: import('../types').ElementoEstructural[];
   activeAmbienteId?: string;
+  isSelected?: boolean;
+  onSelect?: () => void;
   pendingConnection?: { ambienteId: string, elementoId: string } | null;
   onStartConnecting?: (elId: string) => void;
   onFinishConnecting?: (ambId: string, elId: string) => void;
@@ -42,6 +45,8 @@ export function ElectricalCard({
   onEdit,
   //columnas,
   activeAmbienteId,
+  isSelected,
+  onSelect,
   pendingConnection,
   onStartConnecting,
   onFinishConnecting,
@@ -50,6 +55,13 @@ export function ElectricalCard({
   onNewMeasurementModal,
   onStartCircuitForBoca
 }: ElectricalCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isSelected && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isSelected]);
 
   const symDef = symbolsLib.find(s => s.id === el.tipo);
   const label = symDef ? symDef.label : el.tipo;
@@ -85,13 +97,16 @@ export function ElectricalCard({
   const symbolMeasurements = globalMeasurements.filter(m => m.elementoId === el.id);
 
   return (
+    <div ref={cardRef}>
     <Card
+      className={isSelected ? 'card-selected card-selected-flash' : ''}
       idx={`E${index}`}
       idxColor="var(--red)"
       title={label}
       badge={el.referencia || '—'}
       onRemove={onRemove}
       onEdit={onEdit}
+      onSelect={onSelect}
       customHeader={
         pendingConnection ? (
           pendingConnection.elementoId === el.id && pendingConnection.ambienteId === activeAmbienteId ? (
@@ -353,5 +368,6 @@ export function ElectricalCard({
         </div>
       )}
     </Card>
+    </div>
   );
 }

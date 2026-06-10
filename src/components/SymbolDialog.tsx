@@ -84,6 +84,7 @@ export function SymbolDialog({ clickData, onConfirm, onCancel, symbolsLib, escal
       if (usarSnap && clickData.snapSegIdx != null) {
         el.paredIdx = clickData.snapSegIdx;
         el.paredPos = clickData.snapPos || 0;
+        el.lado = clickData.snapLado || 'interior';
         el.x = 0; 
         el.y = 0;
       }

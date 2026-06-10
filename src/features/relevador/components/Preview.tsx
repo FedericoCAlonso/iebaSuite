@@ -13,16 +13,19 @@ import { useEditorTab } from '../../../core/EditorTabContext';
 import { RENDERER } from '../../../lib/renderer';
 import * as GEO from '../../../lib/geometry';
 
-import type { Ambiente, Project, Meta, EditorTab } from '../../../types/index';
+import type { Ambiente, Project, Meta, EditorTab, SelectedElement } from '../../../types/index';
 import type { DefinicionSimbolo } from '../../../lib/symbols';
+import { HighlightOverlay } from './HighlightOverlay';
 
 interface PreviewProps {
   project: Project;
   ambiente: Ambiente;
   meta: Meta;
   symbolsLib: DefinicionSimbolo[];
-  onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string) => void;
+  onCanvasClick: (rawX: number, rawY: number, snapIdx?: number, snapPos?: number, clickedId?: string, snapLado?: 'interior' | 'exterior') => void;
   creationFlow?: { active: boolean; step: string; anchor: any; offsetX: number; offsetY: number };
+  selectedElement?: SelectedElement;
+  onSelectElement?: (el: SelectedElement) => void;
 }
 
 /** Cursor del área del plano según el tab activo */
@@ -55,9 +58,9 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   escaleras: '— Solo lectura —',
 };
 
-export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, creationFlow }: PreviewProps) {
+export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, creationFlow, selectedElement, onSelectElement }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { zoom, pan, resetZoom, zoomIn, zoomOut } = useZoomPan(containerRef);
+  const { zoom, pan, resetZoom, zoomIn, zoomOut, wasTouchDrag } = useZoomPan(containerRef);
   const { activeTab } = useEditorTab();
 
   /**
@@ -97,7 +100,36 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!ambiente || !meta || !containerRef.current) return;
 
-        // Tabs que no interactúan con el plano
+    // Suprimir click sintético que React dispara tras un arrastre táctil
+    if (wasTouchDrag.current) {
+      wasTouchDrag.current = false;
+      return;
+    }
+
+    const target = e.target as HTMLElement;
+
+    // 1. Lógica de selección (independiente de la inserción)
+    if (onSelectElement) {
+      const elecEl = target.closest('[data-elec-id]');
+      const aberturaEl = target.closest('[data-abertura-id]');
+      const paredEl = target.closest('[data-pared-idx]');
+
+      if (elecEl && (activeTab === 'electrico' || activeTab === 'circuitos' || activeTab === 'conexiones')) {
+        onSelectElement({ type: 'elemento', id: elecEl.getAttribute('data-elec-id')! });
+        return;
+      } else if (aberturaEl && activeTab === 'aberturas') {
+        onSelectElement({ type: 'abertura', id: aberturaEl.getAttribute('data-abertura-id')! });
+        return;
+      } else if (paredEl && activeTab === 'paredes') {
+        onSelectElement({ type: 'pared', idx: parseInt(paredEl.getAttribute('data-pared-idx')!, 10) });
+        return;
+      } else if (activeTab === 'paredes' || activeTab === 'aberturas' || activeTab === 'electrico') {
+        // Clic en el vacío: limpiar selección
+        onSelectElement(null);
+      }
+    }
+
+    // Tabs que no interactúan con el plano para inserción
     if (activeTab === 'general' || activeTab === 'hoja' || activeTab === 'paredes') return;
 
     const container = containerRef.current;
@@ -116,7 +148,6 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
     const pyM = GEO.pxToM(py, meta.escala);
 
     // ¿Se hizo click sobre un símbolo eléctrico existente?
-    const target = e.target as HTMLElement;
     const elecEl = target.closest('[data-elec-id]');
     const clickedElecId = elecEl?.getAttribute('data-elec-id') ?? undefined;
 
@@ -129,7 +160,8 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       pyM,
       snap.segIdx !== -1 ? snap.segIdx : undefined,
       GEO.pxToM(snap.pos, meta.escala),
-      clickedElecId
+      clickedElecId,
+      snap.segIdx !== -1 ? snap.lado : undefined
     );
   }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick]);
 
@@ -232,6 +264,14 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
         </div>
 
         <div className="preview-hint">Zoom: {Math.round(zoom * 100)}%</div>
+
+        <HighlightOverlay 
+          selectedElement={selectedElement || null}
+          ambiente={ambiente}
+          meta={meta}
+          zoom={zoom}
+          pan={pan}
+        />
       </div>
     </div>
   );

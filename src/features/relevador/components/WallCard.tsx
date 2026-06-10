@@ -3,6 +3,7 @@
 // Tarjeta de edición de una pared (Pared) dentro de un tramo.
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { useRef, useEffect } from 'react';
 import { NumInput } from '../../../ui/NumInput';
 import { Card } from '../../../ui/Card';
 import { F } from '../../../ui/Field';
@@ -12,6 +13,8 @@ interface WallCardProps {
   pared: Pared;
   index: number;
   isLast: boolean;
+  isSelected?: boolean;
+  onSelect?: () => void;
   onChange: (pared: Pared) => void;
   onRemove: () => void;
 }
@@ -21,8 +24,16 @@ function buildTitle(pared: Pared, index: number): string {
   return `Pared ${index + 1} · ${largo} · ${pared.angulo}°`;
 }
 
-export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardProps) {
+export function WallCard({ pared, index, isLast, isSelected, onSelect, onChange, onRemove }: WallCardProps) {
   const isBranched = pared.refParedIdx !== undefined;
+  
+  const ref = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (isSelected && ref.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [isSelected]);
 
   const handleBranchToggle = (checked: boolean) => {
     if (checked) {
@@ -40,13 +51,16 @@ export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardP
   };
 
   return (
-    <Card
-      idx={`P${index + 1}`}
-      idxColor="var(--green)"
-      title={buildTitle(pared, index)}
-      badge={pared.largo === 'auto' ? 'auto' : `${pared.largo}m`}
-      onRemove={onRemove}
-    >
+    <div ref={ref}>
+      <Card
+        className={isSelected ? 'card-selected card-selected-flash' : ''}
+        idx={`P${index + 1}`}
+        idxColor="var(--green)"
+        title={buildTitle(pared, index)}
+        badge={pared.largo === 'auto' ? 'auto' : `${pared.largo}m`}
+        onRemove={onRemove}
+        onSelect={onSelect}
+      >
       {/* Fila: largo + ángulo */}
       <div className="field-row">
         <F label="Largo (m)">
@@ -167,13 +181,28 @@ export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardP
               </F>
               <F label="Prof (m)">
                 <NumInput
-                  value={irr.profundidad}
+                  value={Math.abs(irr.profundidad)}
                   onChange={(v: number) => {
                     const next = [...pared.irregularidades];
-                    next[i] = { ...irr, profundidad: v };
+                    next[i] = { ...irr, profundidad: Math.abs(v) };
                     onChange({ ...pared, irregularidades: next });
                   }}
                 />
+              </F>
+              <F label="Lado">
+                <select
+                  className="input-base"
+                  style={{ fontSize: '11px' }}
+                  value={irr.lado ?? (irr.profundidad >= 0 ? 'interior' : 'exterior')}
+                  onChange={(e) => {
+                    const next = [...pared.irregularidades];
+                    next[i] = { ...irr, lado: e.target.value as 'interior' | 'exterior' };
+                    onChange({ ...pared, irregularidades: next });
+                  }}
+                >
+                  <option value="interior">Interior</option>
+                  <option value="exterior">Exterior</option>
+                </select>
               </F>
               <button
                 className="btn btn-danger btn-sm"
@@ -191,11 +220,12 @@ export function WallCard({ pared, index, isLast, onChange, onRemove }: WallCardP
         style={{ marginTop: '8px' }}
         onClick={() => onChange({
           ...pared,
-          irregularidades: [...pared.irregularidades, { posicion: 0, ancho: 0.5, profundidad: 0.1 }],
+          irregularidades: [...pared.irregularidades, { posicion: 0, ancho: 0.5, profundidad: 0.1, lado: 'interior' }],
         })}
       >
         + Irregularidad
       </button>
     </Card>
+    </div>
   );
 }

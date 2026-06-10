@@ -8,7 +8,9 @@ interface OpeningTabProps {
   activeAmbiente: Ambiente;
   activeAmbienteId: string;
   updateOpenings: (fn: (aberturas: Abertura[]) => Abertura[]) => void;
-  onLinkOpening: (targetAmbId: string, targetOpeningId: string, currentOpeningId: string) => void;
+  onLinkOpening?: (targetAmbId: string, targetOpeningId: string, currentOpeningId: string) => void;
+  selectedElement?: import('../../../../types/index').SelectedElement;
+  onSelectElement?: (el: import('../../../../types/index').SelectedElement) => void;
 }
 
 /**
@@ -19,8 +21,13 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
   activeAmbiente, 
   activeAmbienteId, 
   updateOpenings,
-  onLinkOpening
+  onLinkOpening,
+  selectedElement,
+  onSelectElement
 }) => {
+  const { allSegs: segs } = RENDERER.buildSegs(activeAmbiente, project);
+  const paredes = activeAmbiente.paredes || [];
+
   return (
     <>
       <div className="info-helper">
@@ -32,10 +39,14 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
           key={ab.id}
           ab={ab}
           index={i}
-          wallCount={RENDERER.buildSegs(activeAmbiente, project).allSegs.length}
+          wallCount={segs.length}
+          segs={segs}
+          paredes={paredes}
           ambientes={project.ambientes}
           activeAmbienteId={activeAmbienteId}
           onLinkOpening={onLinkOpening}
+          isSelected={selectedElement?.type === 'abertura' && selectedElement.id === ab.id}
+          onSelect={() => onSelectElement?.({ type: 'abertura', id: ab.id })}
           onChange={(nab) => updateOpenings(ps => ps.map((x, j) => j === i ? nab : x))}
           onRemove={() => updateOpenings(ps => ps.filter((_, j) => j !== i))}
         />
@@ -45,8 +56,7 @@ export const OpeningTab: React.FC<OpeningTabProps> = React.memo(({
         className="btn btn-acc" 
         style={{ width: '100%', marginTop: '16px' }}
         onClick={() => {
-          const { allSegs } = RENDERER.buildSegs(activeAmbiente, project);
-          if (allSegs.length === 0) {
+          if (segs.length === 0) {
             alert("Primero definí las paredes del ambiente.");
             return;
           }

@@ -83,7 +83,6 @@
 
 .irr-row { display: flex; align-items: flex-end; gap: 4px; }
 
-/* Encabezado de sección dentro de card */
 .sec-hdr {
   font-family: var(--sans);
   font-size: 12px;
@@ -94,4 +93,23 @@
   padding: 8px 0 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
+}
+
+/* Tarjeta seleccionada (bidireccional) */
+.card.card-selected {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px var(--acc);
+}
+.card.card-selected-flash {
+  animation: card-flash 0.5s ease-out forwards;
+}
+@keyframes card-flash {
+  0%   { background: color-mix(in srgb, var(--acc) 25%, var(--bg)); }
+  100% { background: var(--bg); }
+}
+
+/* Overlay de selección en el canvas */
+@keyframes highlight-pulse {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 0.3; }
 }

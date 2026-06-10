@@ -62,7 +62,8 @@ export function useAppActions({
     rawY: number,
     snapSegIdx: number | undefined,
     snapPos: number | undefined,
-    clickedElecId: string | undefined
+    clickedElecId: string | undefined,
+    snapLado?: 'interior' | 'exterior'
   ) => {
     if (!activeAmbiente || !activeProject) return;
 
@@ -98,7 +99,7 @@ export function useAppActions({
     }
 
     if (activeTab === 'electrico') {
-      setSymDialog({ mode: 'create', x: rawX, y: rawY, snapSegIdx, snapPos });
+      setSymDialog({ mode: 'create', x: rawX, y: rawY, snapSegIdx, snapPos, snapLado });
       return;
     }
 
@@ -117,8 +118,9 @@ export function useAppActions({
         posicion: posM,
         ...(lastAb ? { 
           tipo: lastAb.tipo, ancho: lastAb.ancho, 
-          hojas: lastAb.hojas, lado: lastAb.lado, sentido: lastAb.sentido 
-        } : {})
+          hojas: lastAb.hojas, sentido: lastAb.sentido 
+        } : {}),
+        lado: snapLado || 'interior',
       });
 
       updateAmbiente((amb: Ambiente) => ({

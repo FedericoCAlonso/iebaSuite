@@ -22,6 +22,7 @@ export interface Segmento {
   v_int: Point;
   grosorPx: number;
   pared?: Pared;
+  originalIndex?: number;
 }
 
 /** Estructura unificada para la malla global (Master Mesh) */
@@ -109,7 +110,7 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number,
       if (d < 1e-6) return;
       segs.push({
         inicio: pos, fin: [...startPos], dir: norm(cierre), grosorPx,
-        pared, v_ext: [0, 0], v_int: [0, 0]
+        pared, v_ext: [0, 0], v_int: [0, 0], originalIndex: i
       });
       pos = [...startPos];
     } else {
@@ -118,7 +119,7 @@ export function construirEjes(paredes: Pared[], escala: number, sentido: number,
       const fin = add(pos, scale(dir, largoPx));
       segs.push({
         inicio: pos, fin, dir, grosorPx,
-        pared, v_ext: [0, 0], v_int: [0, 0]
+        pared, v_ext: [0, 0], v_int: [0, 0], originalIndex: i
       });
       pos = fin;
     }

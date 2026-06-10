@@ -437,8 +437,10 @@ export interface Irregularidad {
   posicion: number
   /** Ancho de la irregularidad en metros. */
   ancho: number
-  /** Profundidad de la irregularidad en metros (positivo = entrante, negativo = saliente). */
+  /** Profundidad de la irregularidad en metros (siempre positivo). */
   profundidad: number
+  /** Lado de la pared hacia donde se proyecta la irregularidad. */
+  lado?: 'interior' | 'exterior'
 }
 
 // ─── ESCALERA ───

@@ -16,12 +16,13 @@ interface CardProps {
   children: React.ReactNode;
   defaultOpen?: boolean;
   customHeader?: React.ReactNode;
+  className?: string;
 }
 
-export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, onEdit, onSelect, children, defaultOpen=true, customHeader }: CardProps) {
+export function Card({ idx, idxColor='var(--acc)', title, badge, onRemove, onEdit, onSelect, children, defaultOpen=true, customHeader, className='' }: CardProps) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
-    <div className="card">
+    <div className={`card ${className}`}>
       <div className={`card-hdr ${open?'open':''}`} onClick={()=>{
         if (onSelect) onSelect();
         setOpen(o=>!o);

@@ -14,6 +14,41 @@ import { getLayout } from './layout';
 import { renderAbertura, renderCobertura, renderCotas, renderElemento, renderElementoEstructural, renderIrregularidad, renderEscalera } from './components';
 import { renderConexiones } from './connections';
 
+/**
+ * Detecta si un extremo de pared (definido por su eje y grosor) se superpone
+ * geométricamente con la banda de muro de otro segmento.
+ * Se usa para suprimir los capuchones de cierre en ramas que terminan dentro de otra pared.
+ */
+function extremoDentroDeOtroPared(
+  pt: Point,
+  seg: GEO.Segmento,
+  allSegs: GEO.Segmento[],
+  tolerance = 2.0
+): boolean {
+  for (const other of allSegs) {
+    if (other === seg) continue;
+    const v = GEO.sub(other.fin, other.inicio);
+    const vLen = GEO.len(v);
+    if (vLen < 1e-6) continue;
+    const vN = GEO.scale(v, 1 / vLen);
+    const w = GEO.sub(pt, other.inicio);
+    const t = GEO.dot(w, vN);
+    // El punto debe proyectar dentro del segmento (con tolerancia)
+    if (t < -tolerance || t > vLen + tolerance) continue;
+    const proj = GEO.add(other.inicio, GEO.scale(vN, t));
+    // Distancia al eje del otro segmento
+    const distEje = GEO.dist(pt, proj);
+    // Distancia al extremo exterior del otro segmento
+    const caraExt = GEO.add(proj, GEO.scale(other.v_ext, other.grosorPx));
+    const distExt = GEO.dist(pt, caraExt);
+    // El punto está dentro de la banda de muro si su dist al eje < grosor + tolerancia
+    if (distEje < other.grosorPx + tolerance && distExt < other.grosorPx + tolerance) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project): string {
   const { chains, allSegs: segs } = buildSegs(ambiente, meta);
   const { dx, dy, pageW, pageH, margin } = getLayout(ambiente, meta);
@@ -47,12 +82,30 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
     for (let i = 0; i < intT.length - 1; i++) out.push(line(intT[i], intT[i+1], C.INT, C.INT_W));
 
     if (!c.cerrado && c.segs.length > 0) {
-      const isBranch = c.segs[0].pared?.refParedIdx !== undefined;
-      if (!isBranch) {
+      const firstSeg = c.segs[0];
+      const lastSeg = c.segs[c.segs.length - 1];
+      const isBranch = firstSeg.pared?.refParedIdx !== undefined;
+
+      // Capuchón de inicio: solo si no es rama Y el inicio no está dentro de otra pared
+      if (!isBranch && !extremoDentroDeOtroPared(firstSeg.inicio, firstSeg, segs)) {
         out.push(line(extT[0], intT[0], C.EXT, C.EXT_W));
       }
-      out.push(line(extT[extT.length - 1], intT[intT.length - 1], C.EXT, C.EXT_W));
+
+      // Capuchón de fin: solo si el extremo final no está dentro de otra pared
+      if (!extremoDentroDeOtroPared(lastSeg.fin, lastSeg, segs)) {
+        out.push(line(extT[extT.length - 1], intT[intT.length - 1], C.EXT, C.EXT_W));
+      }
     }
+
+    // Hitbox invisible por cada segmento para poder seleccionarlo individualmente
+    c.segs.forEach(s => {
+      if (s.originalIndex !== undefined) {
+        // Línea gruesa invisible centrada en el segmento
+        const p1 = GEO.add(s.inicio, [dx, dy]);
+        const p2 = GEO.add(s.fin, [dx, dy]);
+        out.push(`<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="transparent" stroke-width="${s.grosorPx + 10}" cursor="pointer" data-pared-idx="${s.originalIndex}" />`);
+      }
+    });
   });
 
   // 3. Irregularidades
