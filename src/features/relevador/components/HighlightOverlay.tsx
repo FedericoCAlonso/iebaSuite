@@ -33,7 +33,7 @@ export const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
       if (seg) {
         const p1 = GEO.add(seg.inicio, [dx, dy]);
         const p2 = GEO.add(seg.fin, [dx, dy]);
-        out.push(`<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="var(--acc)" stroke-opacity="0.4" stroke-width="${seg.grosorPx + 6}" stroke-linecap="round" style="animation: highlight-pulse 1.5s infinite" />`);
+        out.push(`<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="var(--acc)" stroke-opacity="0.8" stroke-width="${seg.grosorPx + 14}" stroke-linecap="round" style="animation: highlight-pulse 1.5s infinite" />`);
       }
     } else if (selectedElement.type === 'abertura') {
       const ab = ambiente.aberturas.find(a => a.id === selectedElement.id);
@@ -89,13 +89,11 @@ export const HighlightOverlay: React.FC<HighlightOverlayProps> = ({
           position: 'absolute',
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
           transformOrigin: '0 0',
-          width: `${pageW}mm`,
-          height: `${pageH}mm`
         }}
       >
         <svg 
-          width="100%" 
-          height="100%" 
+          width={`${pageW}mm`}
+          height={`${pageH}mm`}
           viewBox={`0 0 ${pageW} ${pageH}`} 
           preserveAspectRatio="xMidYMid meet"
           dangerouslySetInnerHTML={{ __html: overlaySvg }} 

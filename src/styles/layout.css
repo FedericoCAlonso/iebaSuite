@@ -204,7 +204,7 @@ main.main-content {
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--text-h);
+  background: var(--acc);
   color: #fff;
   font-family: var(--sans);
   font-size: 14px;

@@ -8,7 +8,7 @@ import type { Ambiente, Meta, Project } from '../../types/index';
 import type { DefinicionSimbolo } from '../symbols';
 import type { LayoutConfig } from '../layout';
 import { C } from './constants';
-import { ptsAttr, txt, line } from './utils';
+import { ptsAttr, txt, line, getElementPos } from './utils';
 import { buildSegs } from '../geometry';
 import { getLayout } from './layout';
 import { renderAbertura, renderCobertura, renderCotas, renderElemento, renderElementoEstructural, renderIrregularidad, renderEscalera } from './components';
@@ -49,7 +49,7 @@ function extremoDentroDeOtroPared(
   return false;
 }
 
-export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project): string {
+export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSimbolo[], exportMode = false, project?: Project, selectedElement?: import('../../types/index').SelectedElement | null): string {
   const { chains, allSegs: segs } = buildSegs(ambiente, meta);
   const { dx, dy, pageW, pageH, margin } = getLayout(ambiente, meta);
   const conf = ambiente.configHoja || { formato: 'A4', orientacion: 'horizontal' };
@@ -183,7 +183,45 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
 
   const widthAttr = exportMode ? `${pageW}mm` : `${pageW}`;
   const heightAttr = exportMode ? `${pageH}mm` : `${pageH}`;
-  
+
+  if (selectedElement) {
+    if (selectedElement.type === 'pared') {
+      const seg = segs.find(s => s.originalIndex === selectedElement.idx);
+      if (seg) {
+        const p1 = GEO.add(seg.inicio, [dx, dy]);
+        const p2 = GEO.add(seg.fin, [dx, dy]);
+        out.push(`<line x1="${p1[0]}" y1="${p1[1]}" x2="${p2[0]}" y2="${p2[1]}" stroke="var(--acc)" stroke-opacity="0.8" stroke-width="${seg.grosorPx + 14}" stroke-linecap="round" style="animation: highlight-pulse 1.5s infinite" />`);
+      }
+    } else if (selectedElement.type === 'abertura') {
+      const ab = ambiente.aberturas?.find(a => a.id === selectedElement.id);
+      if (ab) {
+        const seg = segs.find(s => s.originalIndex === ab.pared);
+        if (seg) {
+          const posPx = GEO.mToPx(ab.posicion, meta.escala);
+          const aPx = GEO.mToPx(ab.ancho, meta.escala);
+          const bI = GEO.add(seg.inicio, GEO.scale(seg.dir, posPx));
+          const bF = GEO.add(bI, GEO.scale(seg.dir, aPx));
+          
+          const buf = 2; // Un poco más grande para que se note
+          const hI1 = GEO.add(bI, GEO.scale(seg.v_int, buf));
+          const hI2 = GEO.add(bF, GEO.scale(seg.v_int, buf));
+          const hE1 = GEO.add(bI, GEO.scale(seg.v_ext, seg.grosorPx + buf));
+          const hE2 = GEO.add(bF, GEO.scale(seg.v_ext, seg.grosorPx + buf));
+
+          const ptsAttr = (pts: GEO.Point[]) => pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+          const pts = [hI1, hI2, hE2, hE1].map(p => GEO.add(p, [dx, dy]));
+          out.push(`<polygon points="${ptsAttr(pts as GEO.Point[])}" fill="none" stroke="var(--acc)" stroke-width="3" style="animation: highlight-pulse 1.5s infinite" />`);
+        }
+      }
+    } else if (selectedElement.type === 'elemento') {
+      const el = ambiente.elementos?.find(e => e.id === selectedElement.id);
+      if (el) {
+        const pos = getElementPos(el, segs, meta.escala, dx, dy);
+        out.push(`<circle cx="${pos[0].toFixed(1)}" cy="${pos[1].toFixed(1)}" r="14" fill="var(--acc)" fill-opacity="0.2" stroke="var(--acc)" stroke-width="2" style="animation: highlight-pulse 1s infinite" />`);
+      }
+    }
+  }
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}">
     <defs>
       <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">

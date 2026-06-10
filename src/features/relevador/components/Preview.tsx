@@ -6,7 +6,7 @@
 //   - otras tabs   → plano de solo lectura (cursor default)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { useZoomPan } from '../../../hooks/useZoomPan';
 import { useEditorTab } from '../../../core/EditorTabContext';
 
@@ -15,7 +15,6 @@ import * as GEO from '../../../lib/geometry';
 
 import type { Ambiente, Project, Meta, EditorTab, SelectedElement } from '../../../types/index';
 import type { DefinicionSimbolo } from '../../../lib/symbols';
-import { HighlightOverlay } from './HighlightOverlay';
 
 interface PreviewProps {
   project: Project;
@@ -63,6 +62,18 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
   const { zoom, pan, resetZoom, zoomIn, zoomOut, wasTouchDrag } = useZoomPan(containerRef);
   const { activeTab } = useEditorTab();
 
+  const [toastVisible, setToastVisible] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'electrico' || activeTab === 'aberturas') {
+      setToastVisible(true);
+      const t = setTimeout(() => setToastVisible(false), 3500);
+      return () => clearTimeout(t);
+    } else {
+      setToastVisible(false);
+    }
+  }, [activeTab]);
+
   /**
    * Genera el string SVG. Memorizado para evitar re-renderizados pesados.
    */
@@ -72,11 +83,11 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       if (activeTab === 'maestro') {
         return RENDERER.renderMaster(project, symbolsLib);
       }
-      return RENDERER.render(ambiente, meta, symbolsLib, false, project);
+      return RENDERER.render(ambiente, meta, symbolsLib, false, project, selectedElement);
     } catch (err) {
       return '__ERROR__:' + (err as Error).stack;
     }
-  }, [ambiente, meta, symbolsLib, activeTab, project]);
+  }, [ambiente, meta, symbolsLib, activeTab, project, selectedElement]);
 
   if (svgContent.startsWith('__ERROR__:')) {
     return (
@@ -251,10 +262,12 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
         )}
 
         {/* Toast Helper */}
-        <div className={`toolbar-help ${activeTab !== 'general' && activeTab !== 'hoja' && activeTab !== 'paredes' ? 'active' : ''}`}>
-          {activeTab === 'electrico' ? '⚡ Tocá el plano para insertar' : 
-           activeTab === 'aberturas' ? '🚪 Tocá una pared' : ''}
-        </div>
+        {toastVisible && (
+          <div className="preview-mode-badge" style={{ animation: 'fadeDown 0.3s cubic-bezier(0.1, 0.9, 0.2, 1)' }}>
+            {activeTab === 'electrico' ? '⚡ Tocá el plano para insertar' : 
+             activeTab === 'aberturas' ? '🚪 Tocá una pared' : ''}
+          </div>
+        )}
 
         {/* Controles de Zoom */}
         <div className="zoom-controls" onClick={(e) => e.stopPropagation()}>
@@ -265,13 +278,6 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
 
         <div className="preview-hint">Zoom: {Math.round(zoom * 100)}%</div>
 
-        <HighlightOverlay 
-          selectedElement={selectedElement || null}
-          ambiente={ambiente}
-          meta={meta}
-          zoom={zoom}
-          pan={pan}
-        />
       </div>
     </div>
   );
