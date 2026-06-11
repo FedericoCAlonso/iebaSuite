@@ -135,6 +135,31 @@ main.main-content {
 }
 .zoom-btn:hover { background: var(--bg3); border-color: var(--acc); }
 
+/* Toggle táctil Mover / Seleccionar */
+.touch-mode-toggle {
+  display: flex; gap: 2px;
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: calc(var(--r) + 2px); padding: 2px; flex-shrink: 0;
+}
+.touch-mode-btn {
+  width: 28px; height: 24px; border: none; background: transparent;
+  border-radius: var(--r); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text3); transition: all .15s;
+}
+.touch-mode-btn.active {
+  background: var(--acc); color: #000;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.touch-mode-btn:hover:not(.active) { background: var(--bg2); color: var(--text); }
+
+/* En mobile: zoom buttons más grandes para el dedo */
+@media (max-width: 768px) {
+  .zoom-btn { width: 40px; height: 40px; font-size: 20px; }
+  .zoom-controls { gap: 6px; bottom: 14px; left: 14px; }
+  .touch-mode-btn { width: 36px; height: 32px; font-size: 18px; }
+}
+
 /* ── Statusbar ── */
 .statusbar {
   display: flex; align-items: center; gap: 14px;

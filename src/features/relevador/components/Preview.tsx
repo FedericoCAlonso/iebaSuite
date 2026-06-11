@@ -48,8 +48,8 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   general:   '— Solo lectura —',
   hoja:      '— Solo lectura —',
   paredes:   '— Solo lectura —',
-  aberturas: 'Tocá una pared para agregar abertura',
-  electrico: 'Click: insertar · Alt+Drag: pan · Scroll: zoom',
+  aberturas: 'Tap: abertura · Arrastre: mover · Pellizco: zoom',
+  electrico: 'Tap: insertar · Arrastre: mover · Pellizco: zoom',
   circuitos: '— Solo lectura —',
   conexiones:'— Solo lectura —',
   maestro:   '— Plano Maestro —',
@@ -57,12 +57,39 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   escaleras: '— Solo lectura —',
 };
 
+/** Tabs que permiten interacción táctil de selección/inserción */
+const INTERACTIVE_TABS: EditorTab[] = ['electrico', 'aberturas', 'paredes', 'circuitos', 'conexiones'];
+
+/**
+ * Busca el elemento SVG más cercano con el atributo dado,
+ * dentro de un radio en píxeles alrededor del punto (cx, cy).
+ * Usa elementsFromPoint en una cuadrícula de puntos para simular hit-testing expandido.
+ */
+function findNearestSVGAttr(cx: number, cy: number, attr: string, radius = 20): string | null {
+  const step = 6;
+  for (let dy = -radius; dy <= radius; dy += step) {
+    for (let dx = -radius; dx <= radius; dx += step) {
+      if (dx * dx + dy * dy > radius * radius) continue;
+      const els = document.elementsFromPoint(cx + dx, cy + dy);
+      for (const el of els) {
+        const found = (el as HTMLElement).closest?.(`[${attr}]`);
+        if (found) {
+          return found.getAttribute(attr);
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, creationFlow, selectedElement, onSelectElement }: PreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut, wasTouchDrag } = useZoomPan(containerRef);
   const { activeTab } = useEditorTab();
 
   const [toastVisible, setToastVisible] = useState(false);
+
+  const isInteractive = INTERACTIVE_TABS.includes(activeTab);
 
   useEffect(() => {
     if (activeTab === 'electrico' || activeTab === 'aberturas') {
@@ -107,6 +134,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
    * Maneja el clic en el área del plano.
    * Convierte coordenadas de pantalla → coordenadas del plano técnico
    * y delega al handler unificado de App con toda la info necesaria.
+   * En dispositivos táctiles, usa hit-testing expandido para elementos pequeños.
    */
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (!ambiente || !meta || !containerRef.current) return;
@@ -118,21 +146,34 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
     }
 
     const target = e.target as HTMLElement;
+    const isTouchOrigin = (e.nativeEvent as PointerEvent).pointerType === 'touch';
 
     // 1. Lógica de selección (independiente de la inserción)
     if (onSelectElement) {
-      const elecEl = target.closest('[data-elec-id]');
-      const aberturaEl = target.closest('[data-abertura-id]');
-      const paredEl = target.closest('[data-pared-idx]');
+      let elecId: string | null = null;
+      let aberturaId: string | null = null;
+      let paredIdx: string | null = null;
 
-      if (elecEl && (activeTab === 'electrico' || activeTab === 'circuitos' || activeTab === 'conexiones')) {
-        onSelectElement({ type: 'elemento', id: elecEl.getAttribute('data-elec-id')! });
+      if (isTouchOrigin) {
+        // Touch: hit-testing expandido buscando en radio de 22px para dedos
+        elecId = findNearestSVGAttr(e.clientX, e.clientY, 'data-elec-id', 22);
+        aberturaId = findNearestSVGAttr(e.clientX, e.clientY, 'data-abertura-id', 22);
+        paredIdx = findNearestSVGAttr(e.clientX, e.clientY, 'data-pared-idx', 22);
+      } else {
+        // Mouse: selección exacta (comportamiento original)
+        elecId = (target.closest('[data-elec-id]') as HTMLElement)?.getAttribute('data-elec-id') ?? null;
+        aberturaId = (target.closest('[data-abertura-id]') as HTMLElement)?.getAttribute('data-abertura-id') ?? null;
+        paredIdx = (target.closest('[data-pared-idx]') as HTMLElement)?.getAttribute('data-pared-idx') ?? null;
+      }
+
+      if (elecId && (activeTab === 'electrico' || activeTab === 'circuitos' || activeTab === 'conexiones')) {
+        onSelectElement({ type: 'elemento', id: elecId });
         return;
-      } else if (aberturaEl && activeTab === 'aberturas') {
-        onSelectElement({ type: 'abertura', id: aberturaEl.getAttribute('data-abertura-id')! });
+      } else if (aberturaId && activeTab === 'aberturas') {
+        onSelectElement({ type: 'abertura', id: aberturaId });
         return;
-      } else if (paredEl && activeTab === 'paredes') {
-        onSelectElement({ type: 'pared', idx: parseInt(paredEl.getAttribute('data-pared-idx')!, 10) });
+      } else if (paredIdx && activeTab === 'paredes') {
+        onSelectElement({ type: 'pared', idx: parseInt(paredIdx, 10) });
         return;
       } else if (activeTab === 'paredes' || activeTab === 'aberturas' || activeTab === 'electrico') {
         // Clic en el vacío: limpiar selección
@@ -158,9 +199,13 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
     const pxM = GEO.pxToM(px, meta.escala);
     const pyM = GEO.pxToM(py, meta.escala);
 
-    // ¿Se hizo click sobre un símbolo eléctrico existente?
-    const elecEl = target.closest('[data-elec-id]');
-    const clickedElecId = elecEl?.getAttribute('data-elec-id') ?? undefined;
+    // ¿Se hizo click sobre un símbolo eléctrico existente? (hit-testing expandido en touch)
+    let clickedElecId: string | undefined;
+    if (isTouchOrigin) {
+      clickedElecId = findNearestSVGAttr(e.clientX, e.clientY, 'data-elec-id', 22) ?? undefined;
+    } else {
+      clickedElecId = (target.closest('[data-elec-id]') as HTMLElement)?.getAttribute('data-elec-id') ?? undefined;
+    }
 
     // Snap a la pared más cercana (útil tanto para eléctrico como aberturas)
     const { allSegs: segs } = RENDERER.buildSegs(ambiente, meta);
@@ -174,7 +219,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       clickedElecId,
       snap.segIdx !== -1 ? snap.lado : undefined
     );
-  }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick]);
+  }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick, onSelectElement, wasTouchDrag]);
 
   /** Información técnica de la geometría actual */
   const status = useMemo(() => {
@@ -186,8 +231,6 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       cerrado: allClosed 
     };
   }, [ambiente, meta]);
-
-  const isInteractive = activeTab === 'electrico' || activeTab === 'aberturas';
 
   return (
     <div className="panel-right">
@@ -242,7 +285,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
           </div>
         )}
 
-        {/* CORRECCIÓN 1: Marcador Paso B */}
+        {/* Marcador Paso B de creación */}
         {creationFlow?.active && creationFlow.step === 'B' && creationFlow.anchor && (
           <div 
             style={{

@@ -186,6 +186,10 @@ main.main-content {
   cursor: crosshair;
   user-select: none;
 }
+.preview-area,
+.preview-area * {
+  touch-action: none;
+}
 .preview-area svg {
   position: absolute;
   transform-origin: 0 0;

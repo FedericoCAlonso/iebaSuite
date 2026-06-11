@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // MODULE: features/measurements/components/fields/CommonFields.tsx
 // Campos comunes a todos los tipos de medición + selector de entidad.
+// ORDEN MOBILE-FIRST: Resultado → Ubicación/Entidad → Campos admin
 // ═══════════════════════════════════════════════════════════════════════════
 
 import React from 'react';
@@ -8,28 +9,31 @@ import { F } from '../../../../ui/Field';
 import type { Measurement, ResultadoMedicion } from '../../../../types/index';
 import type { EntityOption } from '../../hooks/useEntityOptions';
 
-interface CommonFieldsProps {
+interface ResultLocationFieldsProps {
   editingMeasurement: Measurement | null;
   initialData?: Partial<Measurement>;
-  instrumentos?: { id: string; marca: string; modelo: string; nroSerie: string }[];
   entityOptions?: EntityOption[];
   entityLabel?: string;
   showEntitySelect?: boolean;
-  /** name del input para la entidad vinculada (elementoId|circuitoId|diferencialId|tableroId) */
   entityName?: string;
 }
 
-const RESULTADO_OPTIONS: { value: ResultadoMedicion; label: string }[] = [
-  { value: 'aprobado', label: 'Aprobado' },
-  { value: 'observado', label: 'Observado' },
-  { value: 'rechazado', label: 'Rechazado' },
-  { value: 'no_aplica', label: 'No aplica' },
+interface AdminFieldsProps {
+  editingMeasurement: Measurement | null;
+  initialData?: Partial<Measurement>;
+  instrumentos?: { id: string; marca: string; modelo: string; nroSerie: string }[];
+}
+
+const RESULTADO_OPTIONS: { value: ResultadoMedicion; label: string; emoji: string }[] = [
+  { value: 'aprobado',  label: 'Aprobado',  emoji: '✓' },
+  { value: 'observado', label: 'Observado', emoji: '!' },
+  { value: 'rechazado', label: 'Rechazado', emoji: '✕' },
+  { value: 'no_aplica', label: 'N/A',       emoji: '—' },
 ];
 
-export const CommonFields: React.FC<CommonFieldsProps> = ({
+export const ResultLocationFields: React.FC<ResultLocationFieldsProps> = ({
   editingMeasurement,
   initialData,
-  instrumentos = [],
   entityOptions = [],
   entityLabel = 'Entidad vinculada',
   showEntitySelect = false,
@@ -37,8 +41,6 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
 }) => {
   const defaultResultado = editingMeasurement?.resultado || initialData?.resultado || 'aprobado';
   const defaultUbicacion = editingMeasurement?.ubicacion || initialData?.ubicacion || '';
-  const defaultObs = editingMeasurement?.observaciones || initialData?.observaciones || '';
-  const defaultInst = editingMeasurement?.instrumentoId || initialData?.instrumentoId || '';
   const defaultEntity = editingMeasurement?.elementoId
     || editingMeasurement?.circuitoId
     || editingMeasurement?.diferencialId
@@ -48,15 +50,31 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
     || initialData?.diferencialId
     || initialData?.tableroId
     || '';
-  const defaultError = editingMeasurement?.errorMedicion || initialData?.errorMedicion || '';
-  
-  // Convertir timestamp a YYYY-MM-DDThh:mm para el input datetime-local
-  const defaultFechaISO = editingMeasurement?.fecha 
-    ? new Date(editingMeasurement.fecha - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   return (
     <>
+      {/* ── 1. RESULTADO: primero y prominente ── */}
+      <div className="measurement-card__field mf-span-full">
+        <div className="measurement-card__label" style={{ marginBottom: 6 }}>Resultado *</div>
+        <div className="semaphore-group">
+          {RESULTADO_OPTIONS.map(r => (
+            <label key={r.value} className="semaphore-label">
+              <input type="radio" name="resultado" value={r.value} defaultChecked={defaultResultado === r.value} />
+              <div className="semaphore-btn" data-val={r.value}>
+                <span className="semaphore-emoji">{r.emoji}</span>
+                <span>{r.label}</span>
+              </div>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* ── 2. UBICACIÓN ── */}
+      <F label="Ubicación / Punto de medición *">
+        <input name="ubicacion" defaultValue={defaultUbicacion} required placeholder="Ej: Jabalina patio trasero" />
+      </F>
+
+      {/* ── 3. ENTIDAD VINCULADA (si aplica) ── */}
       {showEntitySelect && (
         <F label={entityLabel}>
           <select name={entityName} defaultValue={defaultEntity}>
@@ -67,27 +85,32 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
           </select>
         </F>
       )}
+    </>
+  );
+};
 
-      <F label="Ubicación / Punto de medición">
-        <input name="ubicacion" defaultValue={defaultUbicacion} required placeholder="Ej: Jabalina patio trasero" />
-      </F>
+export const AdminFields: React.FC<AdminFieldsProps> = ({
+  editingMeasurement,
+  initialData,
+  instrumentos = [],
+}) => {
+  const defaultObs = editingMeasurement?.observaciones || initialData?.observaciones || '';
+  const defaultInst = editingMeasurement?.instrumentoId || initialData?.instrumentoId || '';
+  const defaultError = editingMeasurement?.errorMedicion || initialData?.errorMedicion || '';
 
-      <F label="Fecha y Hora de Medición">
+  // Convertir timestamp a YYYY-MM-DDThh:mm para el input datetime-local
+  const defaultFechaISO = editingMeasurement?.fecha
+    ? new Date(editingMeasurement.fecha - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+    : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  return (
+    <>
+      {/* ── 4. FECHA Y HORA ── */}
+      <F label="Fecha y Hora de Medición *">
         <input type="datetime-local" name="fechaISO" defaultValue={defaultFechaISO} required />
       </F>
 
-      <div className="measurement-card__field" style={{ gridColumn: '1 / -1' }}>
-        <div className="measurement-card__label" style={{ marginBottom: 4 }}>Resultado</div>
-        <div className="semaphore-group">
-          {RESULTADO_OPTIONS.map(r => (
-            <label key={r.value} className="semaphore-label">
-              <input type="radio" name="resultado" value={r.value} defaultChecked={defaultResultado === r.value} />
-              <div className="semaphore-btn" data-val={r.value}>{r.label}</div>
-            </label>
-          ))}
-        </div>
-      </div>
-
+      {/* ── 5. CAMPOS ADMIN (instrumento, error, observaciones) ── */}
       <F label="Instrumento usado">
         <select name="instrumentoId" defaultValue={defaultInst}>
           <option value="">Sin instrumento registrado</option>
@@ -98,18 +121,20 @@ export const CommonFields: React.FC<CommonFieldsProps> = ({
       </F>
 
       <F label="Error de medición">
-        <input name="errorMedicion" defaultValue={defaultError} placeholder="Ej: ± 2% + 3d o ±0.5Ω (opcional)" />
+        <input name="errorMedicion" defaultValue={defaultError} placeholder="Ej: ± 2% + 3d (opcional)" />
       </F>
 
-      <F label="Observaciones">
-        <textarea
-          name="observaciones"
-          rows={2}
-          style={{ width: '100%' }}
-          defaultValue={defaultObs}
-          placeholder="Notas adicionales, condiciones ambientales, etc."
-        />
-      </F>
+      <div style={{ gridColumn: '1 / -1' }}>
+        <F label="Observaciones">
+          <textarea
+            name="observaciones"
+            rows={2}
+            style={{ width: '100%' }}
+            defaultValue={defaultObs}
+            placeholder="Notas adicionales, condiciones ambientales, etc."
+          />
+        </F>
+      </div>
     </>
   );
 };

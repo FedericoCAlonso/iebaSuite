@@ -13,10 +13,12 @@ import type { Measurement, ModuleType } from '../../types/index';
 import { MeasurementTabs } from './components/MeasurementTabs';
 import { MeasurementList } from './components/MeasurementList';
 import { MeasurementForm } from './components/MeasurementForm';
+import { ExportButton } from './components/ExportButton';
 import { useMeasurementForm } from './hooks/useMeasurementForm';
 import { useEntityOptions } from './hooks/useEntityOptions';
 import { MEDICION_CONFIG } from './constants';;
 import './MeasurementScreen.css';
+
 
 export function MeasurementScreen() {
   const navigate = useNavigate();
@@ -110,6 +112,11 @@ export function MeasurementScreen() {
           </span>
         </div>
         <div className="screen-measurements__header-right">
+          <ExportButton
+            measurements={measurements}
+            activeType={activeType}
+            projectName={activeProject.nombre}
+          />
           <button className="btn btn-acc" onClick={handleNew} disabled={showForm && !editingMeasurement}>
             + Nueva medición
           </button>
@@ -118,37 +125,50 @@ export function MeasurementScreen() {
 
       <MeasurementTabs activeType={activeType} onChange={handleTypeChange} measurements={measurements} />
 
-      {showForm && (
-        <div className="measurement-form-modal-overlay">
-          <div className="measurement-form-modal-header">
-            <h3 className="measurement-form-modal-title">
-              {editingMeasurement ? 'Editar' : 'Nueva'} medición — {cfg.label}
-            </h3>
-            <button className="btn btn-ghost btn-sm" onClick={handleCancel}>✕</button>
+      <div className={`screen-measurements__body-container ${showForm ? 'has-form' : ''}`}>
+        {showForm && (
+          <div className="measurement-form-modal-overlay">
+            <div className="measurement-form-modal-header">
+              <h3 className="measurement-form-modal-title">
+                {editingMeasurement ? 'Editar' : 'Nueva'} medición — {cfg.label}
+              </h3>
+              <button className="btn btn-ghost btn-sm" onClick={handleCancel}>✕</button>
+            </div>
+            <MeasurementForm
+              type={activeType}
+              editingMeasurement={editingMeasurement}
+              instrumentos={profile?.instrumentos}
+              entityOptions={entityOptions}
+              isSubmitting={form.isSubmitting}
+              onSubmit={handleFormSubmit}
+              onCancel={handleCancel}
+            />
           </div>
-          <MeasurementForm
-            type={activeType}
-            editingMeasurement={editingMeasurement}
-            instrumentos={profile?.instrumentos}
-            entityOptions={entityOptions}
-            isSubmitting={form.isSubmitting}
-            onSubmit={handleFormSubmit}
-            onCancel={handleCancel}
+        )}
+
+        {/* Acceso a exportación en mobile (barra sobre el FAB) */}
+        <div className="mobile-export-bar">
+          <ExportButton
+            measurements={measurements}
+            activeType={activeType}
+            projectName={activeProject.nombre}
           />
         </div>
-      )}
 
-      <button className="fab-new-measurement" onClick={handleNew} title="Nueva medición">
-        +
-      </button>
+        <button className="fab-new-measurement" onClick={handleNew} title="Nueva medición">
+          +
+        </button>
 
-      <MeasurementList
-        measurements={filtered}
-        activeTypeLabel={cfg.label}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+        <div className="screen-measurements__list-wrapper">
+          <MeasurementList
+            measurements={filtered}
+            activeTypeLabel={cfg.label}
+            isLoading={isLoading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </div>
+      </div>
     </div>
   );
 }
