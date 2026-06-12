@@ -51,7 +51,7 @@ const HINT_BY_TAB: Record<EditorTab, string> = {
   aberturas: 'Tap: abertura · Arrastre: mover · Pellizco: zoom',
   electrico: 'Tap: insertar · Arrastre: mover · Pellizco: zoom',
   circuitos: '— Solo lectura —',
-  conexiones:'— Solo lectura —',
+  conexiones:'Tap: conectar bocas · Arrastre: mover · Pellizco: zoom',
   maestro:   '— Plano Maestro —',
   cobertura: '— Solo lectura —',
   escaleras: '— Solo lectura —',
@@ -147,11 +147,14 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
     }
 
     let target = e.target as HTMLElement;
+    const isTouchClick = (e.nativeEvent as PointerEvent).pointerType === 'touch' || 
+                         target.classList.contains('touch-overlay') || 
+                         isTouchDevice;
+
     if (target.classList.contains('touch-overlay')) {
       const elements = document.elementsFromPoint(e.clientX, e.clientY);
       target = (elements.find(el => el !== target) || target) as HTMLElement;
     }
-    const isTouchOrigin = (e.nativeEvent as PointerEvent).pointerType === 'touch';
 
     // 1. Lógica de selección (independiente de la inserción)
     if (onSelectElement) {
@@ -159,7 +162,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       let aberturaId: string | null = null;
       let paredIdx: string | null = null;
 
-      if (isTouchOrigin) {
+      if (isTouchClick) {
         // Touch: hit-testing expandido buscando en radio de 22px para dedos
         elecId = findNearestSVGAttr(e.clientX, e.clientY, 'data-elec-id', 22);
         aberturaId = findNearestSVGAttr(e.clientX, e.clientY, 'data-abertura-id', 22);
@@ -173,7 +176,10 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
 
       if (elecId && (activeTab === 'electrico' || activeTab === 'circuitos' || activeTab === 'conexiones')) {
         onSelectElement({ type: 'elemento', id: elecId });
-        return;
+        // En conexiones no retornamos temprano porque necesitamos gatillar el flujo de conexión en handleCanvasClick
+        if (activeTab !== 'conexiones') {
+          return;
+        }
       } else if (aberturaId && activeTab === 'aberturas') {
         onSelectElement({ type: 'abertura', id: aberturaId });
         return;
@@ -206,7 +212,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
 
     // ¿Se hizo click sobre un símbolo eléctrico existente? (hit-testing expandido en touch)
     let clickedElecId: string | undefined;
-    if (isTouchOrigin) {
+    if (isTouchClick) {
       clickedElecId = findNearestSVGAttr(e.clientX, e.clientY, 'data-elec-id', 22) ?? undefined;
     } else {
       clickedElecId = (target.closest('[data-elec-id]') as HTMLElement)?.getAttribute('data-elec-id') ?? undefined;
@@ -224,7 +230,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       clickedElecId,
       snap.segIdx !== -1 ? snap.lado : undefined
     );
-  }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick, onSelectElement, wasTouchDrag]);
+  }, [ambiente, meta, activeTab, pan, zoom, onCanvasClick, onSelectElement, wasTouchDrag, isTouchDevice]);
 
   /** Información técnica de la geometría actual */
   const status = useMemo(() => {
