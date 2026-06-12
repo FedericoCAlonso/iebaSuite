@@ -86,6 +86,7 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
   const containerRef = useRef<HTMLDivElement>(null);
   const { zoom, pan, resetZoom, zoomIn, zoomOut, wasTouchDrag } = useZoomPan(containerRef);
   const { activeTab } = useEditorTab();
+  const isTouchDevice = useMemo(() => typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0), []);
 
   const [toastVisible, setToastVisible] = useState(false);
 
@@ -145,7 +146,11 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
       return;
     }
 
-    const target = e.target as HTMLElement;
+    let target = e.target as HTMLElement;
+    if (target.classList.contains('touch-overlay')) {
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      target = (elements.find(el => el !== target) || target) as HTMLElement;
+    }
     const isTouchOrigin = (e.nativeEvent as PointerEvent).pointerType === 'touch';
 
     // 1. Lógica de selección (independiente de la inserción)
@@ -264,6 +269,21 @@ export function Preview({ project, ambiente, meta, symbolsLib, onCanvasClick, cr
           cursor: CURSOR_BY_TAB[activeTab]
         }}
       >
+        {/* Capa transparente estática para capturar gestos táctiles y evitar bug de transformación en WebKit */}
+        <div
+          className="touch-overlay"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 4,
+            pointerEvents: isTouchDevice ? 'auto' : 'none',
+            background: 'transparent',
+            touchAction: 'none'
+          }}
+        />
         {svgContent ? (
           <div
             className="svg-container"

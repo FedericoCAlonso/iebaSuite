@@ -134,7 +134,9 @@ export function useZoomPan(
     const onTouchStart = (e: TouchEvent) => {
       wasTouchDrag.current = false;
       if (e.touches.length === 2) {
-        // Pinch-to-zoom: calculamos distancia inicial entre dedos
+        // Pinch-to-zoom: prevenimos el zoom nativo del navegador inmediatamente en touchstart
+        e.preventDefault();
+        // calculamos distancia inicial entre dedos
         lastDist.current = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -222,10 +224,11 @@ export function useZoomPan(
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     
-    // Touch: touchmove debe ser no-pasivo para preventDefault() en pan y pinch
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    // Touch: touchmove y touchstart deben ser no-pasivos para preventDefault() en pan y pinch en iOS Safari
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
 
     // ─── CLEANUP ───
     return () => {
@@ -237,6 +240,7 @@ export function useZoomPan(
       el.removeEventListener('touchstart', onTouchStart);
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
     };
   }, [containerRef]); // Se reinicia si cambia la referencia del contenedor
 

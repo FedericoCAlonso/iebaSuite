@@ -18,7 +18,7 @@ export function renderMaster(project: Project, symbolsLib: DefinicionSimbolo[], 
   const ambs = ambientesCalculados || project.ambientes;
   
   const placed = ambs.filter(a => a.posX !== undefined);
-  if (!placed.length) return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="white"/></svg>`;
+  if (!placed.length) return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="touch-action: none;"><rect width="100%" height="100%" fill="white" pointer-events="none"/></svg>`;
   
   const globalData = placed.map(amb => {
     const { allSegs } = buildSegs(amb, meta);
@@ -35,13 +35,13 @@ export function renderMaster(project: Project, symbolsLib: DefinicionSimbolo[], 
   const vx = minX - margin;
   const vy = minY - margin;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="${f(vx)} ${f(vy)} ${f(w)} ${f(h)}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="${f(vx)} ${f(vy)} ${f(w)} ${f(h)}" style="touch-action: none;">
     <defs>
       <pattern id="grid" width="6" height="6" patternUnits="userSpaceOnUse">
         <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>
       </pattern>
     </defs>
-    <rect x="${f(vx)}" y="${f(vy)}" width="${f(w)}" height="${f(h)}" fill="white"/>
+    <rect x="${f(vx)}" y="${f(vy)}" width="${f(w)}" height="${f(h)}" fill="white" pointer-events="none"/>
     ${renderMasterContent(project, symbolsLib, ambs)}
   </svg>`;
 }

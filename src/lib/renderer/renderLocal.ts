@@ -57,9 +57,9 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
   const out: string[] = [];
   
   if (!segs.length) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}">
-      <rect width="100%" height="100%" fill="white"/>
-      <rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="#ccc" stroke-width="0.5"/>
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}mm" height="${pageH}mm" viewBox="0 0 ${pageW} ${pageH}" style="touch-action: none;">
+      <rect width="100%" height="100%" fill="white" pointer-events="none"/>
+      <rect x="${margin}" y="${margin}" width="${pageW - 2 * margin}" height="${pageH - 2 * margin}" fill="none" stroke="#ccc" stroke-width="0.5" pointer-events="none"/>
     </svg>`;
   }
 
@@ -222,7 +222,7 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${widthAttr}" height="${heightAttr}" viewBox="0 0 ${pageW} ${pageH}" style="touch-action: none;">
     <defs>
       <pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
         <line x1="0" y1="0" x2="0" y2="4" stroke="rgba(0,0,0,0.3)" stroke-width="1" />
@@ -231,7 +231,7 @@ export function render(ambiente: Ambiente, meta: Meta, symbolsLib: DefinicionSim
         <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>
       </pattern>
     </defs>
-    <rect width="100%" height="100%" fill="white"/>
+    <rect width="100%" height="100%" fill="white" pointer-events="none"/>
     ${out.join('\n')}
   </svg>`;
 }
